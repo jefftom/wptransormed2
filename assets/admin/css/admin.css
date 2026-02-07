@@ -1,0 +1,171 @@
+/**
+ * WPTransformed Admin Settings Page Styles
+ * assets/admin/css/admin.css
+ */
+
+/* Module cards list */
+.wpt-modules-list {
+    margin-top: 20px;
+}
+
+/* Module card */
+.wpt-module-card {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 0;
+    margin-bottom: 12px;
+    transition: border-color 0.2s ease;
+}
+
+/* Active module card — blue left border */
+.wpt-module-active {
+    border-left: 4px solid #2271b1;
+}
+
+/* Module header — flex row */
+.wpt-module-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    gap: 16px;
+}
+
+.wpt-module-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.wpt-module-info h3 {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.wpt-module-info p {
+    margin: 0;
+    font-size: 13px;
+    color: #50575e;
+}
+
+/* Toggle switch — CSS only */
+.wpt-toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.wpt-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.wpt-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #c3c4c7;
+    border-radius: 24px;
+    transition: background-color 0.2s ease;
+}
+
+.wpt-toggle-slider::before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+}
+
+.wpt-toggle input:checked + .wpt-toggle-slider {
+    background-color: #2271b1;
+}
+
+.wpt-toggle input:checked + .wpt-toggle-slider::before {
+    transform: translateX(20px);
+}
+
+.wpt-toggle input:focus + .wpt-toggle-slider {
+    box-shadow: 0 0 0 2px #2271b1;
+}
+
+/* Module settings panel */
+.wpt-module-settings {
+    padding: 16px 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.wpt-settings-fields {
+    margin-bottom: 12px;
+}
+
+/* Module count badge in nav tabs */
+.wpt-module-count {
+    display: inline-block;
+    min-width: 18px;
+    height: 18px;
+    line-height: 18px;
+    padding: 0 5px;
+    margin-left: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    color: #50575e;
+    background: #e0e0e0;
+    border-radius: 9px;
+    vertical-align: middle;
+}
+
+.nav-tab-active .wpt-module-count {
+    background: #2271b1;
+    color: #fff;
+}
+
+/* Safe mode info section */
+.wpt-safe-mode-info {
+    margin-top: 40px;
+    padding: 16px 20px;
+    background: #f6f7f7;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    color: #50575e;
+}
+
+.wpt-safe-mode-info h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    color: #1d2327;
+}
+
+.wpt-safe-mode-info p {
+    margin: 4px 0;
+    font-size: 13px;
+}
+
+.wpt-safe-mode-info code {
+    display: inline-block;
+    padding: 4px 8px;
+    margin: 4px 0;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 3px;
+    font-size: 12px;
+    word-break: break-all;
+}
+
+.wpt-safe-mode-info .description {
+    font-style: italic;
+    color: #646970;
+}
