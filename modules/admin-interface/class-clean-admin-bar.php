@@ -24,15 +24,39 @@ class Clean_Admin_Bar extends Module_Base {
      * Well-known admin bar node IDs with human-readable labels.
      */
     private const KNOWN_NODES = [
-        'wp-logo'      => 'WordPress Logo',
-        'site-name'    => 'Site Name',
-        'updates'      => 'Updates Counter',
-        'comments'     => 'Comments Counter',
-        'new-content'  => '+ New Dropdown',
-        'edit'         => 'Edit Page/Post Link',
-        'my-account'   => 'User Menu (Howdy)',
-        'search'       => 'Search Field',
+        'wp-logo'       => 'WordPress Logo',
+        'site-name'     => 'Site Name',
+        'updates'       => 'Updates Counter',
+        'comments'      => 'Comments Counter',
+        'new-content'   => '+ New Dropdown',
+        'edit'          => 'Edit Page/Post Link',
+        'my-account'    => 'User Menu (Howdy)',
+        'search'        => 'Search Field',
         'top-secondary' => 'Right Side Container',
+    ];
+
+    /**
+     * Top-level node IDs that belong to the left side of the admin bar.
+     * Children of these nodes are included automatically.
+     */
+    private const LEFT_SIDE_NODES = [
+        'menu-toggle',
+        'wp-logo',
+        'site-name',
+        'updates',
+        'comments',
+        'new-content',
+        'edit',
+    ];
+
+    /**
+     * Top-level node IDs that belong to the right side of the admin bar.
+     * Children of these nodes are included automatically.
+     */
+    private const RIGHT_SIDE_NODES = [
+        'top-secondary',
+        'my-account',
+        'search',
     ];
 
     /**
@@ -242,10 +266,10 @@ class Clean_Admin_Bar extends Module_Base {
     // ── Settings UI ───────────────────────────────────────────
 
     public function render_settings(): void {
-        $settings     = $this->get_settings();
-        $hidden_nodes = $settings['hidden_nodes'];
+        $settings       = $this->get_settings();
+        $hidden_nodes   = $settings['hidden_nodes'];
         $hide_for_roles = $settings['hide_for_roles'];
-        $nodes        = $this->get_node_list();
+        $nodes          = $this->get_node_list();
 
         // Separate top-level nodes from children.
         $top_level = [];
@@ -257,6 +281,24 @@ class Clean_Admin_Bar extends Module_Base {
                 $children[ $node['parent'] ][ $id ] = $node;
             }
         }
+
+        // Sort top-level nodes into three sections.
+        $left_side = [];
+        $right_side = [];
+        $plugin_items = [];
+
+        foreach ( $top_level as $id => $node ) {
+            if ( in_array( $id, self::LEFT_SIDE_NODES, true ) ) {
+                $left_side[ $id ] = $node;
+            } elseif ( in_array( $id, self::RIGHT_SIDE_NODES, true ) ) {
+                $right_side[ $id ] = $node;
+            } else {
+                $plugin_items[ $id ] = $node;
+            }
+        }
+
+        // Also sort child nodes whose parent isn't top-level into plugin items.
+        // (Children whose parent IS top-level are rendered indented under the parent.)
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $just_scanned = isset( $_GET['wpt_scanned'] );
@@ -276,17 +318,11 @@ class Clean_Admin_Bar extends Module_Base {
                             <?php esc_html_e( 'Check items to hide from the admin bar. Hiding items does not affect permissions — users can still access features via direct URL.', 'wptransformed' ); ?>
                         </p>
 
-                        <?php foreach ( $top_level as $id => $node ) : ?>
-                            <?php $this->render_node_checkbox( $id, $node, $hidden_nodes ); ?>
-
-                            <?php if ( isset( $children[ $id ] ) ) : ?>
-                                <div style="margin-left: 24px;">
-                                    <?php foreach ( $children[ $id ] as $child_id => $child_node ) : ?>
-                                        <?php $this->render_node_checkbox( $child_id, $child_node, $hidden_nodes ); ?>
-                                    <?php endforeach; ?>
-                                </div>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
+                        <?php $this->render_node_section( __( 'Left Side', 'wptransformed' ), $left_side, $children, $hidden_nodes ); ?>
+                        <?php $this->render_node_section( __( 'Right Side', 'wptransformed' ), $right_side, $children, $hidden_nodes ); ?>
+                        <?php if ( ! empty( $plugin_items ) ) : ?>
+                            <?php $this->render_node_section( __( 'Plugin & Theme Items', 'wptransformed' ), $plugin_items, $children, $hidden_nodes ); ?>
+                        <?php endif; ?>
                     </fieldset>
                 </td>
             </tr>
@@ -323,6 +359,35 @@ class Clean_Admin_Bar extends Module_Base {
                 </td>
             </tr>
         </table>
+        <?php
+    }
+
+    /**
+     * Render a section of admin bar nodes with a heading.
+     *
+     * @param string   $label        Section heading text.
+     * @param array    $section_nodes Top-level nodes in this section.
+     * @param array    $children     All children keyed by parent ID.
+     * @param string[] $hidden_nodes Currently hidden node IDs.
+     */
+    private function render_node_section( string $label, array $section_nodes, array $children, array $hidden_nodes ): void {
+        ?>
+        <h4 style="margin: 16px 0 8px; font-size: 13px; font-weight: 600; color: #1d2327;">
+            <?php echo esc_html( $label ); ?>
+        </h4>
+        <div style="margin-left: 4px;">
+            <?php foreach ( $section_nodes as $id => $node ) : ?>
+                <?php $this->render_node_checkbox( $id, $node, $hidden_nodes ); ?>
+
+                <?php if ( isset( $children[ $id ] ) ) : ?>
+                    <div style="margin-left: 24px;">
+                        <?php foreach ( $children[ $id ] as $child_id => $child_node ) : ?>
+                            <?php $this->render_node_checkbox( $child_id, $child_node, $hidden_nodes ); ?>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </div>
         <?php
     }
 
