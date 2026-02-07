@@ -158,9 +158,8 @@
         section.appendChild(heading);
 
         notices.forEach(function(el) {
-            // Make visible — CSS hide doesn't apply on notifications page,
-            // but the notices were rendered in the standard area above.
-            el.style.setProperty('display', '', 'important');
+            // Force visible — override any lingering CSS hide rules.
+            el.style.setProperty('display', 'block', 'important');
             section.appendChild(el);
         });
 
