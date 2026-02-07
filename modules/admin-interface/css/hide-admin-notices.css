@@ -2,56 +2,60 @@
  * Hide Admin Notices — Styles
  * modules/admin-interface/css/hide-admin-notices.css
  *
- * Note: The inline CSS rule that hides .notice elements is injected
- * via wp_add_inline_style in PHP. This file only styles the bar/panel.
+ * Styles the Notifications dashboard widget content and the
+ * minimal text link shown on non-dashboard admin pages.
+ *
+ * The inline CSS rule that hides .notice elements is injected
+ * via wp_add_inline_style in PHP.
  */
 
-/* Collapsed notice bar */
-.wpt-notice-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    margin: 5px 0 15px;
-    background: #f0f6fc;
-    border-left: 4px solid #2271b1;
-    cursor: pointer;
-    user-select: none;
-}
+/* ── Dashboard widget ─────────────────────────────────────── */
 
-.wpt-notice-bar-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: #1d2327;
-}
-
-.wpt-notice-toggle {
-    background: none;
-    border: none;
-    color: #2271b1;
-    cursor: pointer;
-    font-size: 13px;
-    padding: 0;
-    text-decoration: underline;
-}
-
-/* Expanded notice panel */
-.wpt-notice-panel {
-    max-height: 400px;
-    overflow-y: auto;
-    border-bottom: 1px solid #c3c4c7;
-    margin-bottom: 15px;
-}
-
-/* Notices inside the panel must be visible (overrides the inline hide rule) */
-.wpt-notice-panel .notice,
-.wpt-notice-panel .updated,
-.wpt-notice-panel .error,
-.wpt-notice-panel .update-nag {
+#wpt-notices-widget-content .notice,
+#wpt-notices-widget-content .updated,
+#wpt-notices-widget-content .error,
+#wpt-notices-widget-content .update-nag {
     display: block !important;
+    margin: 5px 0;
 }
 
-.wpt-notice-panel-footer {
-    padding: 8px 0;
+#wpt-notices-widget-content .notice:last-child {
+    margin-bottom: 0;
+}
+
+.wpt-no-notices {
+    color: #646970;
+    font-style: italic;
+    margin: 0;
+}
+
+#wpt-notices-widget-footer {
+    padding: 8px 0 0;
     text-align: right;
+    border-top: 1px solid #c3c4c7;
+    margin-top: 12px;
+}
+
+/* ── Non-dashboard text link ──────────────────────────────── */
+
+.wpt-notice-link {
+    padding: 6px 0;
+    margin: 2px 0 8px;
+    font-size: 13px;
+    color: #646970;
+    line-height: 1.4;
+}
+
+.wpt-notice-link-count {
+    color: #646970;
+}
+
+.wpt-notice-link-dashboard {
+    color: #2271b1;
+    text-decoration: none;
+}
+
+.wpt-notice-link-dashboard:hover {
+    color: #135e96;
+    text-decoration: underline;
 }
