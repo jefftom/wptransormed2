@@ -52,6 +52,7 @@ class Hide_Admin_Notices extends Module_Base {
 
     public function init(): void {
         add_action( 'wp_dashboard_setup', [ $this, 'register_dashboard_widget' ] );
+        add_action( 'admin_menu', [ $this, 'register_sidebar_menu' ] );
     }
 
     // ── Dashboard Widget ──────────────────────────────────────
@@ -88,6 +89,30 @@ class Hide_Admin_Notices extends Module_Base {
         $wp_meta_boxes[ $page ]['normal']['high'] = array_merge(
             [ 'wpt_notices_widget' => $widget ],
             $wp_meta_boxes[ $page ]['normal']['high']
+        );
+    }
+
+    // ── Sidebar Menu ────────────────────────────────────────
+
+    /**
+     * Add "Notifications" submenu under Dashboard.
+     *
+     * The count bubble is rendered empty — JS fills in the actual count
+     * after DOMContentLoaded when notices are known.
+     */
+    public function register_sidebar_menu(): void {
+        $title = __( 'Notifications', 'wptransformed' )
+            . ' <span id="wpt-menu-notice-count" class="update-plugins" style="display:none;">'
+            . '<span class="plugin-count">0</span></span>';
+
+        add_submenu_page(
+            'index.php',
+            __( 'Notifications', 'wptransformed' ),
+            $title,
+            'read',
+            'index.php#wpt_notices_widget',
+            '',
+            99
         );
     }
 
