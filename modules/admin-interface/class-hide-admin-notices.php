@@ -8,19 +8,23 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 use WPTransformed\Modules\Module_Base;
 
 /**
- * Hide Admin Notices — Dashboard widget + text link approach.
+ * Hide Admin Notices — Dedicated notifications page approach.
  *
- * Dashboard page: notices are hidden via CSS, then JS moves them into a
- * "Notifications" dashboard widget at the top of the normal column.
+ * Uses output buffering on every admin page load to capture notices,
+ * stores the count in a per-user transient for the sidebar bubble,
+ * and stores the HTML in a per-user transient for the notifications page.
  *
- * Other admin pages: notices are hidden via CSS, a small text link shows
- * the count and links to the Dashboard.
- *
- * No output buffering.
+ * Notifications page: renders all captured notices grouped by type.
+ * Other pages: CSS hides notices, JS shows a text link with count.
  *
  * @package WPTransformed
  */
 class Hide_Admin_Notices extends Module_Base {
+
+    /**
+     * Whether output buffering is currently active.
+     */
+    private bool $is_buffering = false;
 
     // ── Identity ──────────────────────────────────────────────
 
@@ -37,7 +41,7 @@ class Hide_Admin_Notices extends Module_Base {
     }
 
     public function get_description(): string {
-        return __( 'Hide admin notices and collect them into a Dashboard widget. Other pages show a minimal notification link.', 'wptransformed' );
+        return __( 'Hide admin notices and collect them into a dedicated Notifications page under Dashboard.', 'wptransformed' );
     }
 
     // ── Settings ──────────────────────────────────────────────
@@ -51,84 +55,160 @@ class Hide_Admin_Notices extends Module_Base {
     // ── Lifecycle ─────────────────────────────────────────────
 
     public function init(): void {
-        add_action( 'wp_dashboard_setup', [ $this, 'register_dashboard_widget' ] );
-        add_action( 'admin_menu', [ $this, 'register_sidebar_menu' ] );
+        add_action( 'admin_menu', [ $this, 'register_notifications_page' ] );
+        add_action( 'admin_notices', [ $this, 'start_capture' ], 1 );
+        add_action( 'all_admin_notices', [ $this, 'end_capture' ], PHP_INT_MAX );
     }
 
-    // ── Dashboard Widget ──────────────────────────────────────
+    // ── Output Buffering (capture + count) ────────────────────
 
     /**
-     * Register the Notifications widget and move it to the top.
-     */
-    public function register_dashboard_widget(): void {
-        wp_add_dashboard_widget(
-            'wpt_notices_widget',
-            __( 'Notifications', 'wptransformed' ),
-            [ $this, 'render_dashboard_widget' ]
-        );
-
-        // Move widget to top of the normal column.
-        global $wp_meta_boxes;
-        $screen = get_current_screen();
-        if ( ! $screen ) {
-            return;
-        }
-        $page = $screen->id; // 'dashboard'
-
-        if ( ! isset( $wp_meta_boxes[ $page ]['normal']['core']['wpt_notices_widget'] ) ) {
-            return;
-        }
-
-        $widget = $wp_meta_boxes[ $page ]['normal']['core']['wpt_notices_widget'];
-        unset( $wp_meta_boxes[ $page ]['normal']['core']['wpt_notices_widget'] );
-
-        // Prepend to the 'high' priority bucket so it renders first.
-        if ( ! isset( $wp_meta_boxes[ $page ]['normal']['high'] ) ) {
-            $wp_meta_boxes[ $page ]['normal']['high'] = [];
-        }
-        $wp_meta_boxes[ $page ]['normal']['high'] = array_merge(
-            [ 'wpt_notices_widget' => $widget ],
-            $wp_meta_boxes[ $page ]['normal']['high']
-        );
-    }
-
-    // ── Sidebar Menu ────────────────────────────────────────
-
-    /**
-     * Add "Notifications" submenu under Dashboard.
+     * Start capturing notice output.
      *
-     * The count bubble is rendered empty — JS fills in the actual count
-     * after DOMContentLoaded when notices are known.
+     * Runs on admin_notices at priority 1 (very early).
+     * Skipped on our own notifications page — notices display there natively.
      */
-    public function register_sidebar_menu(): void {
-        $title = __( 'Notifications', 'wptransformed' )
-            . ' <span id="wpt-menu-notice-count" class="update-plugins" style="display:none;">'
-            . '<span class="plugin-count">0</span></span>';
+    public function start_capture(): void {
+        if ( $this->is_notifications_page() ) {
+            return;
+        }
 
-        add_submenu_page(
+        if ( ! $this->should_run_on_current_page() ) {
+            return;
+        }
+
+        ob_start();
+        $this->is_buffering = true;
+    }
+
+    /**
+     * End capturing, store count + HTML in per-user transients.
+     *
+     * Runs on all_admin_notices at PHP_INT_MAX (very late).
+     */
+    public function end_capture(): void {
+        if ( ! $this->is_buffering ) {
+            return;
+        }
+
+        $html = ob_get_clean();
+        $this->is_buffering = false;
+
+        if ( $html === false ) {
+            $html = '';
+        }
+
+        // Count notice elements in the captured HTML.
+        $count     = 0;
+        $has_error = false;
+
+        if ( trim( $html ) !== '' ) {
+            $count = preg_match_all(
+                '/<div[^>]*class="[^"]*\b(?:notice|updated|error|update-nag)\b[^"]*"/',
+                $html
+            );
+            $has_error = (bool) preg_match(
+                '/<div[^>]*class="[^"]*\b(?:notice-error|error)\b[^"]*"/',
+                $html
+            );
+        }
+
+        $user_id = get_current_user_id();
+        if ( ! $user_id ) {
+            return;
+        }
+
+        // Store per-user transient (short TTL — refreshed every page load).
+        $data = [
+            'count'     => $count,
+            'has_error' => $has_error,
+            'html'      => $html,
+        ];
+        set_transient( 'wpt_notices_' . $user_id, $data, 5 * MINUTE_IN_SECONDS );
+    }
+
+    // ── Admin Page ────────────────────────────────────────────
+
+    /**
+     * Register "Notifications" submenu under Dashboard (index.php).
+     *
+     * The count bubble reads from the transient stored on the previous
+     * page load. It will be empty on the very first load.
+     */
+    public function register_notifications_page(): void {
+        $bubble = $this->get_menu_bubble_markup();
+
+        $hook = add_submenu_page(
             'index.php',
             __( 'Notifications', 'wptransformed' ),
-            $title,
+            __( 'Notifications', 'wptransformed' ) . $bubble,
             'read',
-            'index.php#wpt_notices_widget',
-            '',
+            'wpt-notifications',
+            [ $this, 'render_notifications_page' ],
             99
         );
+
+        // When on the notifications page, we need to re-fire notice hooks
+        // so we can capture and display them.
+        if ( $hook ) {
+            add_action( 'load-' . $hook, [ $this, 'prepare_notifications_page' ] );
+        }
     }
 
     /**
-     * Render the widget content.
-     * JS will populate this container with moved notices.
+     * Build the count bubble markup from the stored transient.
      */
-    public function render_dashboard_widget(): void {
+    private function get_menu_bubble_markup(): string {
+        $user_id = get_current_user_id();
+        if ( ! $user_id ) {
+            return '';
+        }
+
+        $data = get_transient( 'wpt_notices_' . $user_id );
+        if ( ! is_array( $data ) || empty( $data['count'] ) ) {
+            return '';
+        }
+
+        $count     = (int) $data['count'];
+        $has_error = ! empty( $data['has_error'] );
+        $label     = ( $has_error ? "\u{26A0}\u{FE0F} " : '' ) . $count;
+
+        return ' <span class="update-plugins count-' . $count . '">'
+            . '<span class="plugin-count">' . esc_html( $label ) . '</span></span>';
+    }
+
+    /**
+     * Fires on `load-{page}` for the notifications page.
+     *
+     * We need notices to fire so we can capture them for display.
+     * OB capture in start_capture() is skipped on this page,
+     * so notices render directly into the page output.
+     */
+    public function prepare_notifications_page(): void {
+        // Nothing needed — notices fire normally on this page since
+        // start_capture() skips it. They will appear in the standard
+        // notice area above our page content.
+    }
+
+    /**
+     * Render the Notifications admin page.
+     */
+    public function render_notifications_page(): void {
         ?>
-        <div id="wpt-notices-widget-content">
-            <p class="wpt-no-notices"><?php esc_html_e( 'No notifications.', 'wptransformed' ); ?></p>
-        </div>
-        <div id="wpt-notices-widget-footer" style="display:none;">
-            <button type="button" class="button wpt-dismiss-all">
-                <?php esc_html_e( 'Dismiss All', 'wptransformed' ); ?>
-            </button>
+        <div class="wrap">
+            <h1><?php esc_html_e( 'Notifications', 'wptransformed' ); ?></h1>
+
+            <div id="wpt-notifications-page">
+                <p class="wpt-notifications-description">
+                    <?php esc_html_e( 'Admin notices from across your site are collected here.', 'wptransformed' ); ?>
+                </p>
+                <noscript>
+                    <p><?php esc_html_e( 'Notices are displayed above this section by WordPress.', 'wptransformed' ); ?></p>
+                </noscript>
+                <div id="wpt-notifications-content">
+                    <?php // JS will move and group notices here. ?>
+                </div>
+            </div>
         </div>
         <?php
     }
@@ -136,13 +216,13 @@ class Hide_Admin_Notices extends Module_Base {
     // ── Assets ────────────────────────────────────────────────
 
     public function enqueue_admin_assets( string $hook ): void {
-        if ( ! $this->should_run( $hook ) ) {
+        if ( ! $this->should_run_on_current_page() && ! $this->is_notifications_page() ) {
             return;
         }
 
-        $is_dashboard = ( $hook === 'index.php' );
+        $is_notifications_page = $this->is_notifications_page();
 
-        // CSS file for widget + text link styling
+        // CSS file for notifications page + text link styling.
         wp_enqueue_style(
             'wpt-hide-admin-notices',
             WPT_URL . 'modules/admin-interface/css/hide-admin-notices.css',
@@ -150,25 +230,18 @@ class Hide_Admin_Notices extends Module_Base {
             WPT_VERSION
         );
 
-        // Inline CSS that immediately hides notices (no flash)
-        $hide_css = '#wpbody-content .notice,'
-            . ' #wpbody-content .updated,'
-            . ' #wpbody-content .error,'
-            . ' #wpbody-content .update-nag'
-            . ' { display: none !important; }';
-
-        // On the dashboard, also keep notices inside the widget visible
-        if ( $is_dashboard ) {
-            $hide_css = '#wpbody-content .notice:not(#wpt-notices-widget-content .notice),'
-                . ' #wpbody-content .updated:not(#wpt-notices-widget-content .updated),'
-                . ' #wpbody-content .error:not(#wpt-notices-widget-content .error),'
-                . ' #wpbody-content .update-nag:not(#wpt-notices-widget-content .update-nag)'
+        // On all pages EXCEPT the notifications page: hide notices with CSS.
+        if ( ! $is_notifications_page ) {
+            $hide_css = '#wpbody-content .notice,'
+                . ' #wpbody-content .updated,'
+                . ' #wpbody-content .error,'
+                . ' #wpbody-content .update-nag'
                 . ' { display: none !important; }';
+
+            wp_add_inline_style( 'wpt-hide-admin-notices', $hide_css );
         }
 
-        wp_add_inline_style( 'wpt-hide-admin-notices', $hide_css );
-
-        // JS that collects hidden notices
+        // JS for menu bubble updates + text link / notifications page logic.
         wp_enqueue_script(
             'wpt-hide-admin-notices',
             WPT_URL . 'modules/admin-interface/js/hide-admin-notices.js',
@@ -178,16 +251,17 @@ class Hide_Admin_Notices extends Module_Base {
         );
 
         wp_localize_script( 'wpt-hide-admin-notices', 'wptHideNotices', [
-            'isDashboard'  => $is_dashboard,
-            'dashboardUrl' => esc_url( admin_url( 'index.php' ) ),
-            'i18n'         => [
-                'noNotifications' => __( 'No notifications.', 'wptransformed' ),
-                'dismissAll'      => __( 'Dismiss All', 'wptransformed' ),
-                /* translators: %d: number of notices */
-                'oneNotification' => __( '%d notification', 'wptransformed' ),
-                /* translators: %d: number of notices */
+            'isNotificationsPage' => $is_notifications_page,
+            'notificationsUrl'    => esc_url( admin_url( 'admin.php?page=wpt-notifications' ) ),
+            'i18n'                => [
+                'noNotifications'   => __( 'No notifications.', 'wptransformed' ),
+                'dismissAll'        => __( 'Dismiss All', 'wptransformed' ),
+                'oneNotification'   => __( '%d notification', 'wptransformed' ),
                 'manyNotifications' => __( '%d notifications', 'wptransformed' ),
-                'viewDashboard'   => __( 'View Dashboard', 'wptransformed' ),
+                'viewNotifications' => __( 'View Notifications', 'wptransformed' ),
+                'errors'            => __( 'Errors', 'wptransformed' ),
+                'warnings'          => __( 'Warnings', 'wptransformed' ),
+                'other'             => __( 'Info & Success', 'wptransformed' ),
             ],
         ] );
     }
@@ -195,12 +269,21 @@ class Hide_Admin_Notices extends Module_Base {
     // ── Helpers ────────────────────────────────────────────────
 
     /**
-     * Check if the module should run on this page based on scope setting.
+     * Check if the current admin page is our Notifications page.
      */
-    private function should_run( string $hook ): bool {
+    private function is_notifications_page(): bool {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        return isset( $_GET['page'] ) && $_GET['page'] === 'wpt-notifications';
+    }
+
+    /**
+     * Check if the module should run on the current page based on scope.
+     */
+    private function should_run_on_current_page(): bool {
         $settings = $this->get_settings();
 
         if ( $settings['scope'] === 'wpt-only' ) {
+            $hook = $GLOBALS['hook_suffix'] ?? '';
             return ( strpos( $hook, 'wptransformed' ) !== false );
         }
 
@@ -213,7 +296,6 @@ class Hide_Admin_Notices extends Module_Base {
         $settings = $this->get_settings();
         ?>
         <table class="form-table" role="presentation">
-
             <tr>
                 <th scope="row"><?php esc_html_e( 'Scope', 'wptransformed' ); ?></th>
                 <td>
@@ -229,7 +311,6 @@ class Hide_Admin_Notices extends Module_Base {
                     </fieldset>
                 </td>
             </tr>
-
         </table>
         <?php
     }
@@ -242,6 +323,14 @@ class Hide_Admin_Notices extends Module_Base {
         return [
             'scope' => in_array( $raw['wpt_scope'] ?? '', $valid_scopes, true )
                         ? $raw['wpt_scope'] : 'all',
+        ];
+    }
+
+    // ── Cleanup ───────────────────────────────────────────────
+
+    public function get_cleanup_tasks(): array {
+        return [
+            [ 'type' => 'transient', 'key' => 'wpt_notices_%' ],
         ];
     }
 }

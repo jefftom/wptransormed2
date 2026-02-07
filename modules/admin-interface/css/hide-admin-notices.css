@@ -2,25 +2,26 @@
  * Hide Admin Notices — Styles
  * modules/admin-interface/css/hide-admin-notices.css
  *
- * Styles the Notifications dashboard widget content and the
- * minimal text link shown on non-dashboard admin pages.
+ * Styles the Notifications admin page (grouped notices, Dismiss All)
+ * and the minimal text link shown on all other admin pages.
  *
  * The inline CSS rule that hides .notice elements is injected
- * via wp_add_inline_style in PHP.
+ * via wp_add_inline_style in PHP (excluded on the notifications page).
  */
 
-/* ── Dashboard widget ─────────────────────────────────────── */
+/* ── Notifications page ───────────────────────────────────── */
 
-#wpt-notices-widget-content .notice,
-#wpt-notices-widget-content .updated,
-#wpt-notices-widget-content .error,
-#wpt-notices-widget-content .update-nag {
-    display: block !important;
-    margin: 5px 0;
+#wpt-notifications-page {
+    max-width: 800px;
 }
 
-#wpt-notices-widget-content .notice:last-child {
-    margin-bottom: 0;
+.wpt-notifications-description {
+    color: #646970;
+    margin: 4px 0 16px;
+}
+
+.wpt-notifications-header {
+    margin-bottom: 16px;
 }
 
 .wpt-no-notices {
@@ -29,14 +30,27 @@
     margin: 0;
 }
 
-#wpt-notices-widget-footer {
-    padding: 8px 0 0;
-    text-align: right;
-    border-top: 1px solid #c3c4c7;
-    margin-top: 12px;
+/* ── Notice groups ────────────────────────────────────────── */
+
+.wpt-notice-group {
+    margin-bottom: 20px;
 }
 
-/* ── Non-dashboard text link ──────────────────────────────── */
+.wpt-notice-group-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    padding: 0;
+}
+
+.wpt-notice-group .notice,
+.wpt-notice-group .updated,
+.wpt-notice-group .error,
+.wpt-notice-group .update-nag {
+    margin: 5px 0;
+}
+
+/* ── Text link on other pages ─────────────────────────────── */
 
 .wpt-notice-link {
     padding: 6px 0;
@@ -50,12 +64,12 @@
     color: #646970;
 }
 
-.wpt-notice-link-dashboard {
+.wpt-notice-link-url {
     color: #2271b1;
     text-decoration: none;
 }
 
-.wpt-notice-link-dashboard:hover {
+.wpt-notice-link-url:hover {
     color: #135e96;
     text-decoration: underline;
 }

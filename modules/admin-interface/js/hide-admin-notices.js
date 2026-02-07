@@ -1,11 +1,12 @@
 /**
- * Hide Admin Notices — Dashboard widget + text link approach.
+ * Hide Admin Notices — Notifications page approach.
  * modules/admin-interface/js/hide-admin-notices.js
  *
- * CSS has already hidden all notices instantly (no flash).
+ * On the Notifications page: collects notices from the standard WP
+ * notice area, groups them by type, moves them into the page content.
  *
- * Dashboard page: moves notices into the Notifications widget.
- * Other pages: builds a minimal text link showing the count.
+ * On all other pages: CSS has already hidden notices. JS counts them,
+ * updates the sidebar menu bubble, and inserts a text link.
  */
 (function() {
     'use strict';
@@ -14,45 +15,58 @@
         var cfg = (typeof wptHideNotices !== 'undefined') ? wptHideNotices : {};
         var i18n = cfg.i18n || {};
 
-        // Collect ALL notice elements inside #wpbody-content
+        // Collect all notice elements inside #wpbody-content.
         var container = document.getElementById('wpbody-content');
         if (!container) return;
 
         var all = container.querySelectorAll('.notice, .updated, .error, .update-nag');
 
-        // Filter out elements already inside the widget (guards against double-init)
+        // Filter out elements inside our notifications content area.
         var notices = [];
         all.forEach(function(el) {
-            if (!el.closest('#wpt-notices-widget-content')) {
+            if (!el.closest('#wpt-notifications-content')) {
                 notices.push(el);
             }
         });
 
-        // Check for errors
         var hasErrors = notices.some(function(el) {
-            return el.classList.contains('notice-error') || el.classList.contains('error');
+            return el.classList.contains('notice-error')
+                || (el.classList.contains('error') && !el.classList.contains('notice'));
         });
 
-        // Update the sidebar menu count bubble
+        // Update the sidebar menu count bubble via JS.
         updateMenuBubble(notices.length, hasErrors);
 
-        if (cfg.isDashboard) {
-            handleDashboard(notices, hasErrors, i18n);
+        if (cfg.isNotificationsPage) {
+            handleNotificationsPage(notices, hasErrors, i18n);
         } else {
             handleOtherPages(notices, hasErrors, cfg, i18n);
         }
     });
 
     /**
-     * Update the "Notifications" sidebar menu count bubble.
+     * Update the sidebar "Notifications" menu count bubble.
+     *
+     * Finds the menu link by its href containing page=wpt-notifications,
+     * then locates or creates the count bubble span.
      */
     function updateMenuBubble(count, hasErrors) {
-        var bubble = document.getElementById('wpt-menu-notice-count');
-        if (!bubble) return;
+        var menuLink = document.querySelector('#adminmenu a[href*="page=wpt-notifications"]');
+        if (!menuLink) return;
+
+        // Find existing bubble or create one.
+        var bubble = menuLink.querySelector('.update-plugins');
 
         if (count === 0) {
-            bubble.style.display = 'none';
+            if (bubble) bubble.style.display = 'none';
             return;
+        }
+
+        if (!bubble) {
+            bubble = document.createElement('span');
+            bubble.innerHTML = '<span class="plugin-count"></span>';
+            menuLink.appendChild(document.createTextNode(' '));
+            menuLink.appendChild(bubble);
         }
 
         var inner = bubble.querySelector('.plugin-count');
@@ -64,149 +78,126 @@
     }
 
     /**
-     * Dashboard: move notices into the widget container.
+     * Notifications page: group notices by type and display them.
      */
-    function handleDashboard(notices, hasErrors, i18n) {
-        var widgetContent = document.getElementById('wpt-notices-widget-content');
-        var widgetFooter = document.getElementById('wpt-notices-widget-footer');
-        if (!widgetContent) return;
-
-        // Scroll to widget if URL hash points to it
-        if (window.location.hash === '#wpt_notices_widget') {
-            var widget = document.getElementById('wpt_notices_widget');
-            if (widget) {
-                widget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }
-
-        // Update widget title with count and warning icon
-        var widgetTitle = document.querySelector('#wpt_notices_widget .hndle span, #wpt_notices_widget h2 .hndle');
-        // Try the standard dashboard widget title structure
-        if (!widgetTitle) {
-            widgetTitle = document.querySelector('#wpt_notices_widget .hndle');
-        }
+    function handleNotificationsPage(notices, hasErrors, i18n) {
+        var content = document.getElementById('wpt-notifications-content');
+        if (!content) return;
 
         if (notices.length === 0) {
-            // No notices — show the "No notifications." message (already in PHP)
+            content.innerHTML = '<p class="wpt-no-notices">'
+                + (i18n.noNotifications || 'No notifications.') + '</p>';
             return;
         }
 
-        // Remove the "No notifications." placeholder
-        var placeholder = widgetContent.querySelector('.wpt-no-notices');
-        if (placeholder) {
-            placeholder.style.display = 'none';
-        }
+        // Build Dismiss All button at top.
+        var header = document.createElement('div');
+        header.className = 'wpt-notifications-header';
 
-        // Update widget title with count
-        if (widgetTitle) {
-            var count = notices.length;
-            var tpl = (count === 1) ? (i18n.oneNotification || '%d notification') : (i18n.manyNotifications || '%d notifications');
-            var titleText = tpl.replace('%d', count);
-            if (hasErrors) {
-                titleText = titleText + ' \u26A0\uFE0F';
-            }
-            // The hndle element may contain child elements (like toggle buttons)
-            // Only update the text node
-            var firstText = null;
-            for (var i = 0; i < widgetTitle.childNodes.length; i++) {
-                if (widgetTitle.childNodes[i].nodeType === Node.TEXT_NODE && widgetTitle.childNodes[i].textContent.trim() !== '') {
-                    firstText = widgetTitle.childNodes[i];
-                    break;
-                }
-            }
-            if (firstText) {
-                firstText.textContent = titleText;
-            } else {
-                // Fallback: prepend text node
-                widgetTitle.insertBefore(document.createTextNode(titleText), widgetTitle.firstChild);
-            }
-        }
+        var dismissBtn = document.createElement('button');
+        dismissBtn.type = 'button';
+        dismissBtn.className = 'button wpt-dismiss-all';
+        dismissBtn.textContent = i18n.dismissAll || 'Dismiss All';
+        header.appendChild(dismissBtn);
+        content.appendChild(header);
 
-        // Move each notice into the widget and make it visible
+        // Categorize notices.
+        var errors = [];
+        var warnings = [];
+        var other = [];
+
         notices.forEach(function(el) {
-            el.style.setProperty('display', '', 'important');
-            widgetContent.appendChild(el);
+            if (el.classList.contains('notice-error') || (el.classList.contains('error') && !el.classList.contains('notice'))) {
+                errors.push(el);
+            } else if (el.classList.contains('notice-warning')) {
+                warnings.push(el);
+            } else {
+                other.push(el);
+            }
         });
 
-        // Show the Dismiss All footer
-        if (widgetFooter) {
-            widgetFooter.style.display = '';
-
-            var dismissBtn = widgetFooter.querySelector('.wpt-dismiss-all');
-            if (dismissBtn) {
-                dismissBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    var buttons = widgetContent.querySelectorAll('.notice.is-dismissible .notice-dismiss');
-                    buttons.forEach(function(btn) { btn.click(); });
-
-                    // After a tick, check remaining
-                    setTimeout(function() {
-                        var remaining = widgetContent.querySelectorAll('.notice, .updated, .error, .update-nag');
-                        var remainCount = remaining.length;
-
-                        // Update menu bubble with new count
-                        updateMenuBubble(remainCount, false);
-
-                        if (remainCount === 0) {
-                            if (placeholder) {
-                                placeholder.style.display = '';
-                            }
-                            widgetFooter.style.display = 'none';
-                            // Reset title
-                            if (widgetTitle) {
-                                var ft = null;
-                                for (var j = 0; j < widgetTitle.childNodes.length; j++) {
-                                    if (widgetTitle.childNodes[j].nodeType === Node.TEXT_NODE && widgetTitle.childNodes[j].textContent.trim() !== '') {
-                                        ft = widgetTitle.childNodes[j];
-                                        break;
-                                    }
-                                }
-                                if (ft) {
-                                    ft.textContent = i18n.noNotifications || 'Notifications';
-                                }
-                            }
-                        }
-                    }, 100);
-                });
-            }
+        // Render each group.
+        if (errors.length > 0) {
+            renderGroup(content, '\u26A0\uFE0F ' + (i18n.errors || 'Errors'), errors);
         }
+        if (warnings.length > 0) {
+            renderGroup(content, i18n.warnings || 'Warnings', warnings);
+        }
+        if (other.length > 0) {
+            renderGroup(content, i18n.other || 'Info & Success', other);
+        }
+
+        // Dismiss All handler.
+        dismissBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            var buttons = content.querySelectorAll('.notice.is-dismissible .notice-dismiss');
+            buttons.forEach(function(btn) { btn.click(); });
+
+            setTimeout(function() {
+                var remaining = content.querySelectorAll('.notice, .updated, .error, .update-nag');
+                updateMenuBubble(remaining.length, false);
+
+                if (remaining.length === 0) {
+                    content.innerHTML = '<p class="wpt-no-notices">'
+                        + (i18n.noNotifications || 'No notifications.') + '</p>';
+                }
+            }, 100);
+        });
     }
 
     /**
-     * Non-dashboard pages: show a minimal text link with count.
+     * Render a group of notices with a heading.
+     */
+    function renderGroup(container, title, notices) {
+        var section = document.createElement('div');
+        section.className = 'wpt-notice-group';
+
+        var heading = document.createElement('h3');
+        heading.className = 'wpt-notice-group-title';
+        heading.textContent = title;
+        section.appendChild(heading);
+
+        notices.forEach(function(el) {
+            // Make visible — CSS hide doesn't apply on notifications page,
+            // but the notices were rendered in the standard area above.
+            el.style.setProperty('display', '', 'important');
+            section.appendChild(el);
+        });
+
+        container.appendChild(section);
+    }
+
+    /**
+     * Other admin pages: insert a text link with notice count.
      */
     function handleOtherPages(notices, hasErrors, cfg, i18n) {
         if (notices.length === 0) return;
 
         var count = notices.length;
-        var tpl = (count === 1) ? (i18n.oneNotification || '%d notification') : (i18n.manyNotifications || '%d notifications');
+        var tpl = (count === 1)
+            ? (i18n.oneNotification || '%d notification')
+            : (i18n.manyNotifications || '%d notifications');
         var countText = tpl.replace('%d', count);
+        var viewText = i18n.viewNotifications || 'View Notifications';
+        var url = cfg.notificationsUrl || '';
 
-        var viewText = i18n.viewDashboard || 'View Dashboard';
-        var dashboardUrl = cfg.dashboardUrl || '';
-
-        // Build the text link
         var wrapper = document.createElement('div');
         wrapper.className = 'wpt-notice-link';
 
         var text = document.createElement('span');
         text.className = 'wpt-notice-link-count';
         text.textContent = (hasErrors ? '\u26A0\uFE0F ' : '') + countText;
-
         wrapper.appendChild(text);
 
-        if (dashboardUrl) {
-            var sep = document.createTextNode(' \u2014 ');
-            wrapper.appendChild(sep);
-
+        if (url) {
+            wrapper.appendChild(document.createTextNode(' \u2014 '));
             var link = document.createElement('a');
-            link.href = dashboardUrl;
-            link.className = 'wpt-notice-link-dashboard';
+            link.href = url;
+            link.className = 'wpt-notice-link-url';
             link.textContent = viewText;
             wrapper.appendChild(link);
         }
 
-        // Insert at the top of .wrap or #wpbody-content
         var target = document.querySelector('#wpbody-content .wrap')
             || document.getElementById('wpbody-content');
         if (!target) return;
