@@ -50,10 +50,9 @@ class Content_Duplication extends Module_Base {
     // ── Lifecycle ─────────────────────────────────────────────
 
     public function init(): void {
-        // Row actions — Duplicate link on posts, pages, and media
+        // Row actions — Duplicate link on posts and pages
         add_filter( 'post_row_actions', [ $this, 'add_row_action' ], 10, 2 );
         add_filter( 'page_row_actions', [ $this, 'add_row_action' ], 10, 2 );
-        add_filter( 'media_row_actions', [ $this, 'add_row_action' ], 10, 2 );
 
         // Handle the duplication action
         add_action( 'admin_action_wpt_duplicate_post', [ $this, 'handle_duplicate' ] );
@@ -377,6 +376,7 @@ JS;
     public function render_settings(): void {
         $settings = $this->get_settings();
         $post_types = get_post_types( [ 'public' => true ], 'objects' );
+        unset( $post_types['attachment'] );
         ?>
 
         <table class="form-table" role="presentation">
@@ -477,7 +477,7 @@ JS;
         $valid_redirects = [ 'list', 'edit' ];
 
         // Sanitize post types — only allow registered public post types
-        $allowed_post_types = array_keys( get_post_types( [ 'public' => true ] ) );
+        $allowed_post_types = array_diff( array_keys( get_post_types( [ 'public' => true ] ) ), [ 'attachment' ] );
         $post_types = isset( $raw['wpt_post_types'] ) && is_array( $raw['wpt_post_types'] )
             ? array_intersect( array_map( 'sanitize_key', $raw['wpt_post_types'] ), $allowed_post_types )
             : [];
