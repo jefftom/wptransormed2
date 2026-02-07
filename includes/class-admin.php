@@ -19,15 +19,16 @@ class Admin {
     }
 
     /**
-     * Register the settings page under Settings menu.
+     * Register a top-level admin menu page.
      */
     public function register_page(): void {
-        $hook = add_options_page(
+        $hook = add_menu_page(
             __( 'WPTransformed', 'wptransformed' ),    // Page title
             __( 'WPTransformed', 'wptransformed' ),    // Menu title
             'manage_options',                           // Capability
             'wptransformed',                            // Slug
-            [ $this, 'render_page' ]                    // Callback
+            [ $this, 'render_page' ],                   // Callback
+            'dashicons-admin-generic'                   // Icon
         );
 
         // Enqueue assets only on our settings page
@@ -110,7 +111,7 @@ class Admin {
                 <?php // Category tabs ?>
                 <nav class="nav-tab-wrapper">
                     <?php foreach ( $categories as $cat_slug => $cat_modules ) : ?>
-                        <a href="<?php echo esc_url( add_query_arg( 'tab', $cat_slug, admin_url( 'options-general.php?page=wptransformed' ) ) ); ?>"
+                        <a href="<?php echo esc_url( add_query_arg( 'tab', $cat_slug, admin_url( 'admin.php?page=wptransformed' ) ) ); ?>"
                            class="nav-tab <?php echo $active_tab === $cat_slug ? 'nav-tab-active' : ''; ?>">
                             <?php echo esc_html( $category_labels[ $cat_slug ] ?? ucwords( str_replace( '-', ' ', $cat_slug ) ) ); ?>
                             <span class="wpt-module-count"><?php echo count( $cat_modules ); ?></span>
@@ -215,7 +216,7 @@ class Admin {
             'page'      => 'wptransformed',
             'tab'       => $module->get_category(),
             'wpt_saved' => '1',
-        ], admin_url( 'options-general.php' ) ) );
+        ], admin_url( 'admin.php' ) ) );
         exit;
     }
 
