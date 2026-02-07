@@ -1,0 +1,11 @@
+/**
+ * SVG Upload — Media library thumbnail sizing.
+ * modules/content-management/css/svg-upload.css
+ */
+
+.attachment-preview .thumbnail img[src$=".svg"],
+.attachment-preview .thumbnail img[src$=".svgz"] {
+    width: 100%;
+    height: auto;
+    padding: 5px;
+}
