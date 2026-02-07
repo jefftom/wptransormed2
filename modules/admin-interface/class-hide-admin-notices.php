@@ -14,6 +14,9 @@ use WPTransformed\Modules\Module_Base;
  */
 class Hide_Admin_Notices extends Module_Base {
 
+    /** @var bool Whether we started output buffering. */
+    private bool $is_buffering = false;
+
     // ── Identity ──────────────────────────────────────────────
 
     public function get_id(): string {
@@ -83,13 +86,11 @@ class Hide_Admin_Notices extends Module_Base {
      * Start capturing notices. Hooked at admin_notices priority 1.
      */
     public function start_capture(): void {
-        $settings = $this->get_settings();
-
-        // Determine current hook suffix to check scope
         if ( ! $this->should_run_on_current_page() ) {
             return;
         }
 
+        $this->is_buffering = true;
         ob_start();
     }
 
@@ -98,15 +99,11 @@ class Hide_Admin_Notices extends Module_Base {
      * Hooked at all_admin_notices priority PHP_INT_MAX.
      */
     public function end_capture(): void {
-        if ( ! $this->should_run_on_current_page() ) {
+        if ( ! $this->is_buffering ) {
             return;
         }
 
-        // Check that we actually have a buffer level from our ob_start
-        if ( ob_get_level() < 1 ) {
-            return;
-        }
-
+        $this->is_buffering = false;
         $notices_html = ob_get_clean();
 
         // Nothing captured or only whitespace

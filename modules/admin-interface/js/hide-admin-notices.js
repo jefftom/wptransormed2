@@ -11,15 +11,26 @@
         if (!bar || !panel) return;
 
         var toggleBtn = bar.querySelector('.wpt-notice-toggle');
+        var expanded = bar.getAttribute('data-auto-expand') === '1';
+
+        // Localization strings with fallback
+        var i18n = (typeof wptHideNoticesI18n !== 'undefined') ? wptHideNoticesI18n : { show: 'Show', hide: 'Hide' };
+
+        // Ensure initial state is correct
+        panel.style.display = expanded ? '' : 'none';
+        if (toggleBtn) {
+            toggleBtn.textContent = expanded ? i18n.hide : i18n.show;
+        }
+        bar.classList.toggle('wpt-notice-bar-expanded', expanded);
 
         // Toggle panel on bar click
         bar.addEventListener('click', function() {
-            var hidden = panel.style.display === 'none';
-            panel.style.display = hidden ? '' : 'none';
+            expanded = !expanded;
+            panel.style.display = expanded ? '' : 'none';
             if (toggleBtn) {
-                toggleBtn.textContent = hidden ? wptHideNoticesI18n.hide : wptHideNoticesI18n.show;
+                toggleBtn.textContent = expanded ? i18n.hide : i18n.show;
             }
-            bar.classList.toggle('wpt-notice-bar-expanded', hidden);
+            bar.classList.toggle('wpt-notice-bar-expanded', expanded);
         });
 
         // Dismiss All button
