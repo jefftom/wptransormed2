@@ -50,9 +50,10 @@ class Content_Duplication extends Module_Base {
     // ── Lifecycle ─────────────────────────────────────────────
 
     public function init(): void {
-        // Row actions — Duplicate link on posts and pages
+        // Row actions — Duplicate link on posts, pages, and media
         add_filter( 'post_row_actions', [ $this, 'add_row_action' ], 10, 2 );
         add_filter( 'page_row_actions', [ $this, 'add_row_action' ], 10, 2 );
+        add_filter( 'media_row_actions', [ $this, 'add_row_action' ], 10, 2 );
 
         // Handle the duplication action
         add_action( 'admin_action_wpt_duplicate_post', [ $this, 'handle_duplicate' ] );
