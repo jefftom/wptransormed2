@@ -62,6 +62,9 @@ class Content_Duplication extends Module_Base {
 
         // Admin bar link
         add_action( 'admin_bar_menu', [ $this, 'add_admin_bar_link' ], 80 );
+
+        // Gutenberg sidebar button
+        add_action( 'enqueue_block_editor_assets', [ $this, 'enqueue_block_editor_assets' ] );
     }
 
     // ── Row Action ────────────────────────────────────────────
@@ -151,6 +154,88 @@ class Content_Duplication extends Module_Base {
                 'title' => esc_attr__( 'Duplicate this post', 'wptransformed' ),
             ],
         ] );
+    }
+
+    // ── Block Editor Sidebar Button ──────────────────────────
+
+    /**
+     * Enqueue a small inline script that adds a "Duplicate Post" button
+     * to the Gutenberg Post Status panel via PluginPostStatusInfo slot.
+     */
+    public function enqueue_block_editor_assets(): void {
+        $settings   = $this->get_settings();
+        $screen     = get_current_screen();
+
+        if ( ! $screen || ! $screen->post_type ) {
+            return;
+        }
+
+        // Only for enabled post types
+        if ( ! in_array( $screen->post_type, (array) $settings['post_types'], true ) ) {
+            return;
+        }
+
+        // Register a dummy handle so we can attach inline script + localized data
+        wp_register_script( 'wpt-content-duplication-editor', '', [], WPT_VERSION, true );
+        wp_enqueue_script( 'wpt-content-duplication-editor' );
+
+        // Pass data the JS needs to build the nonce URL
+        global $post;
+        $post_id = $post instanceof \WP_Post ? $post->ID : 0;
+
+        wp_localize_script( 'wpt-content-duplication-editor', 'wptDuplicate', [
+            'adminUrl'  => admin_url( 'admin.php' ),
+            'nonceUrl'  => $post_id ? wp_nonce_url(
+                admin_url( 'admin.php?action=wpt_duplicate_post&post=' . $post_id ),
+                'wpt_duplicate_' . $post_id,
+                'wpt_nonce'
+            ) : '',
+            'postId'    => $post_id,
+            'label'     => __( 'Duplicate Post', 'wptransformed' ),
+        ] );
+
+        wp_add_inline_script( 'wpt-content-duplication-editor', $this->get_block_editor_inline_js() );
+    }
+
+    /**
+     * Return the inline JS that registers the Gutenberg sidebar plugin.
+     */
+    private function get_block_editor_inline_js(): string {
+        return <<<'JS'
+(function() {
+    var el = wp.element.createElement;
+    var PluginPostStatusInfo = wp.editPost.PluginPostStatusInfo;
+    var registerPlugin = wp.plugins.registerPlugin;
+    var useSelect = wp.data.useSelect;
+    var Button = wp.components.Button;
+
+    function WptDuplicateButton() {
+        var postId = useSelect(function(select) {
+            return select('core/editor').getCurrentPostId();
+        });
+
+        if (!postId || !wptDuplicate.nonceUrl) {
+            return null;
+        }
+
+        return el(PluginPostStatusInfo, {},
+            el(
+                'div',
+                { style: { width: '100%' } },
+                el(Button, {
+                    variant: 'secondary',
+                    href: wptDuplicate.nonceUrl,
+                    style: { width: '100%', justifyContent: 'center' }
+                }, wptDuplicate.label)
+            )
+        );
+    }
+
+    registerPlugin('wpt-duplicate-post', {
+        render: WptDuplicateButton
+    });
+})();
+JS;
     }
 
     // ── Duplication Handler ───────────────────────────────────
