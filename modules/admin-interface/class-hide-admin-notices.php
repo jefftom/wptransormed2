@@ -216,11 +216,11 @@ class Hide_Admin_Notices extends Module_Base {
     // ── Assets ────────────────────────────────────────────────
 
     public function enqueue_admin_assets( string $hook ): void {
-        if ( ! $this->should_run_on_current_page() && ! $this->is_notifications_page() ) {
+        $is_notifications_page = ( $hook === 'dashboard_page_wpt-notifications' );
+
+        if ( ! $is_notifications_page && ! $this->should_run_on_current_page() ) {
             return;
         }
-
-        $is_notifications_page = $this->is_notifications_page();
 
         // CSS file for notifications page + text link styling.
         wp_enqueue_style(
