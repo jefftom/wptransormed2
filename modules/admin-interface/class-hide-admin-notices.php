@@ -8,10 +8,15 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 use WPTransformed\Modules\Module_Base;
 
 /**
- * Hide Admin Notices — Collapse all admin notices into a togglable panel.
+ * Hide Admin Notices — Dashboard widget + text link approach.
  *
- * Uses CSS to instantly hide notices (no flash), then JS moves them
- * into a collapsible panel. No output buffering.
+ * Dashboard page: notices are hidden via CSS, then JS moves them into a
+ * "Notifications" dashboard widget at the top of the normal column.
+ *
+ * Other admin pages: notices are hidden via CSS, a small text link shows
+ * the count and links to the Dashboard.
+ *
+ * No output buffering.
  *
  * @package WPTransformed
  */
@@ -32,23 +37,75 @@ class Hide_Admin_Notices extends Module_Base {
     }
 
     public function get_description(): string {
-        return __( 'Collapse all admin notices into a single togglable panel so they don\'t clutter the admin.', 'wptransformed' );
+        return __( 'Hide admin notices and collect them into a Dashboard widget. Other pages show a minimal notification link.', 'wptransformed' );
     }
 
     // ── Settings ──────────────────────────────────────────────
 
     public function get_default_settings(): array {
         return [
-            'scope'              => 'all',
-            'show_count_badge'   => true,
-            'auto_expand_errors' => true,
+            'scope' => 'all',
         ];
     }
 
     // ── Lifecycle ─────────────────────────────────────────────
 
     public function init(): void {
-        // No hooks needed — everything runs through enqueue_admin_assets.
+        add_action( 'wp_dashboard_setup', [ $this, 'register_dashboard_widget' ] );
+    }
+
+    // ── Dashboard Widget ──────────────────────────────────────
+
+    /**
+     * Register the Notifications widget and move it to the top.
+     */
+    public function register_dashboard_widget(): void {
+        wp_add_dashboard_widget(
+            'wpt_notices_widget',
+            __( 'Notifications', 'wptransformed' ),
+            [ $this, 'render_dashboard_widget' ]
+        );
+
+        // Move widget to top of the normal column.
+        global $wp_meta_boxes;
+        $screen = get_current_screen();
+        if ( ! $screen ) {
+            return;
+        }
+        $page = $screen->id; // 'dashboard'
+
+        if ( ! isset( $wp_meta_boxes[ $page ]['normal']['core']['wpt_notices_widget'] ) ) {
+            return;
+        }
+
+        $widget = $wp_meta_boxes[ $page ]['normal']['core']['wpt_notices_widget'];
+        unset( $wp_meta_boxes[ $page ]['normal']['core']['wpt_notices_widget'] );
+
+        // Prepend to the 'high' priority bucket so it renders first.
+        if ( ! isset( $wp_meta_boxes[ $page ]['normal']['high'] ) ) {
+            $wp_meta_boxes[ $page ]['normal']['high'] = [];
+        }
+        $wp_meta_boxes[ $page ]['normal']['high'] = array_merge(
+            [ 'wpt_notices_widget' => $widget ],
+            $wp_meta_boxes[ $page ]['normal']['high']
+        );
+    }
+
+    /**
+     * Render the widget content.
+     * JS will populate this container with moved notices.
+     */
+    public function render_dashboard_widget(): void {
+        ?>
+        <div id="wpt-notices-widget-content">
+            <p class="wpt-no-notices"><?php esc_html_e( 'No notifications.', 'wptransformed' ); ?></p>
+        </div>
+        <div id="wpt-notices-widget-footer" style="display:none;">
+            <button type="button" class="button wpt-dismiss-all">
+                <?php esc_html_e( 'Dismiss All', 'wptransformed' ); ?>
+            </button>
+        </div>
+        <?php
     }
 
     // ── Assets ────────────────────────────────────────────────
@@ -58,7 +115,9 @@ class Hide_Admin_Notices extends Module_Base {
             return;
         }
 
-        // CSS file for bar/panel styling
+        $is_dashboard = ( $hook === 'index.php' );
+
+        // CSS file for widget + text link styling
         wp_enqueue_style(
             'wpt-hide-admin-notices',
             WPT_URL . 'modules/admin-interface/css/hide-admin-notices.css',
@@ -67,14 +126,24 @@ class Hide_Admin_Notices extends Module_Base {
         );
 
         // Inline CSS that immediately hides notices (no flash)
-        $hide_css = '#wpbody-content .notice:not(.wpt-notice-panel .notice),'
-            . ' #wpbody-content .updated:not(.wpt-notice-panel .updated),'
-            . ' #wpbody-content .error:not(.wpt-notice-panel .error),'
-            . ' #wpbody-content .update-nag:not(.wpt-notice-panel .update-nag)'
+        $hide_css = '#wpbody-content .notice,'
+            . ' #wpbody-content .updated,'
+            . ' #wpbody-content .error,'
+            . ' #wpbody-content .update-nag'
             . ' { display: none !important; }';
+
+        // On the dashboard, also keep notices inside the widget visible
+        if ( $is_dashboard ) {
+            $hide_css = '#wpbody-content .notice:not(#wpt-notices-widget-content .notice),'
+                . ' #wpbody-content .updated:not(#wpt-notices-widget-content .updated),'
+                . ' #wpbody-content .error:not(#wpt-notices-widget-content .error),'
+                . ' #wpbody-content .update-nag:not(#wpt-notices-widget-content .update-nag)'
+                . ' { display: none !important; }';
+        }
+
         wp_add_inline_style( 'wpt-hide-admin-notices', $hide_css );
 
-        // JS that collects hidden notices and builds the toggle panel
+        // JS that collects hidden notices
         wp_enqueue_script(
             'wpt-hide-admin-notices',
             WPT_URL . 'modules/admin-interface/js/hide-admin-notices.js',
@@ -83,19 +152,17 @@ class Hide_Admin_Notices extends Module_Base {
             true
         );
 
-        $settings = $this->get_settings();
         wp_localize_script( 'wpt-hide-admin-notices', 'wptHideNotices', [
-            'autoExpandErrors' => ! empty( $settings['auto_expand_errors'] ),
-            'showCountBadge'   => ! empty( $settings['show_count_badge'] ),
-            'i18n'             => [
-                'show'       => __( 'Show', 'wptransformed' ),
-                'hide'       => __( 'Hide', 'wptransformed' ),
-                'notices'    => __( 'Notices', 'wptransformed' ),
+            'isDashboard'  => $is_dashboard,
+            'dashboardUrl' => esc_url( admin_url( 'index.php' ) ),
+            'i18n'         => [
+                'noNotifications' => __( 'No notifications.', 'wptransformed' ),
+                'dismissAll'      => __( 'Dismiss All', 'wptransformed' ),
                 /* translators: %d: number of notices */
-                'oneNotice'  => __( '%d notice', 'wptransformed' ),
+                'oneNotification' => __( '%d notification', 'wptransformed' ),
                 /* translators: %d: number of notices */
-                'manyNotices' => __( '%d notices', 'wptransformed' ),
-                'dismissAll' => __( 'Dismiss All', 'wptransformed' ),
+                'manyNotifications' => __( '%d notifications', 'wptransformed' ),
+                'viewDashboard'   => __( 'View Dashboard', 'wptransformed' ),
             ],
         ] );
     }
@@ -138,26 +205,6 @@ class Hide_Admin_Notices extends Module_Base {
                 </td>
             </tr>
 
-            <tr>
-                <th scope="row"><?php esc_html_e( 'Auto-expand for errors', 'wptransformed' ); ?></th>
-                <td>
-                    <label>
-                        <input type="checkbox" name="wpt_auto_expand_errors" value="1" <?php checked( $settings['auto_expand_errors'] ); ?>>
-                        <?php esc_html_e( 'Automatically show the notice panel if there are error-level notices.', 'wptransformed' ); ?>
-                    </label>
-                </td>
-            </tr>
-
-            <tr>
-                <th scope="row"><?php esc_html_e( 'Show count badge', 'wptransformed' ); ?></th>
-                <td>
-                    <label>
-                        <input type="checkbox" name="wpt_show_count_badge" value="1" <?php checked( $settings['show_count_badge'] ); ?>>
-                        <?php esc_html_e( 'Show the number of hidden notices in the collapsed bar.', 'wptransformed' ); ?>
-                    </label>
-                </td>
-            </tr>
-
         </table>
         <?php
     }
@@ -168,10 +215,8 @@ class Hide_Admin_Notices extends Module_Base {
         $valid_scopes = [ 'all', 'wpt-only' ];
 
         return [
-            'scope'              => in_array( $raw['wpt_scope'] ?? '', $valid_scopes, true )
-                                    ? $raw['wpt_scope'] : 'all',
-            'show_count_badge'   => ! empty( $raw['wpt_show_count_badge'] ),
-            'auto_expand_errors' => ! empty( $raw['wpt_auto_expand_errors'] ),
+            'scope' => in_array( $raw['wpt_scope'] ?? '', $valid_scopes, true )
+                        ? $raw['wpt_scope'] : 'all',
         ];
     }
 }

@@ -1,122 +1,183 @@
 /**
- * Hide Admin Notices — CSS+JS approach
+ * Hide Admin Notices — Dashboard widget + text link approach.
  * modules/admin-interface/js/hide-admin-notices.js
  *
  * CSS has already hidden all notices instantly (no flash).
- * This script collects them, moves them into a toggleable panel,
- * and makes them visible again inside that panel.
+ *
+ * Dashboard page: moves notices into the Notifications widget.
+ * Other pages: builds a minimal text link showing the count.
  */
 (function() {
     'use strict';
 
     document.addEventListener('DOMContentLoaded', function() {
         var cfg = (typeof wptHideNotices !== 'undefined') ? wptHideNotices : {};
-        var i18n = cfg.i18n || { show: 'Show', hide: 'Hide', notices: 'Notices', oneNotice: '%d notice', manyNotices: '%d notices', dismissAll: 'Dismiss All' };
+        var i18n = cfg.i18n || {};
 
-        // Collect ALL notice elements anywhere inside #wpbody-content
+        // Collect ALL notice elements inside #wpbody-content
         var container = document.getElementById('wpbody-content');
         if (!container) return;
 
         var all = container.querySelectorAll('.notice, .updated, .error, .update-nag');
 
-        // Filter out elements that are already inside our panel (shouldn't happen
-        // on first run, but guards against double-init)
+        // Filter out elements already inside the widget (guards against double-init)
         var notices = [];
         all.forEach(function(el) {
-            if (!el.closest('.wpt-notice-panel')) {
+            if (!el.closest('#wpt-notices-widget-content')) {
                 notices.push(el);
             }
         });
 
-        // Nothing to do
-        if (notices.length === 0) return;
-
         // Check for errors
         var hasErrors = notices.some(function(el) {
-            return el.classList.contains('notice-error');
+            return el.classList.contains('notice-error') || el.classList.contains('error');
         });
-        var expanded = !!(cfg.autoExpandErrors && hasErrors);
 
-        // Build badge text
-        var count = notices.length;
-        var badgeText;
-        if (cfg.showCountBadge) {
-            var tpl = (count === 1) ? i18n.oneNotice : i18n.manyNotices;
-            badgeText = tpl.replace('%d', count);
+        if (cfg.isDashboard) {
+            handleDashboard(notices, hasErrors, i18n);
         } else {
-            badgeText = i18n.notices;
+            handleOtherPages(notices, hasErrors, cfg, i18n);
+        }
+    });
+
+    /**
+     * Dashboard: move notices into the widget container.
+     */
+    function handleDashboard(notices, hasErrors, i18n) {
+        var widgetContent = document.getElementById('wpt-notices-widget-content');
+        var widgetFooter = document.getElementById('wpt-notices-widget-footer');
+        if (!widgetContent) return;
+
+        // Update widget title with count and warning icon
+        var widgetTitle = document.querySelector('#wpt_notices_widget .hndle span, #wpt_notices_widget h2 .hndle');
+        // Try the standard dashboard widget title structure
+        if (!widgetTitle) {
+            widgetTitle = document.querySelector('#wpt_notices_widget .hndle');
         }
 
-        // Build bar
-        var bar = document.createElement('div');
-        bar.className = 'wpt-notice-bar' + (expanded ? ' wpt-notice-bar-expanded' : '');
+        if (notices.length === 0) {
+            // No notices — show the "No notifications." message (already in PHP)
+            return;
+        }
 
-        var label = document.createElement('span');
-        label.className = 'wpt-notice-bar-label';
-        label.textContent = badgeText;
+        // Remove the "No notifications." placeholder
+        var placeholder = widgetContent.querySelector('.wpt-no-notices');
+        if (placeholder) {
+            placeholder.style.display = 'none';
+        }
 
-        var toggleBtn = document.createElement('button');
-        toggleBtn.type = 'button';
-        toggleBtn.className = 'wpt-notice-toggle';
-        toggleBtn.textContent = expanded ? i18n.hide : i18n.show;
+        // Update widget title with count
+        if (widgetTitle) {
+            var count = notices.length;
+            var tpl = (count === 1) ? (i18n.oneNotification || '%d notification') : (i18n.manyNotifications || '%d notifications');
+            var titleText = tpl.replace('%d', count);
+            if (hasErrors) {
+                titleText = titleText + ' \u26A0\uFE0F';
+            }
+            // The hndle element may contain child elements (like toggle buttons)
+            // Only update the text node
+            var firstText = null;
+            for (var i = 0; i < widgetTitle.childNodes.length; i++) {
+                if (widgetTitle.childNodes[i].nodeType === Node.TEXT_NODE && widgetTitle.childNodes[i].textContent.trim() !== '') {
+                    firstText = widgetTitle.childNodes[i];
+                    break;
+                }
+            }
+            if (firstText) {
+                firstText.textContent = titleText;
+            } else {
+                // Fallback: prepend text node
+                widgetTitle.insertBefore(document.createTextNode(titleText), widgetTitle.firstChild);
+            }
+        }
 
-        bar.appendChild(label);
-        bar.appendChild(toggleBtn);
-
-        // Build panel
-        var panel = document.createElement('div');
-        panel.className = 'wpt-notice-panel';
-        panel.style.display = expanded ? '' : 'none';
-
-        // Move each notice into the panel and undo the CSS hide
+        // Move each notice into the widget and make it visible
         notices.forEach(function(el) {
-            el.style.display = '';
             el.style.setProperty('display', '', 'important');
-            panel.appendChild(el);
+            widgetContent.appendChild(el);
         });
 
-        // Dismiss All footer
-        var footer = document.createElement('div');
-        footer.className = 'wpt-notice-panel-footer';
+        // Show the Dismiss All footer
+        if (widgetFooter) {
+            widgetFooter.style.display = '';
 
-        var dismissBtn = document.createElement('button');
-        dismissBtn.type = 'button';
-        dismissBtn.className = 'button wpt-dismiss-all';
-        dismissBtn.textContent = i18n.dismissAll;
-        footer.appendChild(dismissBtn);
-        panel.appendChild(footer);
+            var dismissBtn = widgetFooter.querySelector('.wpt-dismiss-all');
+            if (dismissBtn) {
+                dismissBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var buttons = widgetContent.querySelectorAll('.notice.is-dismissible .notice-dismiss');
+                    buttons.forEach(function(btn) { btn.click(); });
 
-        // Insert bar + panel — prefer .wrap, fall back to #wpbody-content
-        var target = document.querySelector('#wpbody-content .wrap') || container;
+                    // After a tick, check remaining
+                    setTimeout(function() {
+                        var remaining = widgetContent.querySelectorAll('.notice, .updated, .error, .update-nag');
+                        if (remaining.length === 0) {
+                            if (placeholder) {
+                                placeholder.style.display = '';
+                            }
+                            widgetFooter.style.display = 'none';
+                            // Reset title
+                            if (widgetTitle) {
+                                var noNotice = i18n.noNotifications || 'No notifications.';
+                                var ft = null;
+                                for (var j = 0; j < widgetTitle.childNodes.length; j++) {
+                                    if (widgetTitle.childNodes[j].nodeType === Node.TEXT_NODE && widgetTitle.childNodes[j].textContent.trim() !== '') {
+                                        ft = widgetTitle.childNodes[j];
+                                        break;
+                                    }
+                                }
+                                if (ft) {
+                                    ft.textContent = i18n.noNotifications || 'Notifications';
+                                }
+                            }
+                        }
+                    }, 100);
+                });
+            }
+        }
+    }
 
-        // Insert after the <h1> if present, otherwise as first child
+    /**
+     * Non-dashboard pages: show a minimal text link with count.
+     */
+    function handleOtherPages(notices, hasErrors, cfg, i18n) {
+        if (notices.length === 0) return;
+
+        var count = notices.length;
+        var tpl = (count === 1) ? (i18n.oneNotification || '%d notification') : (i18n.manyNotifications || '%d notifications');
+        var countText = tpl.replace('%d', count);
+
+        var viewText = i18n.viewDashboard || 'View Dashboard';
+        var dashboardUrl = cfg.dashboardUrl || '';
+
+        // Build the text link
+        var wrapper = document.createElement('div');
+        wrapper.className = 'wpt-notice-link';
+
+        var text = document.createElement('span');
+        text.className = 'wpt-notice-link-count';
+        text.textContent = (hasErrors ? '\u26A0\uFE0F ' : '') + countText;
+
+        wrapper.appendChild(text);
+
+        if (dashboardUrl) {
+            var sep = document.createTextNode(' \u2014 ');
+            wrapper.appendChild(sep);
+
+            var link = document.createElement('a');
+            link.href = dashboardUrl;
+            link.className = 'wpt-notice-link-dashboard';
+            link.textContent = viewText;
+            wrapper.appendChild(link);
+        }
+
+        // Insert at the top of .wrap or #wpbody-content
+        var target = document.querySelector('#wpbody-content .wrap')
+            || document.getElementById('wpbody-content');
+        if (!target) return;
+
         var heading = target.querySelector('h1');
         var insertRef = heading ? heading.nextSibling : target.firstChild;
-        target.insertBefore(panel, insertRef);
-        target.insertBefore(bar, panel);
-
-        // Toggle handler
-        bar.addEventListener('click', function() {
-            expanded = !expanded;
-            panel.style.display = expanded ? '' : 'none';
-            toggleBtn.textContent = expanded ? i18n.hide : i18n.show;
-            bar.classList.toggle('wpt-notice-bar-expanded', expanded);
-        });
-
-        // Dismiss All handler
-        dismissBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            var buttons = panel.querySelectorAll('.notice.is-dismissible .notice-dismiss');
-            buttons.forEach(function(btn) { btn.click(); });
-
-            // After a tick, check if any notices remain
-            setTimeout(function() {
-                var remaining = panel.querySelectorAll('.notice, .updated, .error, .update-nag');
-                if (remaining.length === 0) {
-                    bar.style.display = 'none';
-                    panel.style.display = 'none';
-                }
-            }, 100);
-        });
-    });
+        target.insertBefore(wrapper, insertRef);
+    }
 })();
