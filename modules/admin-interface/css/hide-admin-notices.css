@@ -1,6 +1,9 @@
 /**
  * Hide Admin Notices — Styles
  * modules/admin-interface/css/hide-admin-notices.css
+ *
+ * Note: The inline CSS rule that hides .notice elements is injected
+ * via wp_add_inline_style in PHP. This file only styles the bar/panel.
  */
 
 /* Collapsed notice bar */
@@ -38,6 +41,14 @@
     overflow-y: auto;
     border-bottom: 1px solid #c3c4c7;
     margin-bottom: 15px;
+}
+
+/* Notices inside the panel must be visible (overrides the inline hide rule) */
+.wpt-notice-panel .notice,
+.wpt-notice-panel .updated,
+.wpt-notice-panel .error,
+.wpt-notice-panel .update-nag {
+    display: block !important;
 }
 
 .wpt-notice-panel-footer {
