@@ -130,7 +130,7 @@ class Hide_Admin_Notices extends Module_Base {
     // ── Admin Page ────────────────────────────────────────────
 
     /**
-     * Register "Notifications" submenu under Dashboard (index.php).
+     * Register "Notifications" as a top-level menu item (position 3, after Dashboard).
      *
      * The count bubble reads from the transient stored on the previous
      * page load. It will be empty on the very first load.
@@ -138,14 +138,14 @@ class Hide_Admin_Notices extends Module_Base {
     public function register_notifications_page(): void {
         $bubble = $this->get_menu_bubble_markup();
 
-        $hook = add_submenu_page(
-            'index.php',
+        $hook = add_menu_page(
             __( 'Notifications', 'wptransformed' ),
             __( 'Notifications', 'wptransformed' ) . $bubble,
             'read',
             'wpt-notifications',
             [ $this, 'render_notifications_page' ],
-            99
+            'dashicons-bell',
+            3
         );
 
         // When on the notifications page, we need to re-fire notice hooks
@@ -216,7 +216,7 @@ class Hide_Admin_Notices extends Module_Base {
     // ── Assets ────────────────────────────────────────────────
 
     public function enqueue_admin_assets( string $hook ): void {
-        $is_notifications_page = ( $hook === 'dashboard_page_wpt-notifications' );
+        $is_notifications_page = ( $hook === 'toplevel_page_wpt-notifications' );
 
         if ( ! $is_notifications_page && ! $this->should_run_on_current_page() ) {
             return;
