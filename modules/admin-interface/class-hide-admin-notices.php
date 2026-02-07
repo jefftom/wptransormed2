@@ -67,9 +67,10 @@ class Hide_Admin_Notices extends Module_Base {
         );
 
         // Inline CSS that immediately hides notices (no flash)
-        $hide_css = '.wrap > .notice, .wrap > .updated, .wrap > .error, .wrap > .update-nag,'
-            . ' #wpbody-content > .notice, #wpbody-content > .updated,'
-            . ' #wpbody-content > .error, #wpbody-content > .update-nag'
+        $hide_css = '#wpbody-content .notice:not(.wpt-notice-panel .notice),'
+            . ' #wpbody-content .updated:not(.wpt-notice-panel .updated),'
+            . ' #wpbody-content .error:not(.wpt-notice-panel .error),'
+            . ' #wpbody-content .update-nag:not(.wpt-notice-panel .update-nag)'
             . ' { display: none !important; }';
         wp_add_inline_style( 'wpt-hide-admin-notices', $hide_css );
 

@@ -13,25 +13,17 @@
         var cfg = (typeof wptHideNotices !== 'undefined') ? wptHideNotices : {};
         var i18n = cfg.i18n || { show: 'Show', hide: 'Hide', notices: 'Notices', oneNotice: '%d notice', manyNotices: '%d notices', dismissAll: 'Dismiss All' };
 
-        // Collect all notice elements from standard WP locations
-        var selectors = [
-            '#wpbody-content > .notice',
-            '#wpbody-content > .updated',
-            '#wpbody-content > .error',
-            '#wpbody-content > .update-nag',
-            '.wrap > .notice',
-            '.wrap > .updated',
-            '.wrap > .error',
-            '.wrap > .update-nag'
-        ];
-        var all = document.querySelectorAll(selectors.join(','));
+        // Collect ALL notice elements anywhere inside #wpbody-content
+        var container = document.getElementById('wpbody-content');
+        if (!container) return;
 
-        // Dedupe (an element matching multiple selectors should only appear once)
-        var seen = [];
+        var all = container.querySelectorAll('.notice, .updated, .error, .update-nag');
+
+        // Filter out elements that are already inside our panel (shouldn't happen
+        // on first run, but guards against double-init)
         var notices = [];
         all.forEach(function(el) {
-            if (seen.indexOf(el) === -1) {
-                seen.push(el);
+            if (!el.closest('.wpt-notice-panel')) {
                 notices.push(el);
             }
         });
@@ -94,15 +86,14 @@
         footer.appendChild(dismissBtn);
         panel.appendChild(footer);
 
-        // Insert bar + panel at top of .wrap (before first child)
-        var wrap = document.querySelector('#wpbody-content .wrap');
-        if (!wrap) return;
+        // Insert bar + panel — prefer .wrap, fall back to #wpbody-content
+        var target = document.querySelector('#wpbody-content .wrap') || container;
 
         // Insert after the <h1> if present, otherwise as first child
-        var heading = wrap.querySelector('h1');
-        var insertRef = heading ? heading.nextSibling : wrap.firstChild;
-        wrap.insertBefore(panel, insertRef);
-        wrap.insertBefore(bar, panel);
+        var heading = target.querySelector('h1');
+        var insertRef = heading ? heading.nextSibling : target.firstChild;
+        target.insertBefore(panel, insertRef);
+        target.insertBefore(bar, panel);
 
         // Toggle handler
         bar.addEventListener('click', function() {
