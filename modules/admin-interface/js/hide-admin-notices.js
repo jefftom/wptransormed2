@@ -15,13 +15,17 @@
         var cfg = (typeof wptHideNotices !== 'undefined') ? wptHideNotices : {};
         var i18n = cfg.i18n || {};
 
+        // Detect notifications page by DOM presence — no wp_localize_script boolean needed.
+        var notificationsContent = document.getElementById('wpt-notifications-content');
+        var isNotificationsPage = !!notificationsContent;
+
         // Collect all notice elements inside #wpbody-content.
         var container = document.getElementById('wpbody-content');
         if (!container) return;
 
         var all = container.querySelectorAll('.notice, .updated, .error, .update-nag');
 
-        // Filter out elements inside our notifications content area.
+        // Filter out elements already inside our notifications content area.
         var notices = [];
         all.forEach(function(el) {
             if (!el.closest('#wpt-notifications-content')) {
@@ -34,11 +38,16 @@
                 || (el.classList.contains('error') && !el.classList.contains('notice'));
         });
 
-        // Update the sidebar menu count bubble via JS.
+        // Debug logging.
+        console.log('[WPT Hide Notices] isNotificationsPage:', isNotificationsPage,
+            '| notices found:', notices.length,
+            '| hasErrors:', hasErrors);
+
+        // Update the sidebar menu count bubble.
         updateMenuBubble(notices.length);
 
-        if (cfg.isNotificationsPage) {
-            handleNotificationsPage(notices, hasErrors, i18n);
+        if (isNotificationsPage) {
+            handleNotificationsPage(notices, hasErrors, notificationsContent, i18n);
         } else {
             handleOtherPages(notices, hasErrors, cfg, i18n);
         }
@@ -46,15 +55,11 @@
 
     /**
      * Update the sidebar "Notifications" menu count bubble.
-     *
-     * Finds the menu link by its href containing page=wpt-notifications,
-     * then locates or creates the count bubble span.
      */
     function updateMenuBubble(count) {
         var menuLink = document.querySelector('#adminmenu a[href*="page=wpt-notifications"]');
         if (!menuLink) return;
 
-        // Find existing bubble or create one (awaiting-mod = WP Comments-style inline badge).
         var bubble = menuLink.querySelector('.awaiting-mod');
 
         if (count === 0) {
@@ -78,11 +83,10 @@
     }
 
     /**
-     * Notifications page: group notices by type and display them.
+     * Notifications page: group notices by type and move them into sections.
      */
-    function handleNotificationsPage(notices, hasErrors, i18n) {
-        var content = document.getElementById('wpt-notifications-content');
-        if (!content) return;
+    function handleNotificationsPage(notices, hasErrors, content, i18n) {
+        console.log('[WPT Hide Notices] handleNotificationsPage — notices to process:', notices.length);
 
         if (notices.length === 0) {
             content.innerHTML = '<p class="wpt-no-notices">'
@@ -90,10 +94,12 @@
             return;
         }
 
+        // Clear the content container.
+        content.innerHTML = '';
+
         // Build Dismiss All button at top.
         var header = document.createElement('div');
         header.className = 'wpt-notifications-header';
-
         var dismissBtn = document.createElement('button');
         dismissBtn.type = 'button';
         dismissBtn.className = 'button wpt-dismiss-all';
@@ -101,7 +107,7 @@
         header.appendChild(dismissBtn);
         content.appendChild(header);
 
-        // Categorize notices.
+        // Categorize notices by class.
         var errors = [];
         var warnings = [];
         var other = [];
@@ -116,7 +122,11 @@
             }
         });
 
-        // Render each group.
+        console.log('[WPT Hide Notices] categorized — errors:', errors.length,
+            '| warnings:', warnings.length, '| other:', other.length);
+
+        // Render each non-empty group — moves notices from their original
+        // position into the section container via appendChild.
         if (errors.length > 0) {
             renderGroup(content, '\u26A0\uFE0F ' + (i18n.errors || 'Errors'), errors);
         }
@@ -147,8 +157,9 @@
 
     /**
      * Render a group of notices with a heading.
+     * appendChild moves each notice from its original DOM position.
      */
-    function renderGroup(container, title, notices) {
+    function renderGroup(container, title, noticeEls) {
         var section = document.createElement('div');
         section.className = 'wpt-notice-group';
 
@@ -157,13 +168,17 @@
         heading.textContent = title;
         section.appendChild(heading);
 
-        notices.forEach(function(el) {
-            // Force visible — override any lingering CSS hide rules.
+        for (var i = 0; i < noticeEls.length; i++) {
+            var el = noticeEls[i];
+            // Force visible — override any CSS hide rules.
             el.style.setProperty('display', 'block', 'important');
+            // appendChild moves the element from its original position.
             section.appendChild(el);
-        });
+        }
 
         container.appendChild(section);
+
+        console.log('[WPT Hide Notices] renderGroup "' + title + '" — moved', noticeEls.length, 'notices');
     }
 
     /**

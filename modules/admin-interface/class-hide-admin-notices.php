@@ -214,7 +214,11 @@ class Hide_Admin_Notices extends Module_Base {
     // ── Assets ────────────────────────────────────────────────
 
     public function enqueue_admin_assets( string $hook ): void {
-        $is_notifications_page = ( $hook === 'toplevel_page_wpt-notifications' );
+        // Belt-and-suspenders: check both hook suffix AND $_GET['page'].
+        $is_notifications_page = (
+            $hook === 'toplevel_page_wpt-notifications'
+            || $this->is_notifications_page()
+        );
 
         if ( ! $is_notifications_page && ! $this->should_run_on_current_page() ) {
             return;
@@ -248,10 +252,11 @@ class Hide_Admin_Notices extends Module_Base {
             true
         );
 
+        // JS detects the notifications page via #wpt-notifications-content in DOM.
+        // No boolean flag needed — avoids wp_localize_script string-casting issues.
         wp_localize_script( 'wpt-hide-admin-notices', 'wptHideNotices', [
-            'isNotificationsPage' => $is_notifications_page,
-            'notificationsUrl'    => esc_url( admin_url( 'admin.php?page=wpt-notifications' ) ),
-            'i18n'                => [
+            'notificationsUrl' => esc_url( admin_url( 'admin.php?page=wpt-notifications' ) ),
+            'i18n'             => [
                 'noNotifications'   => __( 'No notifications.', 'wptransformed' ),
                 'dismissAll'        => __( 'Dismiss All', 'wptransformed' ),
                 'oneNotification'   => __( '%d notification', 'wptransformed' ),
