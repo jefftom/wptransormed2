@@ -10,12 +10,12 @@ use WPTransformed\Modules\Module_Base;
 /**
  * Hide Admin Notices — Collapse all admin notices into a togglable panel.
  *
+ * Uses CSS to instantly hide notices (no flash), then JS moves them
+ * into a collapsible panel. No output buffering.
+ *
  * @package WPTransformed
  */
 class Hide_Admin_Notices extends Module_Base {
-
-    /** @var bool Whether we started output buffering. */
-    private bool $is_buffering = false;
 
     // ── Identity ──────────────────────────────────────────────
 
@@ -48,8 +48,7 @@ class Hide_Admin_Notices extends Module_Base {
     // ── Lifecycle ─────────────────────────────────────────────
 
     public function init(): void {
-        add_action( 'admin_notices', [ $this, 'start_capture' ], 1 );
-        add_action( 'all_admin_notices', [ $this, 'end_capture' ], PHP_INT_MAX );
+        // No hooks needed — everything runs through enqueue_admin_assets.
     }
 
     // ── Assets ────────────────────────────────────────────────
@@ -59,6 +58,7 @@ class Hide_Admin_Notices extends Module_Base {
             return;
         }
 
+        // CSS file for bar/panel styling
         wp_enqueue_style(
             'wpt-hide-admin-notices',
             WPT_URL . 'modules/admin-interface/css/hide-admin-notices.css',
@@ -66,6 +66,14 @@ class Hide_Admin_Notices extends Module_Base {
             WPT_VERSION
         );
 
+        // Inline CSS that immediately hides notices (no flash)
+        $hide_css = '.wrap > .notice, .wrap > .updated, .wrap > .error, .wrap > .update-nag,'
+            . ' #wpbody-content > .notice, #wpbody-content > .updated,'
+            . ' #wpbody-content > .error, #wpbody-content > .update-nag'
+            . ' { display: none !important; }';
+        wp_add_inline_style( 'wpt-hide-admin-notices', $hide_css );
+
+        // JS that collects hidden notices and builds the toggle panel
         wp_enqueue_script(
             'wpt-hide-admin-notices',
             WPT_URL . 'modules/admin-interface/js/hide-admin-notices.js',
@@ -74,81 +82,21 @@ class Hide_Admin_Notices extends Module_Base {
             true
         );
 
-        wp_localize_script( 'wpt-hide-admin-notices', 'wptHideNoticesI18n', [
-            'show' => __( 'Show', 'wptransformed' ),
-            'hide' => __( 'Hide', 'wptransformed' ),
+        $settings = $this->get_settings();
+        wp_localize_script( 'wpt-hide-admin-notices', 'wptHideNotices', [
+            'autoExpandErrors' => ! empty( $settings['auto_expand_errors'] ),
+            'showCountBadge'   => ! empty( $settings['show_count_badge'] ),
+            'i18n'             => [
+                'show'       => __( 'Show', 'wptransformed' ),
+                'hide'       => __( 'Hide', 'wptransformed' ),
+                'notices'    => __( 'Notices', 'wptransformed' ),
+                /* translators: %d: number of notices */
+                'oneNotice'  => __( '%d notice', 'wptransformed' ),
+                /* translators: %d: number of notices */
+                'manyNotices' => __( '%d notices', 'wptransformed' ),
+                'dismissAll' => __( 'Dismiss All', 'wptransformed' ),
+            ],
         ] );
-    }
-
-    // ── Output Buffering ──────────────────────────────────────
-
-    /**
-     * Start capturing notices. Hooked at admin_notices priority 1.
-     */
-    public function start_capture(): void {
-        if ( ! $this->should_run_on_current_page() ) {
-            return;
-        }
-
-        $this->is_buffering = true;
-        ob_start();
-    }
-
-    /**
-     * End capture and render the collapsed bar + hidden panel.
-     * Hooked at all_admin_notices priority PHP_INT_MAX.
-     */
-    public function end_capture(): void {
-        if ( ! $this->is_buffering ) {
-            return;
-        }
-
-        $this->is_buffering = false;
-        $notices_html = ob_get_clean();
-
-        // Nothing captured or only whitespace
-        if ( empty( trim( $notices_html ) ) ) {
-            return;
-        }
-
-        // Count notices
-        $count = preg_match_all( '/<div[^>]*class="[^"]*\bnotice\b[^"]*"/', $notices_html );
-
-        // If no actual .notice divs found, output the HTML as-is
-        if ( $count === 0 ) {
-            echo $notices_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-            return;
-        }
-
-        $settings    = $this->get_settings();
-        $has_errors  = ( strpos( $notices_html, 'notice-error' ) !== false );
-        $auto_expand = ! empty( $settings['auto_expand_errors'] ) && $has_errors;
-        $show_badge  = ! empty( $settings['show_count_badge'] );
-
-        // Badge text
-        $badge_text = $show_badge
-            /* translators: %d: number of notices */
-            ? sprintf( _n( '%d notice', '%d notices', $count, 'wptransformed' ), $count )
-            : __( 'Notices', 'wptransformed' );
-
-        // Render collapsed bar
-        ?>
-        <div class="wpt-notice-bar<?php echo $auto_expand ? ' wpt-notice-bar-expanded' : ''; ?>"
-             data-auto-expand="<?php echo $auto_expand ? '1' : '0'; ?>">
-            <span class="wpt-notice-bar-label">
-                <?php echo esc_html( $badge_text ); ?>
-            </span>
-            <button type="button" class="wpt-notice-toggle">
-                <?php echo $auto_expand ? esc_html__( 'Hide', 'wptransformed' ) : esc_html__( 'Show', 'wptransformed' ); ?>
-            </button>
-        </div>
-        <div class="wpt-notice-panel" style="<?php echo $auto_expand ? '' : 'display:none;'; ?>">
-            <?php echo $notices_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped — original WP notices ?>
-            <div class="wpt-notice-panel-footer">
-                <button type="button" class="button wpt-dismiss-all"><?php esc_html_e( 'Dismiss All', 'wptransformed' ); ?></button>
-            </div>
-        </div>
-        <?php
     }
 
     // ── Helpers ────────────────────────────────────────────────
@@ -161,24 +109,6 @@ class Hide_Admin_Notices extends Module_Base {
 
         if ( $settings['scope'] === 'wpt-only' ) {
             return ( strpos( $hook, 'wptransformed' ) !== false );
-        }
-
-        return true; // scope = 'all'
-    }
-
-    /**
-     * Check scope without the $hook parameter (for output buffering hooks
-     * which don't receive the hook suffix).
-     */
-    private function should_run_on_current_page(): bool {
-        $settings = $this->get_settings();
-
-        if ( $settings['scope'] === 'wpt-only' ) {
-            $screen = get_current_screen();
-            if ( $screen && strpos( $screen->id, 'wptransformed' ) !== false ) {
-                return true;
-            }
-            return false;
         }
 
         return true; // scope = 'all'
