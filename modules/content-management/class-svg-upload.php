@@ -346,6 +346,21 @@ class Svg_Upload extends Module_Base {
             return $response;
         }
 
+        // Tell WordPress this is an image so the grid renders a thumbnail.
+        $response['type'] = 'image';
+        $response['icon'] = $response['url'];
+
+        // Set the thumbnail/image sources to the SVG URL.
+        if ( ! isset( $response['image'] ) ) {
+            $response['image'] = [];
+        }
+        $response['image']['src'] = $response['url'];
+
+        if ( ! isset( $response['thumb'] ) ) {
+            $response['thumb'] = [];
+        }
+        $response['thumb']['src'] = $response['url'];
+
         $file = get_attached_file( $attachment->ID );
         if ( ! $file || ! file_exists( $file ) ) {
             return $response;
@@ -383,12 +398,24 @@ class Svg_Upload extends Module_Base {
         }
 
         if ( $width > 0 && $height > 0 ) {
+            $w = (int) $width;
+            $h = (int) $height;
+
+            $response['width']  = $w;
+            $response['height'] = $h;
+
+            $response['image']['width']  = $w;
+            $response['image']['height'] = $h;
+
+            $response['thumb']['width']  = $w;
+            $response['thumb']['height'] = $h;
+
             $response['sizes'] = [
                 'full' => [
                     'url'         => $response['url'],
-                    'width'       => (int) $width,
-                    'height'      => (int) $height,
-                    'orientation' => $width > $height ? 'landscape' : 'portrait',
+                    'width'       => $w,
+                    'height'      => $h,
+                    'orientation' => $w > $h ? 'landscape' : 'portrait',
                 ],
             ];
         }
