@@ -3,6 +3,13 @@
  * assets/admin/css/admin.css
  */
 
+/* Page tagline */
+.wpt-tagline {
+    margin: 2px 0 16px;
+    font-size: 13px;
+    color: #50575e;
+}
+
 /* Module cards list */
 .wpt-modules-list {
     margin-top: 20px;

@@ -72,33 +72,31 @@ class Admin {
         $core = Core::instance();
         $all_modules = $core->get_all_modules();
 
-        // Group modules by category
-        $categories = [];
-        foreach ( $all_modules as $id => $module ) {
-            $cat = $module->get_category();
-            if ( ! isset( $categories[ $cat ] ) ) {
-                $categories[ $cat ] = [];
-            }
-            $categories[ $cat ][ $id ] = $module;
-        }
-
-        // Category display names
-        $category_labels = [
+        // Fixed category tabs — always shown regardless of loaded modules
+        $categories = [
             'content-management' => __( 'Content Management', 'wptransformed' ),
             'admin-interface'    => __( 'Admin Interface', 'wptransformed' ),
             'performance'        => __( 'Performance', 'wptransformed' ),
             'utilities'          => __( 'Utilities', 'wptransformed' ),
-            'security'           => __( 'Security', 'wptransformed' ),
-            'media'              => __( 'Media', 'wptransformed' ),
         ];
 
-        // Determine active tab
-        $category_slugs = array_keys( $categories );
-        $active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : ( $category_slugs[0] ?? '' );
+        // Group loaded modules by category
+        $modules_by_category = [];
+        foreach ( $all_modules as $id => $module ) {
+            $cat = $module->get_category();
+            $modules_by_category[ $cat ][ $id ] = $module;
+        }
+
+        // Determine active tab (default to first category)
+        $active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'content-management';
+        if ( ! isset( $categories[ $active_tab ] ) ) {
+            $active_tab = 'content-management';
+        }
 
         ?>
         <div class="wrap">
             <h1><?php esc_html_e( 'WPTransformed', 'wptransformed' ); ?></h1>
+            <p class="wpt-tagline"><?php esc_html_e( 'Replace 15+ plugins with one. Enable only what you need.', 'wptransformed' ); ?></p>
 
             <?php // Show any save notices ?>
             <?php if ( isset( $_GET['wpt_saved'] ) ) : ?>
@@ -107,22 +105,26 @@ class Admin {
                 </div>
             <?php endif; ?>
 
-            <?php if ( ! empty( $categories ) ) : ?>
-                <?php // Category tabs ?>
-                <nav class="nav-tab-wrapper">
-                    <?php foreach ( $categories as $cat_slug => $cat_modules ) : ?>
-                        <a href="<?php echo esc_url( add_query_arg( 'tab', $cat_slug, admin_url( 'admin.php?page=wptransformed' ) ) ); ?>"
-                           class="nav-tab <?php echo $active_tab === $cat_slug ? 'nav-tab-active' : ''; ?>">
-                            <?php echo esc_html( $category_labels[ $cat_slug ] ?? ucwords( str_replace( '-', ' ', $cat_slug ) ) ); ?>
-                            <span class="wpt-module-count"><?php echo count( $cat_modules ); ?></span>
-                        </a>
-                    <?php endforeach; ?>
-                </nav>
+            <?php // Category tabs — always rendered ?>
+            <nav class="nav-tab-wrapper">
+                <?php foreach ( $categories as $cat_slug => $cat_label ) :
+                    $count = isset( $modules_by_category[ $cat_slug ] ) ? count( $modules_by_category[ $cat_slug ] ) : 0;
+                ?>
+                    <a href="<?php echo esc_url( add_query_arg( 'tab', $cat_slug, admin_url( 'admin.php?page=wptransformed' ) ) ); ?>"
+                       class="nav-tab <?php echo $active_tab === $cat_slug ? 'nav-tab-active' : ''; ?>">
+                        <?php echo esc_html( $cat_label ); ?>
+                        <span class="wpt-module-count"><?php echo $count; ?></span>
+                    </a>
+                <?php endforeach; ?>
+            </nav>
 
-                <?php // Module cards for active tab ?>
-                <div class="wpt-modules-list">
-                    <?php
-                    $tab_modules = $categories[ $active_tab ] ?? [];
+            <?php // Module cards for active tab ?>
+            <div class="wpt-modules-list">
+                <?php
+                $tab_modules = $modules_by_category[ $active_tab ] ?? [];
+                if ( empty( $tab_modules ) ) : ?>
+                    <p><?php esc_html_e( 'No modules in this category yet.', 'wptransformed' ); ?></p>
+                <?php else :
                     foreach ( $tab_modules as $id => $module ) :
                         $is_active = $core->is_active( $id );
                         $has_settings = ! empty( $module->get_default_settings() );
@@ -162,13 +164,9 @@ class Admin {
                                 </div>
                             <?php endif; ?>
                         </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php else : ?>
-                <div class="wpt-modules-list">
-                    <p><?php esc_html_e( 'No modules are currently available. Module files will be loaded as they are created.', 'wptransformed' ); ?></p>
-                </div>
-            <?php endif; ?>
+                    <?php endforeach;
+                endif; ?>
+            </div>
 
             <?php // Safe mode info ?>
             <div class="wpt-safe-mode-info">
