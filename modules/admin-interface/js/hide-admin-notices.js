@@ -33,6 +33,9 @@
             return el.classList.contains('notice-error') || el.classList.contains('error');
         });
 
+        // Update the sidebar menu count bubble
+        updateMenuBubble(notices.length, hasErrors);
+
         if (cfg.isDashboard) {
             handleDashboard(notices, hasErrors, i18n);
         } else {
@@ -41,12 +44,40 @@
     });
 
     /**
+     * Update the "Notifications" sidebar menu count bubble.
+     */
+    function updateMenuBubble(count, hasErrors) {
+        var bubble = document.getElementById('wpt-menu-notice-count');
+        if (!bubble) return;
+
+        if (count === 0) {
+            bubble.style.display = 'none';
+            return;
+        }
+
+        var inner = bubble.querySelector('.plugin-count');
+        if (inner) {
+            inner.textContent = (hasErrors ? '\u26A0\uFE0F ' : '') + count;
+        }
+        bubble.className = 'update-plugins count-' + count;
+        bubble.style.display = '';
+    }
+
+    /**
      * Dashboard: move notices into the widget container.
      */
     function handleDashboard(notices, hasErrors, i18n) {
         var widgetContent = document.getElementById('wpt-notices-widget-content');
         var widgetFooter = document.getElementById('wpt-notices-widget-footer');
         if (!widgetContent) return;
+
+        // Scroll to widget if URL hash points to it
+        if (window.location.hash === '#wpt_notices_widget') {
+            var widget = document.getElementById('wpt_notices_widget');
+            if (widget) {
+                widget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
 
         // Update widget title with count and warning icon
         var widgetTitle = document.querySelector('#wpt_notices_widget .hndle span, #wpt_notices_widget h2 .hndle');
@@ -111,14 +142,18 @@
                     // After a tick, check remaining
                     setTimeout(function() {
                         var remaining = widgetContent.querySelectorAll('.notice, .updated, .error, .update-nag');
-                        if (remaining.length === 0) {
+                        var remainCount = remaining.length;
+
+                        // Update menu bubble with new count
+                        updateMenuBubble(remainCount, false);
+
+                        if (remainCount === 0) {
                             if (placeholder) {
                                 placeholder.style.display = '';
                             }
                             widgetFooter.style.display = 'none';
                             // Reset title
                             if (widgetTitle) {
-                                var noNotice = i18n.noNotifications || 'No notifications.';
                                 var ft = null;
                                 for (var j = 0; j < widgetTitle.childNodes.length; j++) {
                                     if (widgetTitle.childNodes[j].nodeType === Node.TEXT_NODE && widgetTitle.childNodes[j].textContent.trim() !== '') {
