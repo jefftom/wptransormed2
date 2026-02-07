@@ -35,7 +35,7 @@
         });
 
         // Update the sidebar menu count bubble via JS.
-        updateMenuBubble(notices.length, hasErrors);
+        updateMenuBubble(notices.length);
 
         if (cfg.isNotificationsPage) {
             handleNotificationsPage(notices, hasErrors, i18n);
@@ -50,12 +50,12 @@
      * Finds the menu link by its href containing page=wpt-notifications,
      * then locates or creates the count bubble span.
      */
-    function updateMenuBubble(count, hasErrors) {
+    function updateMenuBubble(count) {
         var menuLink = document.querySelector('#adminmenu a[href*="page=wpt-notifications"]');
         if (!menuLink) return;
 
-        // Find existing bubble or create one.
-        var bubble = menuLink.querySelector('.update-plugins');
+        // Find existing bubble or create one (awaiting-mod = WP Comments-style inline badge).
+        var bubble = menuLink.querySelector('.awaiting-mod');
 
         if (count === 0) {
             if (bubble) bubble.style.display = 'none';
@@ -64,16 +64,16 @@
 
         if (!bubble) {
             bubble = document.createElement('span');
-            bubble.innerHTML = '<span class="plugin-count"></span>';
+            bubble.innerHTML = '<span class="pending-count"></span>';
             menuLink.appendChild(document.createTextNode(' '));
             menuLink.appendChild(bubble);
         }
 
-        var inner = bubble.querySelector('.plugin-count');
+        var inner = bubble.querySelector('.pending-count');
         if (inner) {
-            inner.textContent = (hasErrors ? '\u26A0\uFE0F ' : '') + count;
+            inner.textContent = count;
         }
-        bubble.className = 'update-plugins count-' + count;
+        bubble.className = 'awaiting-mod count-' + count;
         bubble.style.display = '';
     }
 
@@ -135,7 +135,7 @@
 
             setTimeout(function() {
                 var remaining = content.querySelectorAll('.notice, .updated, .error, .update-nag');
-                updateMenuBubble(remaining.length, false);
+                updateMenuBubble(remaining.length);
 
                 if (remaining.length === 0) {
                     content.innerHTML = '<p class="wpt-no-notices">'

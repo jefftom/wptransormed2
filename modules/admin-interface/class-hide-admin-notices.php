@@ -169,12 +169,10 @@ class Hide_Admin_Notices extends Module_Base {
             return '';
         }
 
-        $count     = (int) $data['count'];
-        $has_error = ! empty( $data['has_error'] );
-        $label     = ( $has_error ? "\u{26A0}\u{FE0F} " : '' ) . $count;
+        $count = (int) $data['count'];
 
-        return ' <span class="update-plugins count-' . $count . '">'
-            . '<span class="plugin-count">' . esc_html( $label ) . '</span></span>';
+        return ' <span class="awaiting-mod count-' . $count . '">'
+            . '<span class="pending-count">' . $count . '</span></span>';
     }
 
     /**
