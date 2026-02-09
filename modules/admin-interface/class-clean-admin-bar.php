@@ -486,6 +486,17 @@ class Clean_Admin_Bar extends Module_Base {
             $role_names[ $slug ] = translate_user_role( $name );
         }
 
+        // FIX: Ensure empty hidden_nodes encode as JSON {} not [].
+        // PHP json_encode([]) → "[]" which JS parses as Array,
+        // causing string-keyed properties to be silently dropped
+        // by JSON.stringify on the client side.
+        foreach ( $profiles as $rk => &$pd ) {
+            if ( empty( $pd['hidden_nodes'] ) || ( is_array( $pd['hidden_nodes'] ) && count( $pd['hidden_nodes'] ) === 0 ) ) {
+                $pd['hidden_nodes'] = new \stdClass();
+            }
+        }
+        unset( $pd );
+
         // Build the init data blob for JS.
         $init_data = [
             'profiles'    => $profiles,
@@ -611,6 +622,16 @@ class Clean_Admin_Bar extends Module_Base {
                 // Always ensure 'default' profile exists.
                 if ( ! isset( $sanitized_profiles['default'] ) ) {
                     $sanitized_profiles['default'] = [ 'hidden_nodes' => [] ];
+                }
+
+                // FIX: Force empty hidden_nodes to encode as JSON {} not [].
+                // PHP json_encode([]) → "[]" which JS parses as Array,
+                // causing string-keyed properties to be silently dropped
+                // by JSON.stringify. Using stdClass forces {} encoding.
+                foreach ( $sanitized_profiles as $rk => $pd ) {
+                    if ( empty( $pd['hidden_nodes'] ) ) {
+                        $sanitized_profiles[ $rk ]['hidden_nodes'] = new \stdClass();
+                    }
                 }
 
                 $existing['profiles'] = $sanitized_profiles;
