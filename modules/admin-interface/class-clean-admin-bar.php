@@ -431,199 +431,107 @@ class Clean_Admin_Bar extends Module_Base {
         return $groups;
     }
 
+    // ── Assets ─────────────────────────────────────────────
+
+    /**
+     * Enqueue admin assets only on the WPTransformed settings page.
+     */
+    public function enqueue_admin_assets( string $hook ): void {
+        if ( $hook !== 'toplevel_page_wptransformed' ) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'wpt-admin-bar-manager',
+            WPT_URL . 'modules/admin-interface/css/admin-bar-manager.css',
+            [],
+            WPT_VERSION
+        );
+
+        wp_enqueue_script(
+            'wpt-admin-bar-manager',
+            WPT_URL . 'modules/admin-interface/js/admin-bar-manager.js',
+            [],
+            WPT_VERSION,
+            true
+        );
+    }
+
     // ── Settings UI ───────────────────────────────────────────
 
     /**
-     * Render the settings page.
+     * Render the full settings page UI.
      *
-     * Reads from the new profile-based data structure.
-     * This is a transitional UI — will be fully rebuilt in 4B.
+     * Outputs:
+     * A. Status summary bar
+     * B. Role tabs
+     * C. Per-role profile panels (JS-rendered with sections and toggle rows)
+     * D. Scan button
+     * E. Hidden JSON input for all profiles data
      */
     public function render_settings(): void {
-        $settings = $this->get_settings();
-        $groups   = $this->get_node_list();
-
-        // Get the default profile's hidden nodes for the current UI.
-        $default_profile = $settings['profiles']['default'] ?? [];
-        $hidden_nodes    = $default_profile['hidden_nodes'] ?? [];
-
-        // Custom links summary.
-        $custom_links = $settings['custom_links'] ?? [];
-
-        // Role profiles summary.
-        $profiles     = $settings['profiles'] ?? [];
-        $role_count   = count( $profiles ) - 1; // Subtract 'default'.
+        $settings    = $this->get_settings();
+        $profiles    = $settings['profiles'] ?? [ 'default' => [ 'hidden_nodes' => [] ] ];
+        $node_groups = $this->get_node_list();
+        $wp_roles    = wp_roles()->get_names();
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $just_scanned = isset( $_GET['wpt_scanned'] );
+
+        // Build the init data blob for JS.
+        $init_data = [
+            'profiles'   => $profiles,
+            'nodeGroups' => $node_groups,
+        ];
         ?>
-        <table class="form-table" role="presentation">
-            <tr>
-                <th scope="row"><?php esc_html_e( 'Admin Bar Items', 'wptransformed' ); ?></th>
-                <td>
-                    <?php if ( $just_scanned ) : ?>
-                        <div class="notice notice-success inline" style="margin: 0 0 12px;">
-                            <p><?php esc_html_e( 'Admin bar scanned successfully.', 'wptransformed' ); ?></p>
-                        </div>
-                    <?php endif; ?>
 
-                    <fieldset>
-                        <p class="description" style="margin-bottom: 10px;">
-                            <?php esc_html_e( 'Check items to hide from the admin bar. Context (admin/frontend/both) can be set per item in the full UI.', 'wptransformed' ); ?>
-                        </p>
+        <?php if ( $just_scanned ) : ?>
+            <div class="notice notice-success inline" style="margin: 0 0 12px;">
+                <p><?php esc_html_e( 'Admin bar scanned successfully.', 'wptransformed' ); ?></p>
+            </div>
+        <?php endif; ?>
 
-                        <?php $this->render_node_section( __( 'Left Side', 'wptransformed' ), $groups['left'], $hidden_nodes ); ?>
-                        <?php $this->render_node_section( __( 'Right Side', 'wptransformed' ), $groups['right'], $hidden_nodes ); ?>
-                        <?php if ( ! empty( $groups['plugin'] ) ) : ?>
-                            <?php $this->render_node_section( __( 'Plugin & Theme Items', 'wptransformed' ), $groups['plugin'], $hidden_nodes ); ?>
-                        <?php endif; ?>
-                    </fieldset>
+        <?php // A. Status summary bar ?>
+        <div class="wpt-abm-status" id="wpt-abm-status">
+            <?php esc_html_e( 'Loading...', 'wptransformed' ); ?>
+        </div>
 
-                    <?php if ( $role_count > 0 ) : ?>
-                        <p class="description" style="margin-top: 12px;">
-                            <?php
-                            printf(
-                                /* translators: %d: number of role-specific profiles */
-                                esc_html( _n(
-                                    '%d role-specific profile configured.',
-                                    '%d role-specific profiles configured.',
-                                    $role_count,
-                                    'wptransformed'
-                                ) ),
-                                $role_count
-                            );
-                            ?>
-                        </p>
-                    <?php endif; ?>
-
-                    <?php if ( ! empty( $custom_links ) ) : ?>
-                        <p class="description">
-                            <?php
-                            printf(
-                                /* translators: %d: number of custom links */
-                                esc_html( _n(
-                                    '%d custom link configured.',
-                                    '%d custom links configured.',
-                                    count( $custom_links ),
-                                    'wptransformed'
-                                ) ),
-                                count( $custom_links )
-                            );
-                            ?>
-                        </p>
-                    <?php endif; ?>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row"><?php esc_html_e( 'Scan', 'wptransformed' ); ?></th>
-                <td>
-                    <?php wp_nonce_field( 'wpt_scan_admin_bar', 'wpt_scan_nonce' ); ?>
-                    <button type="submit" name="wpt_scan_admin_bar" value="1" class="button">
-                        <?php esc_html_e( 'Scan Admin Bar', 'wptransformed' ); ?>
-                    </button>
-                    <p class="description">
-                        <?php esc_html_e( 'Re-scan to detect items added by newly installed plugins.', 'wptransformed' ); ?>
-                    </p>
-                </td>
-            </tr>
-        </table>
-        <?php
-    }
-
-    /**
-     * Render a section of admin bar nodes with a heading.
-     *
-     * @param string $label        Section heading text.
-     * @param array  $section_nodes Nodes in this section (with children arrays).
-     * @param array  $hidden_nodes Hidden nodes map (node_id => context) from profile.
-     */
-    private function render_node_section( string $label, array $section_nodes, array $hidden_nodes ): void {
-        $total  = count( $section_nodes );
-        $hidden_count = 0;
-        foreach ( $section_nodes as $id => $node ) {
-            if ( isset( $hidden_nodes[ $id ] ) ) {
-                $hidden_count++;
-            }
-        }
-        ?>
-        <h4 style="margin: 16px 0 8px; font-size: 13px; font-weight: 600; color: #1d2327;">
-            <?php echo esc_html( $label ); ?>
-            <span style="font-weight: 400; color: #888; font-size: 12px;">
-                (<?php
-                printf(
-                    /* translators: 1: total items, 2: hidden items */
-                    esc_html__( '%1$d items, %2$d hidden', 'wptransformed' ),
-                    $total,
-                    $hidden_count
-                );
-                ?>)
-            </span>
-        </h4>
-        <div style="margin-left: 4px;">
-            <?php foreach ( $section_nodes as $id => $node ) : ?>
-                <?php $this->render_node_checkbox( $id, $node, $hidden_nodes ); ?>
-
-                <?php
-                $node_children = $node['children'] ?? [];
-                if ( ! empty( $node_children ) ) : ?>
-                    <div style="margin-left: 24px;">
-                        <?php foreach ( $node_children as $child ) :
-                            $child_id = $child['id'] ?? '';
-                            if ( $child_id !== '' ) :
-                                $this->render_node_checkbox( $child_id, $child, $hidden_nodes );
-                            endif;
-                        endforeach; ?>
-                    </div>
-                <?php endif; ?>
+        <?php // B. Role tabs ?>
+        <div class="wpt-abm-role-tabs">
+            <button type="button" class="wpt-abm-role-tab active" data-role="default">
+                <?php esc_html_e( 'All Roles', 'wptransformed' ); ?>
+            </button>
+            <?php foreach ( $wp_roles as $slug => $name ) : ?>
+                <button type="button" class="wpt-abm-role-tab" data-role="<?php echo esc_attr( $slug ); ?>">
+                    <?php echo esc_html( translate_user_role( $name ) ); ?>
+                </button>
             <?php endforeach; ?>
         </div>
-        <?php
-    }
 
-    /**
-     * Render a single admin bar node checkbox row.
-     *
-     * For the transitional UI: checkbox = hidden when checked.
-     * The context value is shown as a label when the node is hidden.
-     *
-     * @param string $id           Node ID.
-     * @param array  $node         Node data.
-     * @param array  $hidden_nodes Hidden nodes map (node_id => context).
-     */
-    private function render_node_checkbox( string $id, array $node, array $hidden_nodes ): void {
-        $title        = ! empty( $node['title'] ) ? $node['title'] : $id;
-        $is_hidden    = isset( $hidden_nodes[ $id ] );
-        $hide_context = $hidden_nodes[ $id ] ?? 'both';
-        ?>
-        <label style="display: block; margin-bottom: 4px;">
-            <input type="checkbox" name="wpt_hidden_nodes[]"
-                   value="<?php echo esc_attr( $id ); ?>"
-                   <?php checked( $is_hidden ); ?>>
-            <?php echo esc_html( $title ); ?>
-            <span style="color: #888; font-size: 12px; margin-left: 4px;"><?php echo esc_html( $id ); ?></span>
-            <?php if ( $is_hidden ) : ?>
-                <span style="color: #2271b1; font-size: 11px; margin-left: 6px;">[<?php echo esc_html( $hide_context ); ?>]</span>
-            <?php endif; ?>
-        </label>
-        <?php if ( $id === 'my-account' && $is_hidden ) : ?>
-            <p class="description" style="margin: 0 0 4px 24px; color: #d63638;">
-                <?php esc_html_e( 'Hiding this removes the logout option from the admin bar. Users can still log out via wp-login.php?action=logout.', 'wptransformed' ); ?>
+        <?php // C. Profile panels — one per role + default ?>
+        <div class="wpt-abm-profile-panel active" id="wpt-abm-panel-default" data-role-name="<?php esc_attr_e( 'All Roles', 'wptransformed' ); ?>">
+        </div>
+        <?php foreach ( $wp_roles as $slug => $name ) : ?>
+            <div class="wpt-abm-profile-panel" id="wpt-abm-panel-<?php echo esc_attr( $slug ); ?>" data-role-name="<?php echo esc_attr( translate_user_role( $name ) ); ?>">
+            </div>
+        <?php endforeach; ?>
+
+        <?php // D. Scan button ?>
+        <div class="wpt-abm-scan-row">
+            <?php wp_nonce_field( 'wpt_scan_admin_bar', 'wpt_scan_nonce' ); ?>
+            <button type="submit" name="wpt_scan_admin_bar" value="1" class="button">
+                <?php esc_html_e( 'Scan Admin Bar', 'wptransformed' ); ?>
+            </button>
+            <p class="description">
+                <?php esc_html_e( 'Re-scan to detect items added by newly installed plugins.', 'wptransformed' ); ?>
             </p>
-        <?php endif; ?>
-        <?php if ( $id === 'my-account' && ! $is_hidden ) : ?>
-            <p class="description wpt-my-account-warning" style="margin: 0 0 4px 24px; color: #d63638; display: none;">
-                <?php esc_html_e( 'Hiding this removes the logout option from the admin bar. Users can still log out via wp-login.php?action=logout.', 'wptransformed' ); ?>
-            </p>
-            <script>
-            (function() {
-                var cb = document.querySelector('input[name="wpt_hidden_nodes[]"][value="my-account"]');
-                var warn = document.querySelector('.wpt-my-account-warning');
-                if (cb && warn) {
-                    cb.addEventListener('change', function() { warn.style.display = this.checked ? '' : 'none'; });
-                }
-            })();
-            </script>
-        <?php endif; ?>
+        </div>
+
+        <?php // E. Hidden JSON input for profiles data ?>
+        <input type="hidden" id="wpt-abm-profiles-json" name="wpt_profiles_json" value="<?php echo esc_attr( wp_json_encode( $profiles ) ); ?>">
+
+        <?php // Init data for JS. ?>
+        <script type="application/json" id="wpt-abm-init-data"><?php echo wp_json_encode( $init_data ); ?></script>
         <?php
     }
 
@@ -632,70 +540,61 @@ class Clean_Admin_Bar extends Module_Base {
     /**
      * Sanitize settings from the form submission.
      *
-     * The transitional UI submits flat checkbox data. Convert to new format.
-     * When the full UI ships (4B), this will handle the complete profile structure.
+     * Handles the JSON profiles input from the new UI,
+     * plus the custom links data (for 4C UI).
      */
     public function sanitize_settings( array $raw ): array {
-        // Get existing settings to preserve profiles and custom links.
-        $existing = $this->get_settings();
+        $existing       = $this->get_settings();
+        $valid_contexts = [ 'admin', 'frontend', 'both' ];
 
-        // Handle transitional UI: flat checkbox list → default profile.
-        if ( isset( $raw['wpt_hidden_nodes'] ) ) {
-            $submitted_nodes = (array) $raw['wpt_hidden_nodes'];
-            $new_hidden = [];
-            foreach ( $submitted_nodes as $node_id ) {
-                $clean_id = sanitize_key( (string) $node_id );
-                if ( $clean_id !== '' ) {
-                    // Preserve existing context if set, otherwise default to 'both'.
-                    $old_context = $existing['profiles']['default']['hidden_nodes'][ $clean_id ] ?? 'both';
-                    $new_hidden[ $clean_id ] = $old_context;
-                }
-            }
+        // Handle JSON profiles input from new UI.
+        if ( ! empty( $raw['wpt_profiles_json'] ) ) {
+            $decoded = json_decode( wp_unslash( $raw['wpt_profiles_json'] ), true );
 
-            $existing['profiles']['default']['hidden_nodes'] = $new_hidden;
-        }
+            if ( is_array( $decoded ) ) {
+                $sanitized_profiles = [];
 
-        // Handle full profile data (for 4B UI).
-        if ( isset( $raw['wpt_profiles'] ) && is_array( $raw['wpt_profiles'] ) ) {
-            $valid_contexts = [ 'admin', 'frontend', 'both' ];
-            $sanitized_profiles = [];
+                foreach ( $decoded as $role_key => $profile_data ) {
+                    $role_key = sanitize_key( (string) $role_key );
+                    if ( $role_key === '' ) {
+                        continue;
+                    }
 
-            foreach ( $raw['wpt_profiles'] as $role_key => $profile_data ) {
-                $role_key = sanitize_key( (string) $role_key );
-                $hidden   = [];
+                    $hidden = [];
+                    $nodes  = $profile_data['hidden_nodes'] ?? [];
 
-                if ( isset( $profile_data['hidden_nodes'] ) && is_array( $profile_data['hidden_nodes'] ) ) {
-                    foreach ( $profile_data['hidden_nodes'] as $node_id => $context ) {
-                        $node_id = sanitize_key( (string) $node_id );
-                        $context = in_array( $context, $valid_contexts, true ) ? $context : 'both';
-                        if ( $node_id !== '' ) {
-                            $hidden[ $node_id ] = $context;
+                    if ( is_array( $nodes ) ) {
+                        foreach ( $nodes as $node_id => $context ) {
+                            $node_id = sanitize_key( (string) $node_id );
+                            $context = in_array( $context, $valid_contexts, true ) ? $context : 'both';
+                            if ( $node_id !== '' ) {
+                                $hidden[ $node_id ] = $context;
+                            }
                         }
                     }
+
+                    $sanitized_profiles[ $role_key ] = [
+                        'hidden_nodes' => $hidden,
+                    ];
                 }
 
-                $sanitized_profiles[ $role_key ] = [
-                    'hidden_nodes' => $hidden,
-                ];
-            }
+                // Always ensure 'default' profile exists.
+                if ( ! isset( $sanitized_profiles['default'] ) ) {
+                    $sanitized_profiles['default'] = [ 'hidden_nodes' => [] ];
+                }
 
-            // Always ensure 'default' profile exists.
-            if ( ! isset( $sanitized_profiles['default'] ) ) {
-                $sanitized_profiles['default'] = $existing['profiles']['default'] ?? [ 'hidden_nodes' => [] ];
+                $existing['profiles'] = $sanitized_profiles;
             }
-
-            $existing['profiles'] = $sanitized_profiles;
         }
 
-        // Handle custom links (for 4B UI).
+        // Handle custom links (for 4C UI).
         if ( isset( $raw['wpt_custom_links'] ) && is_array( $raw['wpt_custom_links'] ) ) {
             $sanitized_links = [];
             $valid_roles     = array_keys( wp_roles()->get_names() );
-            $max_links       = 10;
             $count           = 0;
 
             foreach ( $raw['wpt_custom_links'] as $link ) {
-                if ( $count >= $max_links ) {
+                if ( $count >= 10 ) {
                     break;
                 }
                 if ( ! is_array( $link ) ) {
@@ -705,20 +604,19 @@ class Clean_Admin_Bar extends Module_Base {
                 $title = sanitize_text_field( $link['title'] ?? '' );
                 $url   = esc_url_raw( $link['url'] ?? '' );
 
-                // Title and URL are required.
                 if ( $title === '' || $url === '' ) {
                     continue;
                 }
 
                 $sanitized_links[] = [
-                    'title'   => $title,
-                    'url'     => $url,
-                    'icon'    => sanitize_html_class( $link['icon'] ?? 'dashicons-admin-links' ),
-                    'new_tab' => ! empty( $link['new_tab'] ),
+                    'title'    => $title,
+                    'url'      => $url,
+                    'icon'     => sanitize_html_class( $link['icon'] ?? 'dashicons-admin-links' ),
+                    'new_tab'  => ! empty( $link['new_tab'] ),
                     'position' => in_array( $link['position'] ?? '', [ 'left', 'right' ], true )
                         ? $link['position']
                         : 'left',
-                    'roles'   => array_values( array_intersect(
+                    'roles'    => array_values( array_intersect(
                         array_map( 'sanitize_text_field', (array) ( $link['roles'] ?? [] ) ),
                         $valid_roles
                     ) ),
@@ -729,7 +627,6 @@ class Clean_Admin_Bar extends Module_Base {
             $existing['custom_links'] = $sanitized_links;
         }
 
-        // Ensure top-level structure is always valid.
         return [
             'profiles'     => $existing['profiles'] ?? [ 'default' => [ 'hidden_nodes' => [] ] ],
             'custom_links' => $existing['custom_links'] ?? [],
