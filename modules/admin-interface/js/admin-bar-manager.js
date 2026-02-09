@@ -20,7 +20,10 @@
     // profiles = { 'default': { hidden_nodes: { 'wp-logo': 'both', ... } }, 'editor': { ... } }
     var profiles = {};
     var nodeGroups = {};   // { left: [{id,title,children:[]}], right: [...], plugin: [...] }
+    var customLinks = [];  // [{title,url,icon,new_tab,position,roles:[]}]
+    var wpRoles = {};      // {administrator:'Administrator',...}
     var activeRole = 'default';
+    var MAX_LINKS = 10;
 
     /* ── Init ─────────────────────────────────────────────── */
 
@@ -32,6 +35,8 @@
             var data = JSON.parse(dataEl.textContent);
             profiles = data.profiles || {};
             nodeGroups = data.nodeGroups || {};
+            customLinks = data.customLinks || [];
+            wpRoles = data.wpRoles || {};
         } catch (e) {
             return;
         }
@@ -42,8 +47,9 @@
         }
 
         bindRoleTabs();
-        bindGlobalControls();
+        bindCustomLinksControls();
         showRolePanel('default');
+        renderCustomLinks();
         syncHiddenInput();
     }
 
@@ -545,6 +551,187 @@
         var input = document.getElementById('wpt-abm-profiles-json');
         if (input) {
             input.value = JSON.stringify(profiles);
+        }
+        var linksInput = document.getElementById('wpt-abm-custom-links-json');
+        if (linksInput) {
+            linksInput.value = JSON.stringify(customLinks);
+        }
+    }
+
+    /* ── Global Bindings ──────────────────────────────────── */
+
+    function bindCustomLinksControls() {
+        var addBtn = document.getElementById('wpt-abm-add-link-btn');
+        if (addBtn) {
+            addBtn.addEventListener('click', handleAddLink);
+        }
+    }
+
+    /* ── Custom Links ─────────────────────────────────────── */
+
+    function renderCustomLinks() {
+        var container = document.getElementById('wpt-abm-links-list');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        for (var i = 0; i < customLinks.length; i++) {
+            container.appendChild(buildLinkCard(i, customLinks[i]));
+        }
+
+        updateAddButtonState();
+    }
+
+    function buildLinkCard(index, link) {
+        var card = document.createElement('div');
+        card.className = 'wpt-abm-link-card';
+        card.setAttribute('data-link-index', index);
+
+        var roleKeys = Object.keys(wpRoles);
+        var linkRoles = link.roles || [];
+
+        var rolesHtml = '';
+        for (var r = 0; r < roleKeys.length; r++) {
+            var rk = roleKeys[r];
+            var checked = linkRoles.indexOf(rk) !== -1 ? ' checked' : '';
+            rolesHtml += '<label><input type="checkbox" class="wpt-abm-link-role-cb" value="' + esc(rk) + '"' + checked + '> ' + esc(wpRoles[rk]) + '</label>';
+        }
+
+        card.innerHTML =
+            '<div class="wpt-abm-link-fields">' +
+                '<div class="wpt-abm-link-field">' +
+                    '<label>Title</label>' +
+                    '<input type="text" class="wpt-abm-link-title" value="' + esc(link.title || '') + '" placeholder="e.g., Google Analytics">' +
+                '</div>' +
+                '<div class="wpt-abm-link-field">' +
+                    '<label>URL</label>' +
+                    '<input type="text" class="wpt-abm-link-url" value="' + esc(link.url || '') + '" placeholder="https://">' +
+                '</div>' +
+                '<div class="wpt-abm-link-field">' +
+                    '<label>Icon</label>' +
+                    '<div class="wpt-abm-link-icon-row">' +
+                        '<input type="text" class="wpt-abm-link-icon" value="' + esc(link.icon || 'dashicons-admin-links') + '" placeholder="dashicons-admin-links">' +
+                        '<a href="https://developer.wordpress.org/resource/dashicons/" target="_blank" rel="noopener noreferrer">Browse Dashicons</a>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="wpt-abm-link-field">' +
+                    '<label>Position</label>' +
+                    '<select class="wpt-abm-link-position">' +
+                        '<option value="left"' + (link.position !== 'right' ? ' selected' : '') + '>Left side</option>' +
+                        '<option value="right"' + (link.position === 'right' ? ' selected' : '') + '>Right side</option>' +
+                    '</select>' +
+                '</div>' +
+                '<div class="wpt-abm-link-field">' +
+                    '<label>Open in new tab</label>' +
+                    '<div class="wpt-abm-link-toggle-row">' +
+                        '<label class="wpt-toggle-switch">' +
+                            '<input type="checkbox" class="wpt-abm-link-newtab"' + (link.new_tab ? ' checked' : '') + '>' +
+                            '<span class="wpt-toggle-track"></span>' +
+                        '</label>' +
+                        '<span class="wpt-abm-link-toggle-label">' + (link.new_tab ? 'Yes' : 'No') + '</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="wpt-abm-link-field full-width">' +
+                    '<label>Visible to (leave empty for all roles)</label>' +
+                    '<div class="wpt-abm-link-roles">' + rolesHtml + '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="wpt-abm-link-footer">' +
+                '<button type="button" class="wpt-abm-link-delete">Delete Link</button>' +
+            '</div>';
+
+        // Bind events for this card.
+        bindLinkCardEvents(card, index);
+
+        return card;
+    }
+
+    function bindLinkCardEvents(card, index) {
+        // Field change handlers — update customLinks array on any change.
+        var titleInput = card.querySelector('.wpt-abm-link-title');
+        var urlInput = card.querySelector('.wpt-abm-link-url');
+        var iconInput = card.querySelector('.wpt-abm-link-icon');
+        var posSelect = card.querySelector('.wpt-abm-link-position');
+        var newTabCb = card.querySelector('.wpt-abm-link-newtab');
+        var roleCbs = card.querySelectorAll('.wpt-abm-link-role-cb');
+        var deleteBtn = card.querySelector('.wpt-abm-link-delete');
+        var toggleLabel = card.querySelector('.wpt-abm-link-toggle-label');
+
+        function syncLink() {
+            var i = parseInt(card.getAttribute('data-link-index'), 10);
+            if (!customLinks[i]) return;
+            customLinks[i].title = titleInput.value;
+            customLinks[i].url = urlInput.value;
+            customLinks[i].icon = iconInput.value || 'dashicons-admin-links';
+            customLinks[i].position = posSelect.value;
+            customLinks[i].new_tab = newTabCb.checked;
+            var roles = [];
+            for (var r = 0; r < roleCbs.length; r++) {
+                if (roleCbs[r].checked) roles.push(roleCbs[r].value);
+            }
+            customLinks[i].roles = roles;
+            syncHiddenInput();
+        }
+
+        titleInput.addEventListener('input', syncLink);
+        urlInput.addEventListener('input', syncLink);
+        iconInput.addEventListener('input', syncLink);
+        posSelect.addEventListener('change', syncLink);
+        newTabCb.addEventListener('change', function () {
+            if (toggleLabel) toggleLabel.textContent = this.checked ? 'Yes' : 'No';
+            syncLink();
+        });
+        for (var r = 0; r < roleCbs.length; r++) {
+            roleCbs[r].addEventListener('change', syncLink);
+        }
+
+        deleteBtn.addEventListener('click', function () {
+            if (!confirm('Remove this custom link?')) return;
+            var i = parseInt(card.getAttribute('data-link-index'), 10);
+            customLinks.splice(i, 1);
+            syncHiddenInput();
+            renderCustomLinks();
+        });
+    }
+
+    function handleAddLink() {
+        if (customLinks.length >= MAX_LINKS) return;
+
+        customLinks.push({
+            title: '',
+            url: '',
+            icon: 'dashicons-admin-links',
+            new_tab: false,
+            position: 'left',
+            roles: []
+        });
+
+        syncHiddenInput();
+        renderCustomLinks();
+
+        // Focus the title input of the new card.
+        var container = document.getElementById('wpt-abm-links-list');
+        if (container) {
+            var cards = container.querySelectorAll('.wpt-abm-link-card');
+            var last = cards[cards.length - 1];
+            if (last) {
+                var titleInput = last.querySelector('.wpt-abm-link-title');
+                if (titleInput) titleInput.focus();
+            }
+        }
+    }
+
+    function updateAddButtonState() {
+        var addBtn = document.getElementById('wpt-abm-add-link-btn');
+        var maxMsg = document.getElementById('wpt-abm-links-max-msg');
+        if (!addBtn) return;
+
+        if (customLinks.length >= MAX_LINKS) {
+            addBtn.style.display = 'none';
+            if (maxMsg) maxMsg.style.display = '';
+        } else {
+            addBtn.style.display = '';
+            if (maxMsg) maxMsg.style.display = 'none';
         }
     }
 

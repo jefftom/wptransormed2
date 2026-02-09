@@ -478,10 +478,20 @@ class Clean_Admin_Bar extends Module_Base {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $just_scanned = isset( $_GET['wpt_scanned'] );
 
+        $custom_links = $settings['custom_links'] ?? [];
+
+        // Build role names map for JS.
+        $role_names = [];
+        foreach ( $wp_roles as $slug => $name ) {
+            $role_names[ $slug ] = translate_user_role( $name );
+        }
+
         // Build the init data blob for JS.
         $init_data = [
-            'profiles'   => $profiles,
-            'nodeGroups' => $node_groups,
+            'profiles'    => $profiles,
+            'nodeGroups'  => $node_groups,
+            'customLinks' => $custom_links,
+            'wpRoles'     => $role_names,
         ];
         ?>
 
@@ -516,7 +526,26 @@ class Clean_Admin_Bar extends Module_Base {
             </div>
         <?php endforeach; ?>
 
-        <?php // D. Scan button ?>
+        <?php // D. Custom Links section ?>
+        <div class="wpt-abm-custom-links">
+            <div class="wpt-abm-custom-links-header">
+                <h3><?php esc_html_e( 'Custom Links', 'wptransformed' ); ?></h3>
+                <p><?php esc_html_e( 'Add quick links to Google Analytics, your hosting dashboard, staging site, client CRM, or documentation.', 'wptransformed' ); ?></p>
+            </div>
+
+            <div id="wpt-abm-links-list" class="wpt-abm-links-list">
+                <?php // JS renders link cards here. ?>
+            </div>
+
+            <button type="button" id="wpt-abm-add-link-btn" class="wpt-abm-add-link">
+                + <?php esc_html_e( 'Add Custom Link', 'wptransformed' ); ?>
+            </button>
+            <span id="wpt-abm-links-max-msg" class="wpt-abm-links-max" style="display: none;">
+                <?php esc_html_e( 'Maximum 10 custom links reached.', 'wptransformed' ); ?>
+            </span>
+        </div>
+
+        <?php // E. Scan button ?>
         <div class="wpt-abm-scan-row">
             <?php wp_nonce_field( 'wpt_scan_admin_bar', 'wpt_scan_nonce' ); ?>
             <button type="submit" name="wpt_scan_admin_bar" value="1" class="button">
@@ -527,8 +556,9 @@ class Clean_Admin_Bar extends Module_Base {
             </p>
         </div>
 
-        <?php // E. Hidden JSON input for profiles data ?>
+        <?php // F. Hidden JSON inputs for profiles + custom links data ?>
         <input type="hidden" id="wpt-abm-profiles-json" name="wpt_profiles_json" value="<?php echo esc_attr( wp_json_encode( $profiles ) ); ?>">
+        <input type="hidden" id="wpt-abm-custom-links-json" name="wpt_custom_links_json" value="<?php echo esc_attr( wp_json_encode( $custom_links ) ); ?>">
 
         <?php // Init data for JS. ?>
         <script type="application/json" id="wpt-abm-init-data"><?php echo wp_json_encode( $init_data ); ?></script>
@@ -587,44 +617,54 @@ class Clean_Admin_Bar extends Module_Base {
             }
         }
 
-        // Handle custom links (for 4C UI).
-        if ( isset( $raw['wpt_custom_links'] ) && is_array( $raw['wpt_custom_links'] ) ) {
-            $sanitized_links = [];
-            $valid_roles     = array_keys( wp_roles()->get_names() );
-            $count           = 0;
+        // Handle custom links JSON input.
+        if ( ! empty( $raw['wpt_custom_links_json'] ) ) {
+            $links_decoded = json_decode( wp_unslash( $raw['wpt_custom_links_json'] ), true );
 
-            foreach ( $raw['wpt_custom_links'] as $link ) {
-                if ( $count >= 10 ) {
-                    break;
+            if ( is_array( $links_decoded ) ) {
+                $sanitized_links = [];
+                $valid_roles     = array_keys( wp_roles()->get_names() );
+                $count           = 0;
+
+                foreach ( $links_decoded as $link ) {
+                    if ( $count >= 10 ) {
+                        break;
+                    }
+                    if ( ! is_array( $link ) ) {
+                        continue;
+                    }
+
+                    $title = sanitize_text_field( $link['title'] ?? '' );
+                    $url   = esc_url_raw( $link['url'] ?? '' );
+
+                    // Title and URL are required — skip invalid entries.
+                    if ( $title === '' || $url === '' ) {
+                        continue;
+                    }
+
+                    $icon = sanitize_html_class( $link['icon'] ?? '' );
+                    if ( $icon === '' ) {
+                        $icon = 'dashicons-admin-links';
+                    }
+
+                    $sanitized_links[] = [
+                        'title'    => $title,
+                        'url'      => $url,
+                        'icon'     => $icon,
+                        'new_tab'  => ! empty( $link['new_tab'] ),
+                        'position' => in_array( $link['position'] ?? '', [ 'left', 'right' ], true )
+                            ? $link['position']
+                            : 'left',
+                        'roles'    => array_values( array_intersect(
+                            array_map( 'sanitize_text_field', (array) ( $link['roles'] ?? [] ) ),
+                            $valid_roles
+                        ) ),
+                    ];
+                    $count++;
                 }
-                if ( ! is_array( $link ) ) {
-                    continue;
-                }
 
-                $title = sanitize_text_field( $link['title'] ?? '' );
-                $url   = esc_url_raw( $link['url'] ?? '' );
-
-                if ( $title === '' || $url === '' ) {
-                    continue;
-                }
-
-                $sanitized_links[] = [
-                    'title'    => $title,
-                    'url'      => $url,
-                    'icon'     => sanitize_html_class( $link['icon'] ?? 'dashicons-admin-links' ),
-                    'new_tab'  => ! empty( $link['new_tab'] ),
-                    'position' => in_array( $link['position'] ?? '', [ 'left', 'right' ], true )
-                        ? $link['position']
-                        : 'left',
-                    'roles'    => array_values( array_intersect(
-                        array_map( 'sanitize_text_field', (array) ( $link['roles'] ?? [] ) ),
-                        $valid_roles
-                    ) ),
-                ];
-                $count++;
+                $existing['custom_links'] = $sanitized_links;
             }
-
-            $existing['custom_links'] = $sanitized_links;
         }
 
         return [

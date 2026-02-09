@@ -426,3 +426,198 @@
 .wpt-abm-profiles-data {
     display: none;
 }
+
+/* ── Custom Links Section ────────────────────────────── */
+
+.wpt-abm-custom-links {
+    margin-top: 24px;
+}
+
+.wpt-abm-custom-links-header {
+    margin-bottom: 12px;
+}
+
+.wpt-abm-custom-links-header h3 {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--wpt-text-primary);
+}
+
+.wpt-abm-custom-links-header p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--wpt-text-secondary);
+}
+
+.wpt-abm-links-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+/* ── Link Card ───────────────────────────────────────── */
+
+.wpt-abm-link-card {
+    background: #fff;
+    border: 1px solid var(--wpt-section-border);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.wpt-abm-link-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.wpt-abm-link-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.wpt-abm-link-field.full-width {
+    grid-column: 1 / -1;
+}
+
+.wpt-abm-link-field label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--wpt-text-secondary);
+}
+
+.wpt-abm-link-field input[type="text"] {
+    padding: 6px 8px;
+    font-size: 13px;
+    border: 1px solid var(--wpt-section-border);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--wpt-text-primary);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.wpt-abm-link-field input[type="text"]:focus {
+    border-color: var(--wpt-accent);
+    outline: none;
+    box-shadow: 0 0 0 1px var(--wpt-accent);
+}
+
+.wpt-abm-link-field select {
+    padding: 6px 8px;
+    font-size: 13px;
+    border: 1px solid var(--wpt-section-border);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--wpt-text-primary);
+}
+
+.wpt-abm-link-icon-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wpt-abm-link-icon-row input[type="text"] {
+    flex: 1;
+}
+
+.wpt-abm-link-icon-row a {
+    font-size: 12px;
+    color: var(--wpt-accent);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.wpt-abm-link-icon-row a:hover {
+    text-decoration: underline;
+}
+
+.wpt-abm-link-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wpt-abm-link-toggle-row .wpt-toggle-switch {
+    flex-shrink: 0;
+}
+
+.wpt-abm-link-toggle-label {
+    font-size: 13px;
+    color: var(--wpt-text-primary);
+}
+
+/* ── Link Card Roles ─────────────────────────────────── */
+
+.wpt-abm-link-roles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-top: 2px;
+}
+
+.wpt-abm-link-roles label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--wpt-text-primary);
+    cursor: pointer;
+}
+
+.wpt-abm-link-roles input[type="checkbox"] {
+    margin: 0;
+}
+
+/* ── Link Card Footer ────────────────────────────────── */
+
+.wpt-abm-link-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--wpt-section-border);
+}
+
+.wpt-abm-link-delete {
+    font-size: 12px;
+    color: var(--wpt-danger);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.wpt-abm-link-delete:hover {
+    color: #b91c1c;
+}
+
+/* ── Add Link Button ─────────────────────────────────── */
+
+.wpt-abm-add-link {
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--wpt-text-secondary);
+    background: #fff;
+    border: 1px solid var(--wpt-section-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.wpt-abm-add-link:hover {
+    color: var(--wpt-accent);
+    border-color: var(--wpt-accent);
+}
+
+.wpt-abm-links-max {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--wpt-text-muted);
+}
