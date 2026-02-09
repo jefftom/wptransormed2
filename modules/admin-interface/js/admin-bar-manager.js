@@ -46,6 +46,17 @@
             profiles['default'] = { hidden_nodes: {} };
         }
 
+        // FIX: PHP json_encode([]) → "[]" → JS Array.
+// String keys on JS Arrays are dropped by JSON.stringify.
+// Force every hidden_nodes to be a plain Object.
+var roleKeys = Object.keys(profiles);
+for (var i = 0; i < roleKeys.length; i++) {
+    var p = profiles[roleKeys[i]];
+    if (!p.hidden_nodes || Array.isArray(p.hidden_nodes)) {
+        p.hidden_nodes = {};
+    }
+}
+
         bindRoleTabs();
         bindCustomLinksControls();
         showRolePanel('default');
@@ -123,9 +134,13 @@
         });
     }
 
-    function createProfile(role) {
+ function createProfile(role) {
         // Clone default profile.
         profiles[role] = JSON.parse(JSON.stringify(profiles['default']));
+        // Fix: cloned hidden_nodes may be an Array from JSON round-trip.
+        if (Array.isArray(profiles[role].hidden_nodes)) {
+            profiles[role].hidden_nodes = {};
+        }
         syncHiddenInput();
         showRolePanel(role);
     }
