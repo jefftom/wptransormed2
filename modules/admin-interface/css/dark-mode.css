@@ -1,0 +1,675 @@
+/**
+ * WPTransformed — Dark Mode
+ *
+ * CSS custom properties architecture. Scoped to html.wpt-dark.
+ * 4 color schemes via data-wpt-scheme attribute.
+ * Smooth 0.2s transitions on toggle (NOT on initial load — FOUC inline handles that).
+ * Print reset ensures light output.
+ */
+
+/* ── Light defaults (reference values — WordPress provides most of these) ── */
+:root {
+    --wpt-bg-primary: #f0f0f1;
+    --wpt-bg-surface: #ffffff;
+    --wpt-bg-surface-alt: #f6f7f7;
+    --wpt-text-primary: #1d2327;
+    --wpt-text-secondary: #50575e;
+    --wpt-text-muted: #787c82;
+    --wpt-border: #c3c4c7;
+    --wpt-border-light: #dcdcde;
+    --wpt-input-bg: #ffffff;
+    --wpt-input-border: #8c8f94;
+    --wpt-shadow: rgba(0, 0, 0, 0.05);
+    --wpt-row-hover: #f6f7f7;
+    --wpt-row-alt: #f6f7f7;
+    --wpt-notice-bg: #ffffff;
+    --wpt-link: #2271b1;
+    --wpt-link-hover: #135e96;
+    --wpt-adminbar-bg: #1d2327;
+    --wpt-code-bg: #f0f0f1;
+}
+
+/* ── Scheme 1: Midnight Blue (default) ── */
+html.wpt-dark,
+html.wpt-dark[data-wpt-scheme="midnight-blue"] {
+    --wpt-bg-primary: #1a1a2e;
+    --wpt-bg-surface: #16213e;
+    --wpt-bg-surface-alt: #1b2940;
+    --wpt-text-primary: #e4e6eb;
+    --wpt-text-secondary: #b0b3b8;
+    --wpt-text-muted: #8a8d91;
+    --wpt-border: #3a3f47;
+    --wpt-border-light: #2d333b;
+    --wpt-input-bg: #1e2d44;
+    --wpt-input-border: #4a5568;
+    --wpt-shadow: rgba(0, 0, 0, 0.3);
+    --wpt-row-hover: #1e2d44;
+    --wpt-row-alt: #182538;
+    --wpt-notice-bg: #1e2d44;
+    --wpt-link: #6ea8fe;
+    --wpt-link-hover: #9ec5fe;
+    --wpt-adminbar-bg: #0f0f1a;
+    --wpt-code-bg: #1e2d44;
+}
+
+/* ── Scheme 2: True Dark ── */
+html.wpt-dark[data-wpt-scheme="true-dark"] {
+    --wpt-bg-primary: #121212;
+    --wpt-bg-surface: #1e1e1e;
+    --wpt-bg-surface-alt: #252525;
+    --wpt-text-primary: #e0e0e0;
+    --wpt-text-secondary: #aaaaaa;
+    --wpt-text-muted: #888888;
+    --wpt-border: #333333;
+    --wpt-border-light: #2a2a2a;
+    --wpt-input-bg: #2c2c2c;
+    --wpt-input-border: #444444;
+    --wpt-shadow: rgba(0, 0, 0, 0.4);
+    --wpt-row-hover: #2c2c2c;
+    --wpt-row-alt: #1a1a1a;
+    --wpt-notice-bg: #2c2c2c;
+    --wpt-link: #6ea8fe;
+    --wpt-link-hover: #9ec5fe;
+    --wpt-adminbar-bg: #0a0a0a;
+    --wpt-code-bg: #2c2c2c;
+}
+
+/* ── Scheme 3: Charcoal ── */
+html.wpt-dark[data-wpt-scheme="charcoal"] {
+    --wpt-bg-primary: #2d2d2d;
+    --wpt-bg-surface: #383838;
+    --wpt-bg-surface-alt: #3e3e3e;
+    --wpt-text-primary: #e8e8e8;
+    --wpt-text-secondary: #b8b8b8;
+    --wpt-text-muted: #909090;
+    --wpt-border: #4a4a4a;
+    --wpt-border-light: #404040;
+    --wpt-input-bg: #444444;
+    --wpt-input-border: #5a5a5a;
+    --wpt-shadow: rgba(0, 0, 0, 0.35);
+    --wpt-row-hover: #444444;
+    --wpt-row-alt: #333333;
+    --wpt-notice-bg: #444444;
+    --wpt-link: #6ea8fe;
+    --wpt-link-hover: #9ec5fe;
+    --wpt-adminbar-bg: #222222;
+    --wpt-code-bg: #444444;
+}
+
+/* ── Scheme 4: Nord ── */
+html.wpt-dark[data-wpt-scheme="nord"] {
+    --wpt-bg-primary: #2e3440;
+    --wpt-bg-surface: #3b4252;
+    --wpt-bg-surface-alt: #434c5e;
+    --wpt-text-primary: #eceff4;
+    --wpt-text-secondary: #d8dee9;
+    --wpt-text-muted: #a0a8b6;
+    --wpt-border: #4c566a;
+    --wpt-border-light: #434c5e;
+    --wpt-input-bg: #434c5e;
+    --wpt-input-border: #4c566a;
+    --wpt-shadow: rgba(0, 0, 0, 0.3);
+    --wpt-row-hover: #434c5e;
+    --wpt-row-alt: #353b48;
+    --wpt-notice-bg: #434c5e;
+    --wpt-link: #88c0d0;
+    --wpt-link-hover: #8fbcbb;
+    --wpt-adminbar-bg: #242933;
+    --wpt-code-bg: #434c5e;
+}
+
+/* ── Transitions (only when toggling — FOUC inline has no transitions) ── */
+html.wpt-dark-transitions #wpcontent,
+html.wpt-dark-transitions #wpbody-content,
+html.wpt-dark-transitions .postbox,
+html.wpt-dark-transitions .stuffbox,
+html.wpt-dark-transitions .widefat,
+html.wpt-dark-transitions .wp-list-table,
+html.wpt-dark-transitions input,
+html.wpt-dark-transitions select,
+html.wpt-dark-transitions textarea,
+html.wpt-dark-transitions .notice,
+html.wpt-dark-transitions .card,
+html.wpt-dark-transitions .welcome-panel,
+html.wpt-dark-transitions #wpadminbar {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* ── Main content area ── */
+html.wpt-dark #wpcontent,
+html.wpt-dark #wpbody,
+html.wpt-dark #wpbody-content {
+    background: var(--wpt-bg-primary);
+    color: var(--wpt-text-primary);
+}
+
+/* ── Admin bar ── */
+html.wpt-dark #wpadminbar {
+    background: var(--wpt-adminbar-bg);
+}
+
+html.wpt-dark #wpadminbar .ab-item,
+html.wpt-dark #wpadminbar .ab-empty-item,
+html.wpt-dark #wpadminbar a.ab-item,
+html.wpt-dark #wpadminbar > #wp-toolbar span.ab-label {
+    color: var(--wpt-text-secondary);
+}
+
+html.wpt-dark #wpadminbar .menupop .ab-sub-wrapper {
+    background: var(--wpt-bg-surface);
+}
+
+html.wpt-dark #wpadminbar .menupop .ab-sub-wrapper .ab-item,
+html.wpt-dark #wpadminbar .shortlink-input {
+    color: var(--wpt-text-secondary);
+}
+
+html.wpt-dark #wpadminbar .quicklinks .menupop ul.ab-sub-secondary {
+    background: var(--wpt-bg-surface-alt);
+}
+
+/* ── Sidebar (only when opted in) ── */
+html.wpt-dark.wpt-dark-sidebar #adminmenuback,
+html.wpt-dark.wpt-dark-sidebar #adminmenuwrap,
+html.wpt-dark.wpt-dark-sidebar #adminmenu {
+    background: var(--wpt-adminbar-bg);
+}
+
+html.wpt-dark.wpt-dark-sidebar #adminmenu a {
+    color: var(--wpt-text-secondary);
+}
+
+html.wpt-dark.wpt-dark-sidebar #adminmenu li.menu-top:hover,
+html.wpt-dark.wpt-dark-sidebar #adminmenu li.opensub > a.menu-top,
+html.wpt-dark.wpt-dark-sidebar #adminmenu .wp-has-current-submenu .wp-submenu,
+html.wpt-dark.wpt-dark-sidebar #adminmenu .wp-submenu {
+    background: var(--wpt-bg-surface);
+}
+
+html.wpt-dark.wpt-dark-sidebar #adminmenu .wp-submenu a {
+    color: var(--wpt-text-muted);
+}
+
+html.wpt-dark.wpt-dark-sidebar #adminmenu .wp-submenu a:hover,
+html.wpt-dark.wpt-dark-sidebar #adminmenu .wp-submenu a:focus {
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark.wpt-dark-sidebar #collapse-menu {
+    color: var(--wpt-text-muted);
+}
+
+/* ── Page titles and headings ── */
+html.wpt-dark .wrap h1,
+html.wpt-dark .wrap h2 {
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .wrap .page-title-action {
+    color: var(--wpt-link);
+    border-color: var(--wpt-border);
+}
+
+html.wpt-dark .wrap .page-title-action:hover {
+    color: var(--wpt-link-hover);
+    border-color: var(--wpt-link);
+}
+
+/* ── Postboxes / metaboxes ── */
+html.wpt-dark .postbox,
+html.wpt-dark .stuffbox {
+    background: var(--wpt-bg-surface);
+    border-color: var(--wpt-border);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .postbox .postbox-header,
+html.wpt-dark .postbox .hndle {
+    border-bottom-color: var(--wpt-border);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .postbox .inside {
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .postbox .handle-actions button {
+    color: var(--wpt-text-muted);
+}
+
+/* ── Cards and panels ── */
+html.wpt-dark .card,
+html.wpt-dark .welcome-panel {
+    background: var(--wpt-bg-surface);
+    border-color: var(--wpt-border);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .welcome-panel h2,
+html.wpt-dark .welcome-panel p {
+    color: var(--wpt-text-primary);
+}
+
+/* ── Dashboard widgets ── */
+html.wpt-dark #dashboard-widgets .postbox {
+    background: var(--wpt-bg-surface);
+}
+
+html.wpt-dark #dashboard-widgets h2 {
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .activity-block,
+html.wpt-dark #the-comment-list .comment {
+    border-bottom-color: var(--wpt-border);
+}
+
+/* ── Tables ── */
+html.wpt-dark .widefat,
+html.wpt-dark .wp-list-table {
+    background: var(--wpt-bg-surface);
+    border-color: var(--wpt-border);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .widefat th,
+html.wpt-dark .widefat td,
+html.wpt-dark .wp-list-table th,
+html.wpt-dark .wp-list-table td {
+    color: var(--wpt-text-primary);
+    border-bottom-color: var(--wpt-border-light);
+}
+
+html.wpt-dark .widefat thead th,
+html.wpt-dark .widefat thead td,
+html.wpt-dark .widefat tfoot th,
+html.wpt-dark .widefat tfoot td {
+    color: var(--wpt-text-secondary);
+    background: var(--wpt-bg-surface-alt);
+    border-bottom-color: var(--wpt-border);
+}
+
+html.wpt-dark .wp-list-table .alternate,
+html.wpt-dark .widefat .alternate {
+    background: var(--wpt-row-alt);
+}
+
+html.wpt-dark .wp-list-table tr:hover td,
+html.wpt-dark .widefat tbody tr:hover td {
+    background: var(--wpt-row-hover);
+}
+
+html.wpt-dark .wp-list-table .row-actions a {
+    color: var(--wpt-link);
+}
+
+html.wpt-dark .wp-list-table .column-title strong a,
+html.wpt-dark .wp-list-table .row-title {
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .check-column input[type="checkbox"] {
+    background: var(--wpt-input-bg);
+    border-color: var(--wpt-input-border);
+}
+
+/* ── Subsubsub nav ── */
+html.wpt-dark .subsubsub a {
+    color: var(--wpt-link);
+}
+
+html.wpt-dark .subsubsub a .count,
+html.wpt-dark .subsubsub .count {
+    color: var(--wpt-text-muted);
+}
+
+/* ── Table navigation / pagination ── */
+html.wpt-dark .tablenav,
+html.wpt-dark .tablenav-pages {
+    color: var(--wpt-text-secondary);
+}
+
+html.wpt-dark .tablenav .tablenav-pages a {
+    color: var(--wpt-text-primary);
+    border-color: var(--wpt-border);
+    background: var(--wpt-bg-surface);
+}
+
+html.wpt-dark .tablenav .tablenav-pages .current {
+    background: var(--wpt-bg-surface-alt);
+    border-color: var(--wpt-border);
+}
+
+/* ── Form elements ── */
+html.wpt-dark input[type="text"],
+html.wpt-dark input[type="email"],
+html.wpt-dark input[type="password"],
+html.wpt-dark input[type="search"],
+html.wpt-dark input[type="url"],
+html.wpt-dark input[type="number"],
+html.wpt-dark input[type="tel"],
+html.wpt-dark input[type="date"],
+html.wpt-dark input[type="datetime-local"],
+html.wpt-dark select,
+html.wpt-dark textarea {
+    background: var(--wpt-input-bg);
+    border-color: var(--wpt-input-border);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark input[type="text"]:focus,
+html.wpt-dark input[type="email"]:focus,
+html.wpt-dark input[type="password"]:focus,
+html.wpt-dark input[type="search"]:focus,
+html.wpt-dark input[type="url"]:focus,
+html.wpt-dark input[type="number"]:focus,
+html.wpt-dark select:focus,
+html.wpt-dark textarea:focus {
+    border-color: var(--wpt-link);
+    box-shadow: 0 0 0 1px var(--wpt-link);
+}
+
+html.wpt-dark input[type="checkbox"],
+html.wpt-dark input[type="radio"] {
+    background: var(--wpt-input-bg);
+    border-color: var(--wpt-input-border);
+}
+
+html.wpt-dark .form-table th {
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .form-table td p.description {
+    color: var(--wpt-text-muted);
+}
+
+/* ── Notices (keep colored left borders) ── */
+html.wpt-dark .notice {
+    background: var(--wpt-notice-bg);
+    color: var(--wpt-text-primary);
+    border-color: var(--wpt-border);
+}
+
+html.wpt-dark .notice p {
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .notice a {
+    color: var(--wpt-link);
+}
+
+html.wpt-dark .notice-success {
+    border-left-color: #00a32a;
+}
+
+html.wpt-dark .notice-warning {
+    border-left-color: #dba617;
+}
+
+html.wpt-dark .notice-error {
+    border-left-color: #d63638;
+}
+
+html.wpt-dark .notice-info {
+    border-left-color: #72aee6;
+}
+
+/* ── Links ── */
+html.wpt-dark a {
+    color: var(--wpt-link);
+}
+
+html.wpt-dark a:hover,
+html.wpt-dark a:focus {
+    color: var(--wpt-link-hover);
+}
+
+/* ── Screen Options / Help panels ── */
+html.wpt-dark #screen-meta {
+    background: var(--wpt-bg-surface);
+    border-color: var(--wpt-border);
+}
+
+html.wpt-dark #screen-options-wrap,
+html.wpt-dark #contextual-help-wrap {
+    background: var(--wpt-bg-surface);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark #screen-meta-links .screen-meta-toggle a {
+    color: var(--wpt-text-secondary);
+}
+
+html.wpt-dark .contextual-help-tabs .active a {
+    background: var(--wpt-bg-surface);
+    color: var(--wpt-text-primary);
+}
+
+/* ── Code / CodeMirror ── */
+html.wpt-dark code,
+html.wpt-dark pre {
+    background: var(--wpt-code-bg);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .CodeMirror {
+    background: var(--wpt-code-bg);
+    color: var(--wpt-text-primary);
+    border-color: var(--wpt-border);
+}
+
+html.wpt-dark .CodeMirror-gutters {
+    background: var(--wpt-bg-surface-alt);
+    border-right-color: var(--wpt-border);
+}
+
+html.wpt-dark .CodeMirror-linenumber {
+    color: var(--wpt-text-muted);
+}
+
+html.wpt-dark .CodeMirror-cursor {
+    border-left-color: var(--wpt-text-primary);
+}
+
+/* ── Gutenberg / Block Editor ── */
+html.wpt-dark .block-editor-page #editor .editor-styles-wrapper {
+    background: var(--wpt-bg-primary);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .edit-post-sidebar,
+html.wpt-dark .interface-interface-skeleton__sidebar {
+    background: var(--wpt-bg-surface);
+    color: var(--wpt-text-primary);
+    border-left-color: var(--wpt-border);
+}
+
+html.wpt-dark .edit-post-header,
+html.wpt-dark .interface-interface-skeleton__header {
+    background: var(--wpt-bg-surface);
+    border-bottom-color: var(--wpt-border);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .components-panel__body {
+    border-bottom-color: var(--wpt-border);
+}
+
+html.wpt-dark .components-panel__body-title button {
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .components-modal__screen-overlay {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+html.wpt-dark .components-modal__frame {
+    background: var(--wpt-bg-surface);
+    color: var(--wpt-text-primary);
+    border-color: var(--wpt-border);
+}
+
+html.wpt-dark .components-base-control__label {
+    color: var(--wpt-text-secondary);
+}
+
+html.wpt-dark .editor-post-title__input {
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .block-editor-block-list__layout {
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .interface-interface-skeleton__body {
+    background: var(--wpt-bg-primary);
+}
+
+/* ── Media modal ── */
+html.wpt-dark .media-modal,
+html.wpt-dark .media-frame {
+    background: var(--wpt-bg-surface);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .media-modal-content {
+    background: var(--wpt-bg-surface);
+}
+
+html.wpt-dark .media-frame .media-toolbar {
+    background: var(--wpt-bg-surface-alt);
+    border-bottom-color: var(--wpt-border);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .media-frame .attachments-browser .media-toolbar {
+    background: var(--wpt-bg-surface-alt);
+    border-bottom-color: var(--wpt-border);
+}
+
+html.wpt-dark .attachment-details {
+    background: var(--wpt-bg-surface-alt);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .media-sidebar {
+    background: var(--wpt-bg-surface-alt);
+    border-left-color: var(--wpt-border);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .media-frame .attachments-browser .attachments {
+    background: var(--wpt-bg-primary);
+}
+
+html.wpt-dark .media-frame .attachment .thumbnail {
+    background: var(--wpt-bg-surface-alt);
+}
+
+html.wpt-dark .media-router .media-menu-item {
+    color: var(--wpt-text-secondary);
+    border-bottom-color: var(--wpt-border);
+}
+
+html.wpt-dark .media-router .active {
+    color: var(--wpt-text-primary);
+    border-bottom-color: var(--wpt-text-primary);
+}
+
+/* ── Footer ── */
+html.wpt-dark #wpfooter {
+    color: var(--wpt-text-muted);
+    border-top-color: var(--wpt-border);
+}
+
+html.wpt-dark #wpfooter a {
+    color: var(--wpt-link);
+}
+
+/* ── Plugin compatibility: ACF ── */
+html.wpt-dark .acf-fields,
+html.wpt-dark .acf-field {
+    background: var(--wpt-bg-surface);
+    border-color: var(--wpt-border);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .acf-postbox .inside {
+    background: var(--wpt-bg-surface);
+}
+
+html.wpt-dark .acf-label label {
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .acf-input input,
+html.wpt-dark .acf-input select,
+html.wpt-dark .acf-input textarea {
+    background: var(--wpt-input-bg);
+    border-color: var(--wpt-input-border);
+    color: var(--wpt-text-primary);
+}
+
+/* ── Plugin compatibility: Yoast SEO ── */
+html.wpt-dark .yoast,
+html.wpt-dark .wpseo-metabox-content {
+    background: var(--wpt-bg-surface);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .wpseo-metabox-content .wpseo-meta-section {
+    background: var(--wpt-bg-surface);
+}
+
+/* ── Plugin compatibility: WooCommerce ── */
+html.wpt-dark .woocommerce #woocommerce-product-data {
+    background: var(--wpt-bg-surface);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .woocommerce .wc-metaboxes-wrapper,
+html.wpt-dark .woocommerce .woocommerce_options_panel {
+    background: var(--wpt-bg-surface);
+    color: var(--wpt-text-primary);
+}
+
+html.wpt-dark .woocommerce .wc-metabox-content {
+    background: var(--wpt-bg-surface-alt);
+}
+
+html.wpt-dark .woocommerce ul.wc-tabs li a {
+    color: var(--wpt-text-secondary);
+}
+
+html.wpt-dark .woocommerce ul.wc-tabs li.active a {
+    color: var(--wpt-text-primary);
+    background: var(--wpt-bg-surface);
+}
+
+/* ── Admin toggle button styling ── */
+html.wpt-dark #wpadminbar #wp-admin-bar-wpt-dark-mode-toggle > .ab-item {
+    font-size: 16px;
+    line-height: 1;
+}
+
+/* ── Print reset — dark mode never affects print ── */
+@media print {
+    html.wpt-dark,
+    html.wpt-dark[data-wpt-scheme] {
+        --wpt-bg-primary: #ffffff;
+        --wpt-bg-surface: #ffffff;
+        --wpt-bg-surface-alt: #f6f7f7;
+        --wpt-text-primary: #000000;
+        --wpt-text-secondary: #333333;
+        --wpt-text-muted: #666666;
+        --wpt-border: #cccccc;
+        --wpt-border-light: #dddddd;
+        --wpt-input-bg: #ffffff;
+        --wpt-input-border: #cccccc;
+        --wpt-shadow: rgba(0, 0, 0, 0.05);
+        --wpt-notice-bg: #ffffff;
+        --wpt-link: #2271b1;
+        --wpt-adminbar-bg: #1d2327;
+        --wpt-code-bg: #f0f0f1;
+    }
+}
