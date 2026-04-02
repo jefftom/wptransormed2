@@ -1,0 +1,279 @@
+/*
+ * WPTransformed — Broken Link Checker admin styles.
+ *
+ * @package WPTransformed
+ */
+
+/* ── Summary Cards ─────────────────────────────────────────── */
+
+.wpt-blc-summary {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 16px 0 24px;
+    flex-wrap: wrap;
+}
+
+.wpt-blc-summary-card {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 16px 24px;
+    text-align: center;
+    min-width: 120px;
+}
+
+.wpt-blc-card-broken {
+    border-left: 4px solid #d63638;
+}
+
+.wpt-blc-card-redirect {
+    border-left: 4px solid #dba617;
+}
+
+.wpt-blc-card-number {
+    display: block;
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #1d2327;
+}
+
+.wpt-blc-card-label {
+    display: block;
+    font-size: 13px;
+    color: #646970;
+    margin-top: 4px;
+}
+
+.wpt-blc-summary-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.wpt-blc-summary-actions .description {
+    margin: 0;
+}
+
+.wpt-blc-summary-actions .spinner {
+    float: none;
+    margin: 0;
+}
+
+/* ── Filters ───────────────────────────────────────────────── */
+
+.wpt-blc-filters {
+    display: flex;
+    gap: 4px;
+    margin: 16px 0 12px;
+}
+
+.wpt-blc-filter.active {
+    background: #2271b1;
+    color: #fff;
+    border-color: #2271b1;
+}
+
+.wpt-blc-filter-count {
+    display: inline-block;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 0 6px;
+    font-size: 11px;
+    margin-left: 4px;
+}
+
+.wpt-blc-filter.active .wpt-blc-filter-count {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Results Table ─────────────────────────────────────────── */
+
+.wpt-blc-table {
+    margin-top: 8px;
+}
+
+.wpt-blc-col-url {
+    width: 35%;
+}
+
+.wpt-blc-col-status {
+    width: 12%;
+}
+
+.wpt-blc-col-source {
+    width: 20%;
+}
+
+.wpt-blc-col-type {
+    width: 10%;
+}
+
+.wpt-blc-col-actions {
+    width: 23%;
+}
+
+.wpt-blc-url {
+    font-size: 12px;
+    word-break: break-all;
+    display: block;
+}
+
+.wpt-blc-anchor {
+    display: block;
+    font-size: 11px;
+    color: #646970;
+    margin-top: 2px;
+    font-style: italic;
+}
+
+.wpt-blc-muted {
+    color: #a7aaad;
+}
+
+/* ── Status Badges ─────────────────────────────────────────── */
+
+.wpt-blc-status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.wpt-blc-status-ok {
+    background: #edfaef;
+    color: #00a32a;
+}
+
+.wpt-blc-status-redirect {
+    background: #fcf0c3;
+    color: #996800;
+}
+
+.wpt-blc-status-broken {
+    background: #fcecec;
+    color: #d63638;
+}
+
+.wpt-blc-status-server-error {
+    background: #fcecec;
+    color: #8b0000;
+}
+
+.wpt-blc-status-error {
+    background: #f0f0f1;
+    color: #646970;
+}
+
+/* ── Type Badges ───────────────────────────────────────────── */
+
+.wpt-blc-type-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    background: #f0f0f1;
+    color: #50575e;
+}
+
+.wpt-blc-type-internal {
+    background: #e7f5fe;
+    color: #135e96;
+}
+
+.wpt-blc-type-external {
+    background: #f0f0f1;
+    color: #50575e;
+}
+
+.wpt-blc-type-image {
+    background: #fef0e7;
+    color: #8b4513;
+}
+
+/* ── Actions ───────────────────────────────────────────────── */
+
+.wpt-blc-col-actions .button {
+    margin-right: 4px;
+    margin-bottom: 4px;
+}
+
+/* ── Pagination ────────────────────────────────────────────── */
+
+.wpt-blc-pagination {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.wpt-blc-page-info {
+    font-size: 13px;
+    color: #646970;
+}
+
+/* ── Count in heading ──────────────────────────────────────── */
+
+.wpt-blc-count {
+    font-weight: 400;
+    color: #646970;
+    font-size: 14px;
+}
+
+/* ── Notices ───────────────────────────────────────────────── */
+
+.wpt-blc-notice {
+    margin: 8px 0 16px;
+}
+
+/* ── Dashboard Widget ──────────────────────────────────────── */
+
+.wpt-blc-widget-stats {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 12px;
+}
+
+.wpt-blc-stat {
+    text-align: center;
+}
+
+.wpt-blc-stat-number {
+    display: block;
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.wpt-blc-stat-number.wpt-blc-broken {
+    color: #d63638;
+}
+
+.wpt-blc-stat-number.wpt-blc-ok {
+    color: #00a32a;
+}
+
+.wpt-blc-stat-label {
+    display: block;
+    font-size: 12px;
+    color: #646970;
+}
+
+.wpt-blc-widget-last-scan {
+    font-size: 12px;
+    color: #646970;
+    margin: 8px 0;
+}
+
+/* ── No Results ────────────────────────────────────────────── */
+
+.wpt-blc-no-results td {
+    text-align: center;
+    padding: 24px;
+    color: #646970;
+    font-style: italic;
+}
