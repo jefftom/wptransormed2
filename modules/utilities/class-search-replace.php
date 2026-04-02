@@ -382,8 +382,16 @@ class Search_Replace extends Module_Base {
 
         global $wpdb;
 
-        // Validate table name is prefixed.
+        // Validate table exists in the database (whitelist check, not just prefix).
         if ( strpos( $table, $wpdb->prefix ) !== 0 ) {
+            $cache[ $table ] = $meta;
+            return $meta;
+        }
+        $existing_tables = $wpdb->get_col( $wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $wpdb->esc_like( $table )
+        ) );
+        if ( empty( $existing_tables ) || ! in_array( $table, $existing_tables, true ) ) {
             $cache[ $table ] = $meta;
             return $meta;
         }
@@ -621,6 +629,7 @@ class Search_Replace extends Module_Base {
 
         if ( empty( $columns ) || empty( $pk ) ) {
             wp_send_json_success( [ 'done' => true, 'replaced' => 0 ] );
+            return;
         }
 
         $settings    = $this->get_settings();

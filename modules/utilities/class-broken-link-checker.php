@@ -556,12 +556,11 @@ class Broken_Link_Checker extends Module_Base {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
-        // Trigger link extraction synchronously (first batch).
-        $this->cron_extract_links();
-
-        // Schedule immediate URL checking.
+        // Schedule cron events for background processing — don't run synchronously
+        // to avoid WP Engine 60s timeout on large sites.
+        wp_schedule_single_event( time(), self::CRON_SCAN );
         if ( ! wp_next_scheduled( self::CRON_CHECK ) ) {
-            wp_schedule_single_event( time(), self::CRON_CHECK );
+            wp_schedule_single_event( time() + 60, self::CRON_CHECK );
         }
 
         wp_send_json_success( [

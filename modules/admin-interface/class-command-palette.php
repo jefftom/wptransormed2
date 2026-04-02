@@ -437,7 +437,7 @@ class Command_Palette extends Module_Base {
         $results = new \WP_Query( [
             's'              => $query,
             'post_type'      => [ 'post', 'page' ],
-            'post_status'    => 'any',
+            'post_status'    => [ 'publish', 'draft', 'pending' ],
             'posts_per_page' => 5,
             'no_found_rows'  => true,
             'fields'         => 'ids',
@@ -481,7 +481,8 @@ class Command_Palette extends Module_Base {
         }
 
         $title = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
-        $url   = isset( $_POST['url'] ) ? esc_url_raw( wp_unslash( $_POST['url'] ) ) : '';
+        // Use esc_url() (not esc_url_raw) to strip javascript: and data: URIs.
+        $url   = isset( $_POST['url'] ) ? esc_url( wp_unslash( $_POST['url'] ) ) : '';
 
         if ( empty( $title ) || empty( $url ) ) {
             wp_send_json_error( [ 'message' => 'Missing data' ], 400 );

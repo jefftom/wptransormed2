@@ -154,9 +154,9 @@ class Setup_Wizard extends Module_Base {
         $nonce           = wp_create_nonce( 'wpt_setup_wizard_nonce' );
         $ajax_url        = admin_url( 'admin-ajax.php' );
         $dashboard_url   = admin_url();
-        $profiles_json   = wp_json_encode( self::PROFILES );
+        $profiles_json   = wp_json_encode( self::PROFILES, JSON_HEX_TAG | JSON_HEX_AMP );
         $module_titles   = $this->get_module_titles( $all_modules );
-        $titles_json     = wp_json_encode( $module_titles );
+        $titles_json     = wp_json_encode( $module_titles, JSON_HEX_TAG | JSON_HEX_AMP );
 
         // Full-screen: hide admin chrome.
         $this->render_fullscreen_styles();

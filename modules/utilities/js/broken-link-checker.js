@@ -28,6 +28,13 @@
         return d.innerHTML;
     }
 
+    function safeHref( url ) {
+        if ( ! url ) return '';
+        // Only allow http(s) and relative URLs — block javascript:, data:, etc.
+        if ( /^https?:\/\//.test( url ) || url.charAt( 0 ) === '/' ) return esc( url );
+        return '';
+    }
+
     function statusBadge( code ) {
         var c = parseInt( code, 10 );
         var cls = 'wpt-blc-badge';
@@ -95,14 +102,16 @@
                 html += '<td class="wpt-blc-url-cell" title="' + esc( link.url ) + '">' + esc( link.url.substring( 0, 80 ) ) + ( link.url.length > 80 ? '...' : '' ) + '</td>';
                 html += '<td>' + statusBadge( link.status_code ) + '</td>';
                 html += '<td>';
-                if ( link.post_title ) {
-                    html += '<a href="' + esc( link.edit_url || '' ) + '">' + esc( link.post_title ) + '</a>';
+                if ( link.post_title && safeHref( link.edit_url ) ) {
+                    html += '<a href="' + safeHref( link.edit_url ) + '">' + esc( link.post_title ) + '</a>';
+                } else if ( link.post_title ) {
+                    html += esc( link.post_title );
                 }
                 html += '</td>';
                 html += '<td>' + esc( link.link_type ) + '</td>';
                 html += '<td class="wpt-blc-actions">';
-                if ( link.edit_url ) {
-                    html += '<a href="' + esc( link.edit_url ) + '" class="button button-small">' + 'Edit' + '</a> ';
+                if ( safeHref( link.edit_url ) ) {
+                    html += '<a href="' + safeHref( link.edit_url ) + '" class="button button-small">' + 'Edit' + '</a> ';
                 }
                 html += '<button type="button" class="button button-small wpt-blc-recheck" data-id="' + link.id + '">Recheck</button> ';
                 html += '<button type="button" class="button button-small wpt-blc-unlink" data-id="' + link.id + '">Unlink</button> ';
