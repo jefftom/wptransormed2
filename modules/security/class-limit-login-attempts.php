@@ -304,7 +304,7 @@ class Limit_Login_Attempts extends Module_Base {
             [
                 'ip_address'   => $ip,
                 'username'     => sanitize_user( $username ),
-                'attempted_at' => current_time( 'mysql' ),
+                'attempted_at' => current_time( 'mysql', true ),
             ],
             [ '%s', '%s', '%s' ]
         );
@@ -316,7 +316,7 @@ class Limit_Login_Attempts extends Module_Base {
             $wpdb->prepare(
                 "SELECT COUNT(*) FROM {$table_name}
                  WHERE ip_address = %s
-                   AND attempted_at > DATE_SUB(NOW(), INTERVAL %d MINUTE)
+                   AND attempted_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL %d MINUTE)
                    AND lockout_until IS NULL",
                 $ip,
                 $window_minutes
@@ -370,7 +370,7 @@ class Limit_Login_Attempts extends Module_Base {
             [
                 'ip_address'    => $ip,
                 'username'      => sanitize_user( $username ),
-                'attempted_at'  => current_time( 'mysql' ),
+                'attempted_at'  => current_time( 'mysql', true ),
                 'lockout_until' => $lockout_until,
                 'lockout_count' => $lockout_count,
             ],
@@ -471,7 +471,7 @@ class Limit_Login_Attempts extends Module_Base {
         $wpdb->query(
             $wpdb->prepare(
                 "DELETE FROM {$table_name}
-                 WHERE attempted_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
+                 WHERE attempted_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL %d DAY)",
                 $retention
             )
         );
@@ -710,7 +710,7 @@ class Limit_Login_Attempts extends Module_Base {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
         $total_attempts_24h = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$table_name}
-             WHERE attempted_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+             WHERE attempted_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 24 HOUR)
                AND lockout_until IS NULL"
         );
 

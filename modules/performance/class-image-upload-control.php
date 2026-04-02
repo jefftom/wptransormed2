@@ -55,11 +55,16 @@ class Image_Upload_Control extends Module_Base {
 
     // ── Lifecycle ─────────────────────────────────────────────
 
+    /**
+     * Track whether we're in an upload context for scoping quality filter.
+     */
+    private $is_uploading = false;
+
     public function init(): void {
-        // Resize oversized images after upload.
+        // Resize oversized images after upload (and set upload context flag).
         add_filter( 'wp_handle_upload', [ $this, 'handle_upload' ] );
 
-        // JPEG quality filter.
+        // JPEG quality filter — scoped to upload/optimization context only.
         add_filter( 'jpeg_quality', [ $this, 'filter_jpeg_quality' ] );
         add_filter( 'wp_editor_set_quality', [ $this, 'filter_jpeg_quality' ] );
 
@@ -79,8 +84,11 @@ class Image_Upload_Control extends Module_Base {
      * @return array<string,string>
      */
     public function handle_upload( array $upload ): array {
+        $this->is_uploading = true;
+
         // Skip on error.
         if ( isset( $upload['error'] ) && $upload['error'] ) {
+            $this->is_uploading = false;
             return $upload;
         }
 
@@ -132,19 +140,25 @@ class Image_Upload_Control extends Module_Base {
         // Re-saving through the editor strips EXIF data automatically.
         $saved = $editor->save( $file );
         if ( is_wp_error( $saved ) ) {
+            $this->is_uploading = false;
             return $upload;
         }
 
+        $this->is_uploading = false;
         return $upload;
     }
 
     /**
-     * Filter JPEG quality for all image operations.
+     * Filter JPEG quality — only applies during upload/optimization context
+     * to avoid degrading images from other plugins (WooCommerce, Imagify, etc.).
      *
      * @param int $quality Current quality.
      * @return int
      */
     public function filter_jpeg_quality( int $quality ): int {
+        if ( ! $this->is_uploading && ! doing_action( 'wp_ajax_wpt_bulk_optimize_images' ) ) {
+            return $quality;
+        }
         $settings = $this->get_settings();
         return (int) $settings['jpeg_quality'];
     }

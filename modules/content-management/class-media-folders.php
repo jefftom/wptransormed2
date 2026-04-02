@@ -379,9 +379,13 @@ class Media_Folders extends Module_Base {
 
         $errors = [];
         foreach ( $attachment_ids as $att_id ) {
-            // Verify each attachment exists and is actually an attachment.
+            // Verify attachment exists, is an attachment, and user can edit it.
             $post = get_post( $att_id );
             if ( ! $post || 'attachment' !== $post->post_type ) {
+                $errors[] = $att_id;
+                continue;
+            }
+            if ( ! current_user_can( 'edit_post', $att_id ) ) {
                 $errors[] = $att_id;
                 continue;
             }

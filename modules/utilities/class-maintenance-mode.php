@@ -204,12 +204,13 @@ class Maintenance_Mode extends Module_Base {
 
         $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
 
-        // Allow login page if setting enabled.
+        // Allow login page if setting enabled — anchor to path start to prevent bypass.
         if ( ! empty( $settings['allow_login_page'] ) ) {
-            if ( strpos( $request_uri, 'wp-login.php' ) !== false ) {
+            $path = wp_parse_url( $request_uri, PHP_URL_PATH ) ?: '';
+            if ( basename( $path ) === 'wp-login.php' ) {
                 return true;
             }
-            if ( strpos( $request_uri, '/wp-admin' ) !== false ) {
+            if ( strpos( $path, '/wp-admin' ) === 0 ) {
                 return true;
             }
         }
@@ -254,10 +255,11 @@ class Maintenance_Mode extends Module_Base {
      * @param array<string,mixed> $settings Module settings.
      */
     private function render_maintenance_page( array $settings ): void {
-        // Colors are validated as hex in sanitize_settings(), safe for CSS context.
-        $bg_color       = $settings['bg_color'];
-        $text_color     = $settings['text_color'];
-        $accent_color   = $settings['accent_color'];
+        // Re-validate colors at point of output for defense-in-depth.
+        $defaults       = $this->get_default_settings();
+        $bg_color       = preg_match( '/^#[0-9a-fA-F]{6}$/', $settings['bg_color'] ) ? $settings['bg_color'] : $defaults['bg_color'];
+        $text_color     = preg_match( '/^#[0-9a-fA-F]{6}$/', $settings['text_color'] ) ? $settings['text_color'] : $defaults['text_color'];
+        $accent_color   = preg_match( '/^#[0-9a-fA-F]{6}$/', $settings['accent_color'] ) ? $settings['accent_color'] : $defaults['accent_color'];
         // Custom CSS: strip tags and also remove dangerous CSS patterns.
         $custom_css     = wp_strip_all_tags( $settings['custom_css'] );
         $custom_css     = preg_replace( '/expression\s*\(/i', '', $custom_css );

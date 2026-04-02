@@ -215,20 +215,21 @@ class Custom_Content_Types extends Module_Base {
     // ── Rewrite Rules Flush ──────────────────────────────────
 
     /**
-     * Check transient flag and flush rewrite rules once after save.
+     * Check flag and flush rewrite rules once after save.
+     * Uses option (not transient) for reliability on WP Engine with persistent object cache.
      */
     public function maybe_flush_rewrite_rules(): void {
-        if ( get_transient( self::FLUSH_TRANSIENT ) ) {
-            delete_transient( self::FLUSH_TRANSIENT );
+        if ( get_option( self::FLUSH_TRANSIENT ) ) {
+            delete_option( self::FLUSH_TRANSIENT );
             flush_rewrite_rules( false );
         }
     }
 
     /**
-     * Set the transient flag to flush rewrite rules on next init.
+     * Set the flag to flush rewrite rules on next init.
      */
     private function set_flush_flag(): void {
-        set_transient( self::FLUSH_TRANSIENT, '1', HOUR_IN_SECONDS );
+        update_option( self::FLUSH_TRANSIENT, '1', false );
     }
 
     // ── Label Generators ─────────────────────────────────────
@@ -1023,7 +1024,7 @@ class Custom_Content_Types extends Module_Base {
 
     public function get_cleanup_tasks(): array {
         return [
-            [ 'type' => 'transient', 'key' => self::FLUSH_TRANSIENT ],
+            [ 'type' => 'option', 'key' => self::FLUSH_TRANSIENT ],
         ];
     }
 }

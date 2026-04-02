@@ -626,7 +626,8 @@ class Redirect_Manager extends Module_Base {
 
         $table = $wpdb->prefix . 'wpt_404_log';
 
-        $wpdb->query( "TRUNCATE TABLE {$table}" );
+        // DELETE instead of TRUNCATE — TRUNCATE requires SUPER privilege on WP Engine.
+        $wpdb->query( "DELETE FROM `{$table}`" );
 
         wp_send_json_success( [
             'message' => __( '404 log cleared.', 'wptransformed' ),

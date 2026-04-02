@@ -160,6 +160,11 @@ class Code_Snippets extends Module_Base {
     /**
      * Execute active PHP snippets with error recovery.
      */
+    /**
+     * Track whether shutdown handler is already registered.
+     */
+    private $shutdown_registered = false;
+
     public function execute_php_snippets(): void {
         $settings = $this->get_settings();
 
@@ -179,6 +184,12 @@ class Code_Snippets extends Module_Base {
             return;
         }
 
+        // Register shutdown handler ONCE, not per-snippet.
+        if ( ! empty( $settings['enable_error_recovery'] ) && ! $this->shutdown_registered ) {
+            register_shutdown_function( [ $this, 'shutdown_error_handler' ] );
+            $this->shutdown_registered = true;
+        }
+
         foreach ( $snippets as $snippet ) {
             if ( ! $this->should_execute_in_scope( $snippet['scope'] ) ) {
                 continue;
@@ -194,15 +205,10 @@ class Code_Snippets extends Module_Base {
      * @param array $snippet Snippet data from DB.
      */
     private function execute_single_php_snippet( array $snippet ): void {
-        $settings   = $this->get_settings();
         $snippet_id = (int) $snippet['id'];
 
-        if ( ! empty( $settings['enable_error_recovery'] ) ) {
-            // Store the snippet ID being executed so the shutdown handler can find it.
-            $GLOBALS['wpt_executing_snippet_id'] = $snippet_id;
-
-            register_shutdown_function( [ $this, 'shutdown_error_handler' ] );
-        }
+        // Store the snippet ID being executed so the shutdown handler can find it.
+        $GLOBALS['wpt_executing_snippet_id'] = $snippet_id;
 
         ob_start();
 

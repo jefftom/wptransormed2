@@ -434,6 +434,11 @@ class User_Role_Editor extends Module_Base {
      * @return bool[]
      */
     public function filter_view_as_role( array $allcaps, array $caps, array $args, \WP_User $user ): array {
+        // Only apply in admin context — avoid performance hit and lockout risk on frontend.
+        if ( ! is_admin() ) {
+            return $allcaps;
+        }
+
         // Cache transient lookup per-request to avoid hundreds of DB hits per page load.
         static $cache = [];
         $user_id = $user->ID;

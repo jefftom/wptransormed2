@@ -276,7 +276,7 @@ class Minify_Assets extends Module_Base {
         $file_path = $this->cache_dir . '/' . $filename;
 
         if ( ! file_exists( $file_path ) ) {
-            file_put_contents( $file_path, $combined );
+            file_put_contents( $file_path, $combined, LOCK_EX );
         }
 
         // Dequeue individual handles and enqueue the combined file.
@@ -348,7 +348,7 @@ class Minify_Assets extends Module_Base {
         $file_path = $this->cache_dir . '/' . $filename;
 
         if ( ! file_exists( $file_path ) ) {
-            file_put_contents( $file_path, $combined );
+            file_put_contents( $file_path, $combined, LOCK_EX );
         }
 
         // Dequeue individual handles and enqueue the combined file.
@@ -399,7 +399,7 @@ class Minify_Assets extends Module_Base {
             return '';
         }
 
-        $written = file_put_contents( $cached, $minified );
+        $written = file_put_contents( $cached, $minified, LOCK_EX );
         if ( $written === false ) {
             return '';
         }
@@ -424,7 +424,9 @@ class Minify_Assets extends Module_Base {
         $css = preg_replace( '/\s+/', ' ', $css );
 
         // Remove spaces around structural characters.
-        $css = preg_replace( '/\s*([{}:;,>~+])\s*/', '$1', $css );
+        // Collapse whitespace around structural chars — exclude ':' to protect
+        // content: values, data URIs, and pseudo-selectors.
+        $css = preg_replace( '/\s*([{};,>~+])\s*/', '$1', $css );
 
         // Remove trailing semicolons before closing braces.
         $css = str_replace( ';}', '}', $css );
@@ -466,8 +468,8 @@ class Minify_Assets extends Module_Base {
             return $original_js;
         }
 
-        // Remove single-line comments (but not URLs with //).
-        $js = preg_replace( '#(?<!:)//[^\n]*#', '', $js );
+        // Remove single-line comments (but not URLs with //) — preserve newline for ASI.
+        $js = preg_replace( '#(?<!:)//[^\n]*#', "\n", $js );
 
         // Remove multi-line comments.
         $js = preg_replace( '#/\*.*?\*/#s', '', $js );
@@ -656,7 +658,7 @@ class Minify_Assets extends Module_Base {
 
         if ( is_array( $files ) ) {
             foreach ( $files as $file ) {
-                if ( is_file( $file ) && wp_delete_file( $file ) !== false ) {
+                if ( is_file( $file ) && @unlink( $file ) ) {
                     $deleted++;
                 }
             }

@@ -138,7 +138,8 @@ class Cron_Manager extends Module_Base {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
-        $hook      = isset( $_POST['hook'] ) ? sanitize_key( wp_unslash( $_POST['hook'] ) ) : '';
+        // Use sanitize_text_field (not sanitize_key) to preserve uppercase hook names.
+        $hook      = isset( $_POST['hook'] ) ? sanitize_text_field( wp_unslash( $_POST['hook'] ) ) : '';
         $args_json = isset( $_POST['args'] ) ? wp_unslash( $_POST['args'] ) : '[]';
         $timestamp = isset( $_POST['timestamp'] ) ? absint( $_POST['timestamp'] ) : 0;
 
@@ -161,14 +162,14 @@ class Cron_Manager extends Module_Base {
             wp_send_json_error( [ 'message' => __( 'Hook not found in cron schedule.', 'wptransformed' ) ] );
         }
 
-        $args = json_decode( $args_json, true, 10 );
+        $args = json_decode( (string) $args_json, true, 10 );
         if ( ! is_array( $args ) || count( $args, COUNT_RECURSIVE ) > 50 ) {
             $args = [];
         }
 
-        // Schedule a one-time event in the past so WP fires it immediately.
-        wp_schedule_single_event( time() - 1, $hook, $args );
-        spawn_cron();
+        // Execute the hook directly — spawn_cron() is unreliable on WP Engine
+        // (loopback HTTP may be blocked or hit 60s timeout).
+        do_action_ref_array( $hook, $args );
 
         wp_send_json_success( [
             'message' => sprintf(
