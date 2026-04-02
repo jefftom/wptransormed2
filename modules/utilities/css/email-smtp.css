@@ -1,0 +1,137 @@
+/**
+ * WPTransformed -- Email SMTP Settings Styles
+ */
+
+/* ── SMTP Settings Form ───────────────────────────────────── */
+
+.wpt-email-smtp-settings input[type="email"],
+.wpt-email-smtp-settings input[type="text"],
+.wpt-email-smtp-settings input[type="password"],
+.wpt-email-smtp-settings input[type="number"] {
+    max-width: 400px;
+}
+
+.wpt-email-smtp-settings select {
+    min-width: 120px;
+}
+
+/* ── Password Display ─────────────────────────────────────── */
+
+#wpt-password-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#wpt-password-display code {
+    font-size: 16px;
+    letter-spacing: 2px;
+    padding: 4px 10px;
+    background: #f0f0f1;
+    border-radius: 3px;
+}
+
+#wpt-password-input {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+#wpt-password-input .description {
+    width: 100%;
+    margin-top: 0;
+}
+
+/* ── Provider Table ───────────────────────────────────────── */
+
+.wpt-smtp-providers {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #dcdcde;
+}
+
+.wpt-smtp-providers h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+#wpt-toggle-providers {
+    text-decoration: none;
+    font-weight: 600;
+    color: #2271b1;
+    cursor: pointer;
+}
+
+#wpt-toggle-providers:hover {
+    color: #135e96;
+}
+
+#wpt-toggle-providers .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin-left: 4px;
+}
+
+#wpt-provider-table {
+    margin-top: 8px;
+}
+
+#wpt-provider-table table {
+    border-collapse: collapse;
+}
+
+#wpt-provider-table th,
+#wpt-provider-table td {
+    padding: 8px 12px;
+    text-align: left;
+}
+
+/* ── Test Email Section ───────────────────────────────────── */
+
+.wpt-test-email-section {
+    margin-top: 24px;
+    padding: 16px 20px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+}
+
+.wpt-test-email-section h3 {
+    margin-top: 0;
+    margin-bottom: 4px;
+}
+
+.wpt-test-email-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.wpt-test-email-form input[type="email"] {
+    max-width: 300px;
+    flex-shrink: 0;
+}
+
+#wpt-test-result {
+    padding: 1px 12px;
+    border-radius: 3px;
+}
+
+#wpt-test-result p {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* ── Spinner alignment ────────────────────────────────────── */
+
+#wpt-test-spinner {
+    margin: 0;
+    vertical-align: middle;
+}
+
+#wpt-test-spinner.is-active {
+    visibility: visible;
+}
