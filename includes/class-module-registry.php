@@ -67,6 +67,13 @@ class Module_Registry {
 
             // Login/Logout
             'login-customizer'        => 'modules/login-logout/class-login-customizer.php',
+
+            // Wave 3 — Differentiators
+            'command-palette'         => 'modules/admin-interface/class-command-palette.php',
+            'smart-menu-organizer'    => 'modules/admin-interface/class-smart-menu-organizer.php',
+            'search-replace'          => 'modules/utilities/class-search-replace.php',
+            'broken-link-checker'     => 'modules/utilities/class-broken-link-checker.php',
+            'setup-wizard'            => 'modules/admin-interface/class-setup-wizard.php',
         ];
     }
 }
