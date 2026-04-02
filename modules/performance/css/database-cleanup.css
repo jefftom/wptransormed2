@@ -1,0 +1,124 @@
+/**
+ * Database Cleanup — Module styles.
+ *
+ * Dashboard-style scan/cleanup UI for the WPTransformed settings page.
+ *
+ * @package WPTransformed
+ */
+
+/* ── Dashboard Layout ──────────────────────────────────────── */
+
+#wpt-db-cleanup-dashboard {
+    max-width: 900px;
+}
+
+/* ── Results Table ─────────────────────────────────────────── */
+
+#wpt-db-results-table {
+    border-collapse: collapse;
+    margin-top: 12px;
+}
+
+#wpt-db-results-table th,
+#wpt-db-results-table td {
+    padding: 10px 12px;
+    vertical-align: middle;
+}
+
+#wpt-db-results-table thead th {
+    background: #f6f7f7;
+    font-weight: 600;
+    border-bottom: 1px solid #c3c4c7;
+}
+
+#wpt-db-results-table tfoot th {
+    background: #f6f7f7;
+    border-top: 2px solid #c3c4c7;
+}
+
+#wpt-db-results-table tbody tr {
+    border-bottom: 1px solid #f0f0f1;
+}
+
+#wpt-db-results-table tbody tr:hover {
+    background: #f9f9f9;
+}
+
+#wpt-db-results-table .wpt-db-count,
+#wpt-db-results-table .wpt-db-size {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Status Indicators ─────────────────────────────────────── */
+
+#wpt-db-results-table .wpt-db-status span {
+    font-size: 12px;
+}
+
+/* ── Progress Bar ──────────────────────────────────────────── */
+
+#wpt-db-progress {
+    max-width: 600px;
+    margin-bottom: 16px;
+}
+
+.wpt-db-progress-bar {
+    background: #f0f0f1;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    height: 24px;
+    overflow: hidden;
+}
+
+.wpt-db-progress-fill {
+    background: #2271b1;
+    height: 100%;
+    width: 0;
+    transition: width 0.3s ease;
+    border-radius: 3px;
+}
+
+.wpt-db-progress-text {
+    font-size: 13px;
+    color: #50575e;
+    margin-top: 6px;
+}
+
+/* ── Action Buttons ────────────────────────────────────────── */
+
+.wpt-db-clean-btn {
+    min-width: 70px;
+}
+
+.wpt-db-clean-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Cleanup Results Banner ────────────────────────────────── */
+
+#wpt-db-cleanup-results {
+    max-width: 600px;
+}
+
+/* ── Explainer Box ─────────────────────────────────────────── */
+
+.wpt-db-cleanup-explainer p {
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+
+@media screen and (max-width: 782px) {
+    #wpt-db-results-table th:nth-child(4),
+    #wpt-db-results-table td:nth-child(4) {
+        display: none;
+    }
+
+    #wpt-db-results-table th,
+    #wpt-db-results-table td {
+        padding: 8px 6px;
+        font-size: 12px;
+    }
+}
