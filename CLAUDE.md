@@ -62,8 +62,19 @@ For individual module behavior, hooks, settings, and verification steps, read:
 4. If something doesn't work, fix it before moving on
 5. When in doubt, follow the pattern of the last working module
 
+## Review Protocol
+After completing any module, switch to /fast and run adversarial
+review for: WP Engine compat, SQL safety, hook conflicts, cache
+safety, PHP compat, test quality, input validation, error handling.
+Fix criticals before committing. Add "Reviewed-by: sonnet-4.6" trailer.
+
+## Evolution Zones
+Green (auto): new tools, DECISIONS.md entries, test patterns
+Yellow (Sonnet gate): CLAUDE.md changes, architecture docs
+Red (human only): business decisions, credentials, security
+
 ## Current Task
 <!-- Update this line before each Claude Code session -->
-Phase: CORE FRAMEWORK
-Task: Build includes/ core files (Core, Settings, Admin, Module_Base, Module_Registry, Safe_Mode) + bootstrap
-Reference: docs/architecture.md sections 1.1–1.12
+Phase: MODULE BUILDING
+Task: Build remaining 3 modules (2, 7, 10) using TDD with cross-model review
+Reference: docs/module-specs.md
