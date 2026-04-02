@@ -1,0 +1,268 @@
+/**
+ * Redirect Manager -- Admin styles.
+ *
+ * @package WPTransformed
+ */
+
+/* -- Tabs ----------------------------------------------------------- */
+
+.wpt-redirect-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #c3c4c7;
+    margin: 20px 0 0;
+}
+
+.wpt-tab-button {
+    padding: 8px 16px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #50575e;
+    border-radius: 3px 3px 0 0;
+    margin-bottom: -1px;
+    transition: color 0.15s, background 0.15s;
+}
+
+.wpt-tab-button:hover {
+    color: #2271b1;
+}
+
+.wpt-tab-button.active {
+    background: #fff;
+    border-color: #c3c4c7;
+    border-bottom-color: #fff;
+    color: #1d2327;
+}
+
+.wpt-tab-count {
+    display: inline-block;
+    background: #dcdcde;
+    color: #50575e;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 4px;
+    min-width: 18px;
+    text-align: center;
+}
+
+.wpt-tab-button.active .wpt-tab-count {
+    background: #2271b1;
+    color: #fff;
+}
+
+/* -- Tab Content ---------------------------------------------------- */
+
+.wpt-tab-content {
+    padding: 16px 0;
+}
+
+/* -- Add Redirect Form ---------------------------------------------- */
+
+.wpt-redirect-add-form {
+    background: #f6f7f7;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.wpt-redirect-add-form h3 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.wpt-redirect-form-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.wpt-redirect-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.wpt-redirect-field label {
+    font-weight: 500;
+    font-size: 12px;
+    color: #50575e;
+}
+
+.wpt-redirect-field input.regular-text {
+    width: 280px;
+}
+
+.wpt-redirect-field-type select {
+    min-width: 150px;
+}
+
+.wpt-redirect-field-action {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.wpt-redirect-field-action .spinner {
+    float: none;
+    margin: 0;
+}
+
+/* -- Redirects Table ------------------------------------------------ */
+
+.wpt-redirects-table {
+    margin-top: 0;
+}
+
+.wpt-redirects-table .wpt-col-source {
+    width: 25%;
+}
+
+.wpt-redirects-table .wpt-col-target {
+    width: 25%;
+}
+
+.wpt-redirects-table .wpt-col-type {
+    width: 8%;
+    text-align: center;
+}
+
+.wpt-redirects-table .wpt-col-hits {
+    width: 8%;
+    text-align: center;
+}
+
+.wpt-redirects-table .wpt-col-status {
+    width: 10%;
+    text-align: center;
+}
+
+.wpt-redirects-table .wpt-col-actions {
+    width: 14%;
+}
+
+.wpt-redirects-table code {
+    font-size: 12px;
+    word-break: break-all;
+}
+
+.wpt-target-url {
+    word-break: break-all;
+    font-size: 12px;
+}
+
+.wpt-redirect-type-badge {
+    display: inline-block;
+    background: #dcdcde;
+    color: #50575e;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 3px;
+}
+
+/* -- Toggle Button States ------------------------------------------- */
+
+.wpt-toggle-redirect.wpt-active {
+    background: #00a32a;
+    border-color: #00a32a;
+    color: #fff;
+}
+
+.wpt-toggle-redirect.wpt-active:hover {
+    background: #008a20;
+    border-color: #008a20;
+}
+
+.wpt-toggle-redirect.wpt-inactive {
+    background: #dcdcde;
+    border-color: #c3c4c7;
+    color: #50575e;
+}
+
+/* -- 404 Log -------------------------------------------------------- */
+
+.wpt-404-log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.wpt-404-table .wpt-col-url {
+    width: 30%;
+}
+
+.wpt-404-table .wpt-col-referrer {
+    width: 25%;
+}
+
+.wpt-404-table .wpt-col-hits {
+    width: 8%;
+    text-align: center;
+}
+
+.wpt-404-table .wpt-col-last-hit {
+    width: 17%;
+}
+
+.wpt-404-table .wpt-col-actions {
+    width: 15%;
+}
+
+.wpt-404-table code {
+    font-size: 12px;
+    word-break: break-all;
+}
+
+.wpt-muted {
+    color: #a7aaad;
+    font-style: italic;
+}
+
+/* -- Import/Export --------------------------------------------------- */
+
+.wpt-import-export-section {
+    max-width: 700px;
+}
+
+.wpt-import-export-section .spinner {
+    float: none;
+    margin: 0;
+    vertical-align: middle;
+}
+
+/* -- Notices -------------------------------------------------------- */
+
+.wpt-redirect-notice {
+    margin: 10px 0;
+}
+
+/* -- Responsive ----------------------------------------------------- */
+
+@media screen and (max-width: 782px) {
+    .wpt-redirect-form-row {
+        flex-direction: column;
+    }
+
+    .wpt-redirect-field input.regular-text {
+        width: 100%;
+    }
+
+    .wpt-redirects-table .wpt-col-hits,
+    .wpt-redirects-table .wpt-col-type {
+        display: none;
+    }
+
+    .wpt-404-table .wpt-col-referrer {
+        display: none;
+    }
+}
