@@ -138,16 +138,31 @@ class Cron_Manager extends Module_Base {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
-        $hook      = isset( $_POST['hook'] ) ? sanitize_text_field( wp_unslash( $_POST['hook'] ) ) : '';
-        $args_json = isset( $_POST['args'] ) ? sanitize_text_field( wp_unslash( $_POST['args'] ) ) : '[]';
+        $hook      = isset( $_POST['hook'] ) ? sanitize_key( wp_unslash( $_POST['hook'] ) ) : '';
+        $args_json = isset( $_POST['args'] ) ? wp_unslash( $_POST['args'] ) : '[]';
         $timestamp = isset( $_POST['timestamp'] ) ? absint( $_POST['timestamp'] ) : 0;
 
         if ( empty( $hook ) ) {
             wp_send_json_error( [ 'message' => __( 'Invalid hook name.', 'wptransformed' ) ] );
         }
 
-        $args = json_decode( $args_json, true );
-        if ( ! is_array( $args ) ) {
+        // Validate hook exists in current cron schedule.
+        $crons = _get_cron_array();
+        $hook_exists = false;
+        if ( is_array( $crons ) ) {
+            foreach ( $crons as $ts => $events ) {
+                if ( isset( $events[ $hook ] ) ) {
+                    $hook_exists = true;
+                    break;
+                }
+            }
+        }
+        if ( ! $hook_exists ) {
+            wp_send_json_error( [ 'message' => __( 'Hook not found in cron schedule.', 'wptransformed' ) ] );
+        }
+
+        $args = json_decode( $args_json, true, 10 );
+        if ( ! is_array( $args ) || count( $args, COUNT_RECURSIVE ) > 50 ) {
             $args = [];
         }
 

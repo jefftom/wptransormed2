@@ -434,9 +434,13 @@ class User_Role_Editor extends Module_Base {
      * @return bool[]
      */
     public function filter_view_as_role( array $allcaps, array $caps, array $args, \WP_User $user ): array {
+        // Cache transient lookup per-request to avoid hundreds of DB hits per page load.
+        static $cache = [];
         $user_id = $user->ID;
-        $transient_key = 'wpt_view_as_role_' . $user_id;
-        $view_as = get_transient( $transient_key );
+        if ( ! array_key_exists( $user_id, $cache ) ) {
+            $cache[ $user_id ] = get_transient( 'wpt_view_as_role_' . $user_id );
+        }
+        $view_as = $cache[ $user_id ];
 
         if ( empty( $view_as ) ) {
             return $allcaps;
@@ -769,17 +773,25 @@ class User_Role_Editor extends Module_Base {
      */
     private function is_last_admin_role(): bool {
         $roles = wp_roles()->roles;
-        $admin_roles = 0;
 
+        // Check if any OTHER role has manage_options AND has at least one user assigned.
         foreach ( $roles as $slug => $role ) {
             if ( $slug === 'administrator' ) {
                 continue;
             }
             if ( ! empty( $role['capabilities']['manage_options'] ) ) {
-                $admin_roles++;
+                // Verify at least one user actually has this role.
+                $users = get_users( [
+                    'role'   => $slug,
+                    'number' => 1,
+                    'fields' => 'ID',
+                ] );
+                if ( ! empty( $users ) ) {
+                    return false;
+                }
             }
         }
 
-        return $admin_roles === 0;
+        return true;
     }
 }

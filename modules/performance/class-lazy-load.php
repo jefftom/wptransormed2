@@ -183,28 +183,12 @@ class Lazy_Load extends Module_Base {
     }
 
     /**
-     * Enqueue Intersection Observer script when a custom threshold is set.
+     * Enqueue frontend script (placeholder for future enhancements).
+     * Native loading="lazy" requires no JavaScript — the browser handles thresholds.
      */
     public function maybe_enqueue_threshold_script(): void {
-        $settings  = $this->get_settings();
-        $threshold = $settings['threshold'] ?? '200px';
-
-        // Only enqueue if a non-default threshold is set (browser default is ~browser-decided).
-        if ( empty( $threshold ) || $threshold === '0px' || $threshold === '0' ) {
-            return;
-        }
-
-        wp_enqueue_script(
-            'wpt-lazy-load',
-            plugin_dir_url( dirname( __DIR__ ) ) . 'modules/performance/js/lazy-load.js',
-            [],
-            WPT_VERSION ?? '1.0.0',
-            true
-        );
-
-        wp_localize_script( 'wpt-lazy-load', 'wptLazyLoad', [
-            'threshold' => esc_js( $threshold ),
-        ] );
+        // Native lazy loading is handled by the browser.
+        // No JS needed — the threshold setting is advisory only.
     }
 
     // ── Helpers ───────────────────────────────────────────────

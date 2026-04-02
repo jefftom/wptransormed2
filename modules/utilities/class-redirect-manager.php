@@ -188,7 +188,7 @@ class Redirect_Manager extends Module_Base {
                     ? (int) $redirect['redirect_type']
                     : 301;
 
-                wp_redirect( $redirect['target_url'], $type );
+                wp_redirect( esc_url_raw( $redirect['target_url'] ), $type );
                 exit;
             }
         }
@@ -391,9 +391,10 @@ class Redirect_Manager extends Module_Base {
 
         $to_delete = $count - $max_log;
 
+        // Use subquery instead of DELETE...ORDER BY...LIMIT for MySQL compat (WP Engine).
         $wpdb->query(
             $wpdb->prepare(
-                "DELETE FROM {$table} ORDER BY last_hit ASC LIMIT %d",
+                "DELETE FROM {$table} WHERE id IN (SELECT id FROM (SELECT id FROM {$table} ORDER BY last_hit ASC LIMIT %d) AS tmp_del)",
                 $to_delete
             )
         );
@@ -687,7 +688,7 @@ class Redirect_Manager extends Module_Base {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
-        $csv_data = isset( $_POST['csv_data'] ) ? wp_unslash( $_POST['csv_data'] ) : '';
+        $csv_data = isset( $_POST['csv_data'] ) ? (string) wp_unslash( $_POST['csv_data'] ) : '';
 
         if ( empty( $csv_data ) ) {
             wp_send_json_error( [ 'message' => __( 'No CSV data provided.', 'wptransformed' ) ] );

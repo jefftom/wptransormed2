@@ -1,59 +1,12 @@
 /**
- * WPTransformed — Lazy Load Intersection Observer
+ * WPTransformed — Lazy Load
  *
- * Enhances native lazy loading with a configurable viewport threshold.
- * Only loaded when a custom threshold is set in module settings.
+ * This module relies on the native browser loading="lazy" attribute.
+ * The browser manages its own viewport thresholds for native lazy loading.
+ * No custom JavaScript is needed — this file is intentionally minimal.
  */
 ( function () {
     'use strict';
-
-    if ( typeof IntersectionObserver === 'undefined' ) {
-        return;
-    }
-
-    var config = window.wptLazyLoad || {};
-    var threshold = config.threshold || '200px';
-
-    var observer = new IntersectionObserver(
-        function ( entries ) {
-            entries.forEach( function ( entry ) {
-                if ( ! entry.isIntersecting ) {
-                    return;
-                }
-
-                var el = entry.target;
-
-                if ( el.dataset.wptSrc ) {
-                    el.src = el.dataset.wptSrc;
-                    el.removeAttribute( 'data-wpt-src' );
-                }
-
-                if ( el.dataset.wptSrcset ) {
-                    el.srcset = el.dataset.wptSrcset;
-                    el.removeAttribute( 'data-wpt-srcset' );
-                }
-
-                el.removeAttribute( 'loading' );
-                observer.unobserve( el );
-            } );
-        },
-        {
-            rootMargin: threshold,
-        }
-    );
-
-    function observeElements() {
-        var selectors = 'img[loading="lazy"], iframe[loading="lazy"]';
-        var elements = document.querySelectorAll( selectors );
-
-        elements.forEach( function ( el ) {
-            observer.observe( el );
-        } );
-    }
-
-    if ( document.readyState === 'loading' ) {
-        document.addEventListener( 'DOMContentLoaded', observeElements );
-    } else {
-        observeElements();
-    }
+    // Native loading="lazy" is handled entirely by the browser.
+    // This file exists as a placeholder for future enhancements.
 } )();

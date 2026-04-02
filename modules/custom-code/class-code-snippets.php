@@ -120,7 +120,8 @@ class Code_Snippets extends Module_Base {
      * Create the snippets table if it doesn't exist.
      */
     private function maybe_create_table(): void {
-        $installed_version = get_transient( self::DB_VERSION_KEY );
+        // Use option (not transient) for DB version — transients can be evicted by object cache.
+        $installed_version = get_option( self::DB_VERSION_KEY );
 
         if ( $installed_version === self::DB_VERSION ) {
             return;
@@ -151,7 +152,7 @@ class Code_Snippets extends Module_Base {
 
         dbDelta( $sql );
 
-        set_transient( self::DB_VERSION_KEY, self::DB_VERSION, YEAR_IN_SECONDS );
+        update_option( self::DB_VERSION_KEY, self::DB_VERSION );
     }
 
     // -- PHP Snippet Execution --
@@ -166,8 +167,9 @@ class Code_Snippets extends Module_Base {
             return;
         }
 
-        // PHP snippets require manage_options.
-        if ( ! current_user_can( 'manage_options' ) && is_admin() ) {
+        // In admin context, PHP snippets only execute for users with manage_options.
+        // On frontend, PHP snippets execute for all visitors (they're site functionality, not user-specific).
+        if ( is_admin() && ! current_user_can( 'manage_options' ) ) {
             return;
         }
 
@@ -812,10 +814,11 @@ class Code_Snippets extends Module_Base {
 
         $table = $wpdb->prefix . 'wpt_snippets';
 
-        // Fetch all snippets.
+        // Fetch snippets (capped at 500 to prevent memory exhaustion on WP Engine).
+        // Table name is safe: $wpdb->prefix (trusted) + constant.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
         $snippets = $wpdb->get_results(
-            "SELECT * FROM {$table} ORDER BY priority ASC, created_at DESC",
+            "SELECT * FROM {$table} ORDER BY priority ASC, created_at DESC LIMIT 500",
             ARRAY_A
         );
 

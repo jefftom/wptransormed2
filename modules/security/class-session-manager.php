@@ -158,10 +158,12 @@ class Session_Manager extends Module_Base {
             unset( $activity[ $verifier ] );
             update_user_meta( $user_id, 'wpt_session_activity', $activity );
 
-            // Force logout.
+            // Force logout — skip redirect during AJAX/REST to avoid broken responses.
             wp_logout();
-            wp_safe_redirect( wp_login_url() );
-            exit;
+            if ( ! wp_doing_ajax() && ! defined( 'REST_REQUEST' ) ) {
+                wp_safe_redirect( wp_login_url() );
+                exit;
+            }
         }
     }
 
@@ -273,6 +275,11 @@ class Session_Manager extends Module_Base {
 
         if ( empty( $user_id ) || empty( $verifier ) ) {
             wp_send_json_error( [ 'message' => __( 'Invalid session data.', 'wptransformed' ) ] );
+        }
+
+        // Validate verifier is a valid SHA-256 hash.
+        if ( ! preg_match( '/^[a-f0-9]{64}$/', $verifier ) ) {
+            wp_send_json_error( [ 'message' => __( 'Invalid session verifier.', 'wptransformed' ) ] );
         }
 
         // Prevent destroying the current admin's own session through this handler.

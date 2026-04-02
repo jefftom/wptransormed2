@@ -442,6 +442,8 @@ class Minify_Assets extends Module_Base {
      * @return string Minified JS.
      */
     private function minify_js( string $js ): string {
+        $original_js = $js;
+
         // Protect string literals and regex by replacing them with tokens.
         $strings = [];
         $index   = 0;
@@ -460,8 +462,8 @@ class Minify_Assets extends Module_Base {
         );
 
         if ( $js === null ) {
-            // Regex failed — return original to avoid breaking the file.
-            return $js ?? '';
+            // Regex failed — return original unmodified to avoid breaking the file.
+            return $original_js;
         }
 
         // Remove single-line comments (but not URLs with //).
@@ -571,24 +573,48 @@ class Minify_Assets extends Module_Base {
         // Strip query strings.
         $url = strtok( $url, '?' ) ?: $url;
 
+        $local_path = '';
+
         // Try content_url mapping first (covers wp-content/...).
         $content_url = content_url();
         if ( strpos( $url, $content_url ) === 0 ) {
-            return WP_CONTENT_DIR . substr( $url, strlen( $content_url ) );
+            $local_path = WP_CONTENT_DIR . substr( $url, strlen( $content_url ) );
         }
 
         // Try site_url mapping (covers wp-includes, wp-admin, etc.).
-        $site_url = site_url();
-        if ( strpos( $url, $site_url ) === 0 ) {
-            return ABSPATH . substr( $url, strlen( $site_url ) + 1 );
+        if ( empty( $local_path ) ) {
+            $site_url = site_url();
+            if ( strpos( $url, $site_url ) === 0 ) {
+                $remainder = substr( $url, strlen( $site_url ) );
+                if ( $remainder === false || $remainder === '' ) {
+                    return '';
+                }
+                $local_path = ABSPATH . ltrim( $remainder, '/' );
+            }
         }
 
         // Handle relative URLs.
-        if ( strpos( $url, '/' ) === 0 && strpos( $url, '//' ) !== 0 ) {
-            return ABSPATH . ltrim( $url, '/' );
+        if ( empty( $local_path ) && strpos( $url, '/' ) === 0 && strpos( $url, '//' ) !== 0 ) {
+            $local_path = ABSPATH . ltrim( $url, '/' );
         }
 
-        return '';
+        if ( empty( $local_path ) ) {
+            return '';
+        }
+
+        // Resolve the real path to prevent directory traversal attacks.
+        $real_path = realpath( $local_path );
+        if ( $real_path === false ) {
+            return '';
+        }
+
+        // Verify the resolved path is within ABSPATH.
+        $abspath_real = realpath( ABSPATH );
+        if ( $abspath_real === false || strpos( $real_path, $abspath_real ) !== 0 ) {
+            return '';
+        }
+
+        return $real_path;
     }
 
     // ── AJAX: Clear Cache ─────────────────────────────────────

@@ -492,8 +492,10 @@ class Limit_Login_Attempts extends Module_Base {
         global $wpdb;
         $table_name = $wpdb->prefix . self::TABLE_SUFFIX;
 
+        // Use DELETE instead of TRUNCATE for replication safety on managed MySQL (WP Engine).
+        // Table name is safe: $wpdb->prefix (trusted) + self::TABLE_SUFFIX (constant).
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->query( "TRUNCATE TABLE {$table_name}" );
+        $wpdb->query( "DELETE FROM `{$table_name}`" );
 
         wp_send_json_success( [ 'message' => __( 'Login log cleared.', 'wptransformed' ) ] );
     }

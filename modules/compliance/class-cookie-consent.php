@@ -226,7 +226,7 @@ class Cookie_Consent extends Module_Base {
 (function(){
     var COOKIE_NAME='wpt_consent';
     var DURATION=<?php echo $duration; ?>;
-    var CATEGORIES=<?php echo $categories_json; ?>;
+    var CATEGORIES=<?php echo wp_json_encode( $settings['categories'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?>;
     var banner=document.getElementById('wpt-cookie-banner');
     if(!banner)return;
 

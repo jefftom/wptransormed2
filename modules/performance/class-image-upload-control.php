@@ -209,7 +209,7 @@ class Image_Upload_Control extends Module_Base {
         }
 
         $offset = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
-        $batch  = 10;
+        $batch  = 3; // Small batch to stay within WP Engine 60s timeout.
 
         $settings = $this->get_settings();
         $max_w    = (int) $settings['max_width'];
@@ -272,9 +272,16 @@ class Image_Upload_Control extends Module_Base {
 
                     $saved = $editor->save( $file );
                     if ( ! is_wp_error( $saved ) ) {
-                        // Regenerate metadata.
-                        $metadata = wp_generate_attachment_metadata( $id, $file );
-                        wp_update_attachment_metadata( $id, $metadata );
+                        // Update metadata without full thumbnail regeneration (avoids WP Engine timeout).
+                        $metadata = wp_get_attachment_metadata( $id );
+                        if ( is_array( $metadata ) && isset( $saved['width'], $saved['height'] ) ) {
+                            $metadata['width']  = $saved['width'];
+                            $metadata['height'] = $saved['height'];
+                            if ( isset( $saved['file'] ) ) {
+                                $metadata['file'] = _wp_relative_upload_path( $saved['file'] );
+                            }
+                            wp_update_attachment_metadata( $id, $metadata );
+                        }
                         $optimized++;
                     }
                 }
@@ -288,15 +295,14 @@ class Image_Upload_Control extends Module_Base {
             $processed++;
         }
 
-        // Count total for progress.
-        $count_args = [
-            'post_type'      => 'attachment',
-            'post_mime_type' => [ 'image/jpeg', 'image/png', 'image/webp' ],
-            'post_status'    => 'inherit',
-            'posts_per_page' => -1,
-            'fields'         => 'ids',
-        ];
-        $total = count( get_posts( $count_args ) );
+        // Count total for progress using efficient COUNT query.
+        global $wpdb;
+        $total = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$wpdb->posts}
+             WHERE post_type = 'attachment'
+             AND post_status = 'inherit'
+             AND post_mime_type IN ('image/jpeg','image/png','image/webp')"
+        );
 
         $new_offset = $offset + $batch;
         $done       = $new_offset >= $total;

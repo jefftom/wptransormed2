@@ -254,14 +254,18 @@ class Maintenance_Mode extends Module_Base {
      * @param array<string,mixed> $settings Module settings.
      */
     private function render_maintenance_page( array $settings ): void {
-        $headline       = esc_html( $settings['headline'] );
-        $message        = esc_html( $settings['message'] );
-        $bg_color       = esc_attr( $settings['bg_color'] );
-        $text_color     = esc_attr( $settings['text_color'] );
-        $accent_color   = esc_attr( $settings['accent_color'] );
+        // Colors are validated as hex in sanitize_settings(), safe for CSS context.
+        $bg_color       = $settings['bg_color'];
+        $text_color     = $settings['text_color'];
+        $accent_color   = $settings['accent_color'];
+        // Custom CSS: strip tags and also remove dangerous CSS patterns.
         $custom_css     = wp_strip_all_tags( $settings['custom_css'] );
+        $custom_css     = preg_replace( '/expression\s*\(/i', '', $custom_css );
+        $custom_css     = preg_replace( '/url\s*\(\s*["\']?\s*javascript:/i', '', $custom_css );
+        $custom_css     = preg_replace( '/@import/i', '', $custom_css );
+        $custom_css     = str_replace( '</', '', $custom_css );
         $show_countdown = ! empty( $settings['show_countdown'] ) && ! empty( $settings['countdown_end'] );
-        $countdown_end  = $show_countdown ? esc_attr( $settings['countdown_end'] ) : '';
+        $countdown_end  = $show_countdown ? $settings['countdown_end'] : '';
         ?>
 <!DOCTYPE html>
 <html lang="<?php echo esc_attr( get_bloginfo( 'language' ) ); ?>">
@@ -269,7 +273,7 @@ class Maintenance_Mode extends Module_Base {
     <meta charset="<?php echo esc_attr( get_bloginfo( 'charset' ) ); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title><?php echo $headline; ?> - <?php echo esc_html( get_bloginfo( 'name' ) ); ?></title>
+    <title><?php echo esc_html( $settings['headline'] ); ?> - <?php echo esc_html( get_bloginfo( 'name' ) ); ?></title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -297,8 +301,8 @@ class Maintenance_Mode extends Module_Base {
 <body>
     <div class="wpt-maintenance-container">
         <div class="wpt-maintenance-icon">&#9888;</div>
-        <h1><?php echo $headline; ?></h1>
-        <p><?php echo $message; ?></p>
+        <h1><?php echo esc_html( $settings['headline'] ); ?></h1>
+        <p><?php echo esc_html( $settings['message'] ); ?></p>
         <?php if ( $show_countdown ) : ?>
         <div class="wpt-countdown" id="wpt-countdown">
             <div class="wpt-countdown-unit">
@@ -320,7 +324,7 @@ class Maintenance_Mode extends Module_Base {
         </div>
         <script>
         (function(){
-            var end=new Date('<?php echo $countdown_end; ?>').getTime();
+            var end=new Date(<?php echo wp_json_encode( $countdown_end ); ?>).getTime();
             function u(){
                 var n=Date.now(),d=Math.max(0,end-n);
                 document.getElementById('wpt-days').textContent=Math.floor(d/86400000);

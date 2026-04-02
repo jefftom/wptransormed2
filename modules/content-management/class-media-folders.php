@@ -448,23 +448,21 @@ class Media_Folders extends Module_Base {
      * Count media items that have no folder term assigned.
      */
     private function count_uncategorized_media(): int {
-        $query = new \WP_Query( [
-            'post_type'      => 'attachment',
-            'post_status'    => 'inherit',
-            'posts_per_page' => -1,
-            'fields'         => 'ids',
-            'tax_query'      => [
-                [
-                    'taxonomy' => self::TAXONOMY,
-                    'operator' => 'NOT EXISTS',
-                ],
-            ],
-            'no_found_rows'          => true,
-            'update_post_meta_cache' => false,
-            'update_post_term_cache' => false,
-        ] );
+        global $wpdb;
 
-        return $query->post_count;
+        // Efficient COUNT query instead of loading all IDs into memory.
+        $taxonomy = self::TAXONOMY;
+        return (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->posts} p
+             WHERE p.post_type = 'attachment'
+             AND p.post_status = 'inherit'
+             AND NOT EXISTS (
+                SELECT 1 FROM {$wpdb->term_relationships} tr
+                INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+                WHERE tr.object_id = p.ID AND tt.taxonomy = %s
+             )",
+            $taxonomy
+        ) );
     }
 
     // ── Assets ────────────────────────────────────────────────
