@@ -450,6 +450,12 @@ class Smart_Menu_Organizer extends Module_Base {
         // Don't sanitize_text_field before json_decode -- it corrupts JSON.
         // Individual fields are sanitized in sanitize_sections().
         $sections_json = wp_unslash( $_POST['sections'] ?? '' );
+
+        // Guard against memory exhaustion from oversized payloads.
+        if ( is_string( $sections_json ) && strlen( $sections_json ) > 500000 ) {
+            wp_send_json_error( [ 'message' => 'Payload too large.' ], 400 );
+        }
+
         $sections_data = json_decode( $sections_json, true );
 
         if ( ! is_array( $sections_data ) ) {
@@ -607,14 +613,14 @@ class Smart_Menu_Organizer extends Module_Base {
             $slug = basename( $plugin, '.php' );
         }
 
-        set_transient( 'wpt_new_plugin_activated', $slug, 300 );
+        set_transient( 'wpt_new_plugin_' . get_current_user_id(), $slug, 300 );
     }
 
     /**
      * Show an admin notice asking the user to place a newly activated plugin.
      */
     public function show_plugin_placement_notice(): void {
-        $plugin_slug = get_transient( 'wpt_new_plugin_activated' );
+        $plugin_slug = get_transient( 'wpt_new_plugin_' . get_current_user_id() );
 
         if ( ! $plugin_slug || ! is_string( $plugin_slug ) ) {
             return;
@@ -677,7 +683,7 @@ class Smart_Menu_Organizer extends Module_Base {
             wp_send_json_error( [ 'message' => 'Insufficient permissions.' ], 403 );
         }
 
-        delete_transient( 'wpt_new_plugin_activated' );
+        delete_transient( 'wpt_new_plugin_' . get_current_user_id() );
         wp_send_json_success();
     }
 
@@ -714,7 +720,7 @@ class Smart_Menu_Organizer extends Module_Base {
             \WPTransformed\Core\Settings::save( $this->get_id(), $settings );
         }
 
-        delete_transient( 'wpt_new_plugin_activated' );
+        delete_transient( 'wpt_new_plugin_' . get_current_user_id() );
         wp_send_json_success( [ 'message' => 'Plugin placed.' ] );
     }
 
@@ -972,7 +978,7 @@ class Smart_Menu_Organizer extends Module_Base {
         return [
             [ 'type' => 'option', 'key' => 'wpt_smart_menu_organizer' ],
             [ 'type' => 'user_meta', 'key' => 'wpt_menu_collapsed_sections' ],
-            [ 'type' => 'transient', 'key' => 'wpt_new_plugin_activated' ],
+            [ 'type' => 'transient', 'key' => 'wpt_new_plugin_' . get_current_user_id() ],
         ];
     }
 }

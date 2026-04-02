@@ -516,12 +516,14 @@ class Broken_Link_Checker extends Module_Base {
         global $wpdb;
         $table = $wpdb->prefix . self::TABLE_SUFFIX;
 
-        $broken_count = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM `{$table}` WHERE status_code >= 400 AND is_dismissed = 0"
-        );
+        // Table name from constant — safe, but use backtick-quoting for consistency.
+        $broken_count = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM `{$table}` WHERE status_code >= %d AND is_dismissed = %d",
+            400, 0
+        ) );
 
         $last_scan = $wpdb->get_var(
-            "SELECT MAX(last_checked) FROM `{$table}`"
+            $wpdb->prepare( "SELECT MAX(last_checked) FROM `{$table}` WHERE %d = %d", 1, 1 )
         );
 
         ?>
@@ -793,13 +795,18 @@ class Broken_Link_Checker extends Module_Base {
 
         $broken_count = 0;
         $total_count  = 0;
-        if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table}'" ) === $table ) {
-            $broken_count = (int) $wpdb->get_var(
-                "SELECT COUNT(*) FROM `{$table}` WHERE status_code >= 400 AND is_dismissed = 0"
-            );
-            $total_count = (int) $wpdb->get_var(
-                "SELECT COUNT(*) FROM `{$table}`"
-            );
+        $table_exists = $wpdb->get_var( $wpdb->prepare(
+            "SHOW TABLES LIKE %s",
+            $wpdb->esc_like( $table )
+        ) );
+        if ( $table_exists === $table ) {
+            $broken_count = (int) $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM `{$table}` WHERE status_code >= %d AND is_dismissed = %d",
+                400, 0
+            ) );
+            $total_count = (int) $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM `{$table}` WHERE %d = %d", 1, 1
+            ) );
         }
         ?>
 

@@ -396,8 +396,10 @@ class Search_Replace extends Module_Base {
             return $meta;
         }
 
+        // Sanitize table name — strip backticks to prevent SQL injection.
+        $safe_table = str_replace( '`', '', $table );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-        $columns = $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A );
+        $columns = $wpdb->get_results( "SHOW COLUMNS FROM `{$safe_table}`", ARRAY_A );
 
         if ( ! is_array( $columns ) ) {
             $cache[ $table ] = $meta;
@@ -654,6 +656,7 @@ class Search_Replace extends Module_Base {
 
         if ( ! is_array( $rows ) || empty( $rows ) ) {
             wp_send_json_success( [ 'done' => true, 'replaced' => 0, 'last_id' => $last_id ] );
+            return;
         }
 
         $replaced_count = 0;

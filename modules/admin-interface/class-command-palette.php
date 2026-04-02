@@ -481,8 +481,8 @@ class Command_Palette extends Module_Base {
         }
 
         $title = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
-        // Use esc_url() (not esc_url_raw) to strip javascript: and data: URIs.
-        $url   = isset( $_POST['url'] ) ? esc_url( wp_unslash( $_POST['url'] ) ) : '';
+        // esc_url_raw() strips javascript:/data: URIs without HTML-encoding ampersands.
+        $url   = isset( $_POST['url'] ) ? esc_url_raw( wp_unslash( $_POST['url'] ) ) : '';
 
         if ( empty( $title ) || empty( $url ) ) {
             wp_send_json_error( [ 'message' => 'Missing data' ], 400 );
