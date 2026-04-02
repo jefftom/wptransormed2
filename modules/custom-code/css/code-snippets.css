@@ -1,0 +1,268 @@
+/**
+ * WPTransformed Code Snippets — Editor + Table Styling.
+ *
+ * @package WPTransformed
+ */
+
+/* -- Snippet Add Form -- */
+
+.wpt-snippet-add-form {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    padding: 20px;
+    margin: 15px 0;
+    border-radius: 4px;
+}
+
+.wpt-snippet-add-form h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.wpt-snippet-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+    align-items: flex-end;
+}
+
+.wpt-snippet-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.wpt-snippet-field label {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.wpt-snippet-field-title {
+    flex: 1;
+    min-width: 200px;
+}
+
+.wpt-snippet-field-full {
+    flex: 1 1 100%;
+}
+
+.wpt-snippet-field select,
+.wpt-snippet-field input[type="number"] {
+    min-width: 120px;
+}
+
+/* -- CodeMirror Wrapper -- */
+
+.wpt-snippet-field-full .CodeMirror {
+    border: 1px solid #c3c4c7;
+    border-radius: 3px;
+    height: auto;
+    min-height: 200px;
+    max-height: 500px;
+}
+
+.wpt-modal-body .CodeMirror {
+    border: 1px solid #c3c4c7;
+    border-radius: 3px;
+    height: auto;
+    min-height: 250px;
+    max-height: 450px;
+}
+
+/* -- Snippets Table -- */
+
+.wpt-snippets-table-wrap {
+    margin-top: 20px;
+}
+
+#wpt-snippets-table .wpt-col-status {
+    width: 60px;
+    text-align: center;
+}
+
+#wpt-snippets-table .wpt-col-type {
+    width: 80px;
+}
+
+#wpt-snippets-table .wpt-col-scope {
+    width: 100px;
+}
+
+#wpt-snippets-table .wpt-col-priority {
+    width: 70px;
+    text-align: center;
+}
+
+#wpt-snippets-table .wpt-col-updated {
+    width: 160px;
+}
+
+#wpt-snippets-table .wpt-col-actions {
+    width: 140px;
+}
+
+#wpt-snippets-table .wpt-col-title strong {
+    display: block;
+    margin-bottom: 2px;
+}
+
+#wpt-snippets-table .wpt-col-title .description {
+    color: #646970;
+    font-style: italic;
+    font-size: 12px;
+}
+
+.wpt-no-snippets td {
+    text-align: center;
+    padding: 20px;
+    color: #646970;
+    font-style: italic;
+}
+
+/* -- Type Badges -- */
+
+.wpt-type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    line-height: 1.4;
+}
+
+.wpt-type-php {
+    background: #e8f0fe;
+    color: #1a56db;
+}
+
+.wpt-type-css {
+    background: #fef3e0;
+    color: #c77c00;
+}
+
+.wpt-type-js {
+    background: #fff8e1;
+    color: #8d6e00;
+}
+
+.wpt-type-html {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+/* -- Toggle Switch (small variant for table rows) -- */
+
+.wpt-toggle-small {
+    transform: scale(0.8);
+    display: inline-block;
+}
+
+/* -- Modal -- */
+
+.wpt-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wpt-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.wpt-modal-content {
+    position: relative;
+    z-index: 1;
+    background: #fff;
+    border-radius: 6px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+}
+
+.wpt-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    border-bottom: 1px solid #c3c4c7;
+}
+
+.wpt-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.wpt-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0 5px;
+    color: #646970;
+    line-height: 1;
+}
+
+.wpt-modal-close:hover {
+    color: #d63638;
+}
+
+.wpt-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.wpt-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 15px 20px;
+    border-top: 1px solid #c3c4c7;
+}
+
+/* -- PHP Note -- */
+
+#wpt-snippet-php-note {
+    margin-top: 5px;
+    color: #d63638;
+    font-style: italic;
+}
+
+/* -- Responsive -- */
+
+@media screen and (max-width: 782px) {
+    .wpt-snippet-form-row {
+        flex-direction: column;
+    }
+
+    .wpt-snippet-field-title {
+        min-width: 100%;
+    }
+
+    #wpt-snippets-table .wpt-col-updated,
+    #wpt-snippets-table .wpt-col-priority {
+        display: none;
+    }
+
+    .wpt-modal-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+}
