@@ -1,0 +1,148 @@
+/**
+ * Limit Login Attempts — Module styles.
+ *
+ * Lockout log table and stats cards for the WPTransformed settings page.
+ *
+ * @package WPTransformed
+ */
+
+/* ── Settings Table ───────────────────────────────────────── */
+
+.wpt-limit-login-settings textarea.large-text {
+    max-width: 400px;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 13px;
+}
+
+/* ── Stats Cards ──────────────────────────────────────────── */
+
+.wpt-lockout-stats {
+    display: flex;
+    gap: 16px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+}
+
+.wpt-stat-card {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 16px 24px;
+    text-align: center;
+    min-width: 140px;
+}
+
+.wpt-stat-number {
+    display: block;
+    font-size: 28px;
+    font-weight: 600;
+    color: #1d2327;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+.wpt-stat-label {
+    display: block;
+    font-size: 12px;
+    color: #50575e;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ── Lockout Log Table ────────────────────────────────────── */
+
+.wpt-lockout-log-section {
+    margin-top: 24px;
+    max-width: 900px;
+}
+
+.wpt-lockout-log-table {
+    border-collapse: collapse;
+}
+
+.wpt-lockout-log-table th,
+.wpt-lockout-log-table td {
+    padding: 8px 12px;
+    vertical-align: middle;
+}
+
+.wpt-lockout-log-table thead th {
+    background: #f6f7f7;
+    font-weight: 600;
+    border-bottom: 1px solid #c3c4c7;
+}
+
+.wpt-lockout-log-table tbody tr {
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.wpt-lockout-log-table tbody tr:hover {
+    background: #f9f9f9;
+}
+
+.wpt-lockout-log-table code {
+    background: #f0f0f1;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+/* ── Status Badges ────────────────────────────────────────── */
+
+.wpt-lockout-status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.wpt-status-locked {
+    background: #fcf0f1;
+    color: #d63638;
+    border: 1px solid #d63638;
+}
+
+.wpt-status-expired {
+    background: #f0f0f1;
+    color: #50575e;
+    border: 1px solid #c3c4c7;
+}
+
+/* ── Unlock Button ────────────────────────────────────────── */
+
+.wpt-unlock-btn {
+    margin-left: 8px !important;
+    vertical-align: middle;
+}
+
+.wpt-unlock-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+
+@media screen and (max-width: 782px) {
+    .wpt-lockout-stats {
+        flex-direction: column;
+    }
+
+    .wpt-stat-card {
+        min-width: auto;
+    }
+
+    .wpt-lockout-log-table th:nth-child(5),
+    .wpt-lockout-log-table td:nth-child(5),
+    .wpt-lockout-log-table th:nth-child(6),
+    .wpt-lockout-log-table td:nth-child(6) {
+        display: none;
+    }
+
+    .wpt-lockout-log-table th,
+    .wpt-lockout-log-table td {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+}
