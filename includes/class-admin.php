@@ -76,7 +76,10 @@ class Admin {
         $categories = [
             'content-management' => __( 'Content Management', 'wptransformed' ),
             'admin-interface'    => __( 'Admin Interface', 'wptransformed' ),
+            'security'           => __( 'Security', 'wptransformed' ),
+            'login-logout'       => __( 'Login & Logout', 'wptransformed' ),
             'performance'        => __( 'Performance', 'wptransformed' ),
+            'compliance'         => __( 'Compliance', 'wptransformed' ),
             'utilities'          => __( 'Utilities', 'wptransformed' ),
         ];
 
