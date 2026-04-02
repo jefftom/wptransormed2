@@ -1,0 +1,157 @@
+/**
+ * User Role Editor -- Styles for role and capability management UI.
+ *
+ * @package WPTransformed
+ */
+
+/* -- Add Role Form ---------------------------------------------------- */
+
+.wpt-role-add-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 15px;
+}
+
+.wpt-role-add-form label {
+    font-weight: 600;
+}
+
+.wpt-role-add-form input,
+.wpt-role-add-form select {
+    max-width: 220px;
+}
+
+/* -- Toolbar ---------------------------------------------------------- */
+
+.wpt-role-editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.wpt-role-editor-toolbar label {
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+.wpt-role-editor-toolbar select {
+    min-width: 200px;
+}
+
+/* -- Capability Groups ------------------------------------------------ */
+
+.wpt-cap-group {
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+}
+
+.wpt-cap-group-title {
+    margin: 0 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e2e4e7;
+    font-size: 14px;
+    color: #1d2327;
+}
+
+.wpt-cap-group-count {
+    color: #787c82;
+    font-weight: normal;
+    font-size: 12px;
+}
+
+.wpt-cap-group-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 4px 16px;
+}
+
+.wpt-cap-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+    cursor: pointer;
+}
+
+.wpt-cap-item:hover {
+    background: #f6f7f7;
+    border-radius: 3px;
+}
+
+.wpt-cap-item code {
+    font-size: 12px;
+    background: transparent;
+    padding: 0;
+    color: #50575e;
+}
+
+.wpt-cap-item input:checked + code {
+    color: #1d2327;
+    font-weight: 600;
+}
+
+/* -- Save Bar --------------------------------------------------------- */
+
+.wpt-role-save-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid #c3c4c7;
+}
+
+/* -- Notices ---------------------------------------------------------- */
+
+.wpt-role-ajax-notice {
+    max-width: 800px;
+}
+
+.wpt-role-notice {
+    max-width: 800px;
+}
+
+/* -- Admin Bar: View as indicator ------------------------------------- */
+
+#wpadminbar .wpt-view-as-active > .ab-item {
+    background: #d63638 !important;
+    color: #fff !important;
+}
+
+#wpadminbar .wpt-view-as-active:hover > .ab-item {
+    background: #b32d2e !important;
+}
+
+/* -- Responsive ------------------------------------------------------- */
+
+@media screen and (max-width: 782px) {
+    .wpt-role-add-form {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .wpt-role-add-form input,
+    .wpt-role-add-form select {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .wpt-role-editor-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .wpt-role-editor-toolbar select {
+        width: 100%;
+    }
+
+    .wpt-cap-group-items {
+        grid-template-columns: 1fr;
+    }
+}
