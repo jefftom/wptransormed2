@@ -166,7 +166,7 @@ class Email_SMTP extends Module_Base {
         // Capture PHPMailer debug output.
         $debug_output = '';
         add_action( 'phpmailer_init', function ( $phpmailer ) use ( &$debug_output ) {
-            $phpmailer->SMTPDebug = 2;
+            $phpmailer->SMTPDebug = 1; // Level 1: connection only, not auth data.
             $phpmailer->Debugoutput = function ( $str ) use ( &$debug_output ) {
                 $debug_output .= $str;
             };
@@ -235,22 +235,28 @@ class Email_SMTP extends Module_Base {
             return '';
         }
 
-        if ( ! function_exists( 'openssl_encrypt' ) ) {
-            // Fallback to base64 (not secure, but functional).
-            return 'base64:' . base64_encode( $plain );
+        if ( ! defined( 'AUTH_KEY' ) || ! defined( 'SECURE_AUTH_KEY' ) ) {
+            return ''; // Cannot encrypt without WP security keys.
         }
 
-        $key = substr( hash( 'sha256', AUTH_KEY ), 0, 32 );
-        $iv  = substr( hash( 'sha256', SECURE_AUTH_KEY ), 0, 16 );
+        if ( ! function_exists( 'openssl_encrypt' ) ) {
+            // Refuse to store without encryption — return empty to trigger re-entry.
+            return '';
+        }
 
-        $encrypted = openssl_encrypt( $plain, 'AES-256-CBC', $key, 0, $iv );
+        // Use raw binary key for full 256-bit strength.
+        $key = hash( 'sha256', AUTH_KEY, true );
+        // Random IV per encryption — prepended to ciphertext.
+        $iv  = openssl_random_pseudo_bytes( 16 );
+
+        $encrypted = openssl_encrypt( $plain, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv );
 
         if ( $encrypted === false ) {
-            // Encryption failed — fall back to base64.
-            return 'base64:' . base64_encode( $plain );
+            return ''; // Encryption failed — don't store at all.
         }
 
-        return base64_encode( $encrypted );
+        // Prepend IV to ciphertext, then base64-encode.
+        return 'enc1:' . base64_encode( $iv . $encrypted );
     }
 
     /**
@@ -264,11 +270,51 @@ class Email_SMTP extends Module_Base {
             return '';
         }
 
-        // Check for base64 fallback prefix.
-        if ( strpos( $encrypted, 'base64:' ) === 0 ) {
-            return base64_decode( substr( $encrypted, 7 ) );
+        if ( ! defined( 'AUTH_KEY' ) || ! defined( 'SECURE_AUTH_KEY' ) ) {
+            return '';
         }
 
+        // Legacy base64 fallback (from older versions without openssl).
+        if ( strpos( $encrypted, 'base64:' ) === 0 ) {
+            return (string) base64_decode( substr( $encrypted, 7 ) );
+        }
+
+        // Legacy format without random IV (static IV derived from SECURE_AUTH_KEY).
+        if ( strpos( $encrypted, 'enc1:' ) !== 0 ) {
+            return $this->decrypt_password_legacy( $encrypted );
+        }
+
+        if ( ! function_exists( 'openssl_decrypt' ) ) {
+            return '';
+        }
+
+        $key = hash( 'sha256', AUTH_KEY, true );
+        $raw = base64_decode( substr( $encrypted, 5 ) );
+
+        if ( $raw === false || strlen( $raw ) < 17 ) {
+            return ''; // Invalid data.
+        }
+
+        // Extract IV (first 16 bytes) and ciphertext (rest).
+        $iv         = substr( $raw, 0, 16 );
+        $ciphertext = substr( $raw, 16 );
+
+        $decrypted = openssl_decrypt( $ciphertext, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv );
+
+        if ( $decrypted === false ) {
+            return ''; // Decryption failed — likely AUTH_KEY changed.
+        }
+
+        return $decrypted;
+    }
+
+    /**
+     * Decrypt legacy passwords stored with the old static-IV format.
+     *
+     * @param string $encrypted Legacy encrypted string.
+     * @return string Plain text password, or empty on failure.
+     */
+    private function decrypt_password_legacy( string $encrypted ): string {
         if ( ! function_exists( 'openssl_decrypt' ) ) {
             return '';
         }
@@ -278,12 +324,7 @@ class Email_SMTP extends Module_Base {
 
         $decrypted = openssl_decrypt( base64_decode( $encrypted ), 'AES-256-CBC', $key, 0, $iv );
 
-        if ( $decrypted === false ) {
-            // Decryption failed — likely AUTH_KEY changed.
-            return '';
-        }
-
-        return $decrypted;
+        return $decrypted !== false ? $decrypted : '';
     }
 
     /**
@@ -304,11 +345,6 @@ class Email_SMTP extends Module_Base {
     private function can_decrypt_password( string $encrypted ): bool {
         if ( empty( $encrypted ) ) {
             return true; // Nothing to decrypt.
-        }
-
-        // Base64 fallback always decrypts.
-        if ( strpos( $encrypted, 'base64:' ) === 0 ) {
-            return true;
         }
 
         $decrypted = $this->decrypt_password( $encrypted );
@@ -632,7 +668,13 @@ class Email_SMTP extends Module_Base {
         $password = $current_settings['password'] ?? '';
 
         if ( isset( $raw['wpt_password'] ) && $raw['wpt_password'] !== '' ) {
-            $password = $this->encrypt_password( sanitize_text_field( $raw['wpt_password'] ) );
+            // Don't sanitize_text_field passwords — it strips characters that SMTP app passwords use.
+            $new_password = wp_unslash( $raw['wpt_password'] );
+            $encrypted = $this->encrypt_password( $new_password );
+            if ( $encrypted !== '' ) {
+                $password = $encrypted;
+            }
+            // If encrypt returned '', keep the old password — openssl may be missing.
         }
 
         return [

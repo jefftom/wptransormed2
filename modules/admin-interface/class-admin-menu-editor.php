@@ -361,7 +361,13 @@ class Admin_Menu_Editor extends Module_Base {
         <input type="hidden" id="wpt-ame-separators" name="wpt_separators" value="<?php echo esc_attr( implode( ',', $separators ) ); ?>">
 
         <?php // Init data for JS. ?>
-        <script type="application/json" id="wpt-ame-init-data"><?php echo wp_json_encode( $init_data ); ?></script>
+        <?php
+        $json = wp_json_encode( $init_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE );
+        if ( $json === false ) {
+            $json = '{}';
+        }
+        ?>
+        <script type="application/json" id="wpt-ame-init-data"><?php echo $json; ?></script>
         <?php
     }
 
@@ -425,7 +431,7 @@ class Admin_Menu_Editor extends Module_Base {
                 foreach ( $decoded as $slug => $icon ) {
                     $slug = sanitize_text_field( (string) $slug );
                     $icon = sanitize_html_class( (string) $icon );
-                    if ( $slug !== '' && $icon !== '' ) {
+                    if ( $slug !== '' && $icon !== '' && preg_match( '/^dashicons-[a-z0-9-]+$/', $icon ) ) {
                         $custom_icons[ $slug ] = $icon;
                     }
                 }
