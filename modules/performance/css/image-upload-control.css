@@ -1,0 +1,72 @@
+/**
+ * WPTransformed -- Image Upload Control Settings Styles
+ */
+
+/* ── Settings Form ───────────────────────────────────────── */
+
+.wpt-iuc-settings input[type="number"] {
+    max-width: 120px;
+}
+
+/* ── Bulk Optimization Section ───────────────────────────── */
+
+.wpt-bulk-optimize-section {
+    margin-top: 24px;
+    padding: 16px 20px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+}
+
+.wpt-bulk-optimize-section h3 {
+    margin-top: 0;
+    margin-bottom: 4px;
+}
+
+.wpt-bulk-optimize-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* ── Progress Bar ────────────────────────────────────────── */
+
+.wpt-progress-bar-wrapper {
+    width: 100%;
+    max-width: 500px;
+    height: 20px;
+    background: #f0f0f1;
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid #dcdcde;
+}
+
+.wpt-progress-bar {
+    height: 100%;
+    background: #2271b1;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+/* ── Result Messages ─────────────────────────────────────── */
+
+#wpt-bulk-result {
+    padding: 1px 12px;
+    border-radius: 3px;
+}
+
+#wpt-bulk-result p {
+    word-break: break-word;
+}
+
+/* ── Spinner Alignment ───────────────────────────────────── */
+
+#wpt-bulk-spinner {
+    margin: 0;
+    vertical-align: middle;
+}
+
+#wpt-bulk-spinner.is-active {
+    visibility: visible;
+}
