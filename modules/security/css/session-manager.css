@@ -1,0 +1,87 @@
+/**
+ * Session Manager -- Table and badge styling.
+ *
+ * @package WPTransformed
+ */
+
+/* -- Sessions Table --------------------------------------------------- */
+
+.wpt-session-table {
+    margin-top: 10px;
+}
+
+.wpt-session-table th,
+.wpt-session-table td {
+    vertical-align: middle;
+}
+
+.wpt-session-table code {
+    font-size: 13px;
+    background: #f0f0f1;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.wpt-session-table small {
+    color: #787c82;
+}
+
+/* -- Current Session Row ---------------------------------------------- */
+
+.wpt-session-current td {
+    background-color: #f0f6fc !important;
+}
+
+/* -- Session Badges --------------------------------------------------- */
+
+.wpt-session-badge {
+    display: inline-block;
+    font-size: 11px;
+    line-height: 1;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+.wpt-session-badge-current {
+    background: #d4edda;
+    color: #155724;
+}
+
+.wpt-session-badge-active {
+    background: #e2e4e7;
+    color: #50575e;
+}
+
+/* -- Actions Column --------------------------------------------------- */
+
+.wpt-session-actions {
+    white-space: nowrap;
+}
+
+.wpt-session-actions .button {
+    margin-right: 4px;
+}
+
+.wpt-session-actions .wpt-session-spinner {
+    vertical-align: middle;
+}
+
+/* -- Row fade-out on destroy ------------------------------------------ */
+
+.wpt-session-table tbody tr {
+    transition: opacity 0.3s ease;
+}
+
+/* -- Notice ----------------------------------------------------------- */
+
+.wpt-session-notice {
+    max-width: 800px;
+}
+
+/* -- Destroy Others Button -------------------------------------------- */
+
+.wpt-session-destroy-others {
+    margin-top: 6px;
+}
