@@ -1,0 +1,51 @@
+/* WPTransformed — Broken Link Checker */
+
+.wpt-blc-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+}
+.wpt-blc-ok { background: #00a32a; }
+.wpt-blc-redirect { background: #dba617; color: #1d2327; }
+.wpt-blc-broken { background: #d63638; }
+.wpt-blc-unknown { background: #787c82; }
+
+.wpt-blc-url-cell {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.wpt-blc-actions .button {
+    margin-right: 4px;
+}
+
+#wpt-blc-filters select {
+    margin-right: 8px;
+}
+
+#wpt-blc-pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#wpt-blc-pagination .button {
+    min-width: 60px;
+}
+
+@media screen and (max-width: 782px) {
+    .wpt-blc-url-cell {
+        max-width: 150px;
+    }
+    .wpt-blc-actions .button {
+        font-size: 11px;
+        padding: 2px 6px;
+    }
+}
