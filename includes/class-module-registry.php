@@ -36,12 +36,37 @@ class Module_Registry {
             'dark-mode'            => 'modules/admin-interface/class-dark-mode.php',
 
             // Performance
-            'database-cleanup'     => 'modules/performance/class-database-cleanup.php',
-            'heartbeat-control'    => 'modules/performance/class-heartbeat-control.php',
+            'database-cleanup'        => 'modules/performance/class-database-cleanup.php',
+            'heartbeat-control'       => 'modules/performance/class-heartbeat-control.php',
+            'lazy-load'               => 'modules/performance/class-lazy-load.php',
+            'image-upload-control'    => 'modules/performance/class-image-upload-control.php',
+            'minify-assets'           => 'modules/performance/class-minify-assets.php',
 
             // Utilities
-            'disable-comments'     => 'modules/utilities/class-disable-comments.php',
-            'email-smtp'           => 'modules/utilities/class-email-smtp.php',
+            'disable-comments'        => 'modules/utilities/class-disable-comments.php',
+            'email-smtp'              => 'modules/utilities/class-email-smtp.php',
+            'maintenance-mode'        => 'modules/utilities/class-maintenance-mode.php',
+            'redirect-manager'        => 'modules/utilities/class-redirect-manager.php',
+            'cron-manager'            => 'modules/utilities/class-cron-manager.php',
+
+            // Security
+            'user-role-editor'        => 'modules/security/class-user-role-editor.php',
+            'limit-login-attempts'    => 'modules/security/class-limit-login-attempts.php',
+            'session-manager'         => 'modules/security/class-session-manager.php',
+            'audit-log'               => 'modules/security/class-audit-log.php',
+
+            // Content Management (v2)
+            'custom-content-types'    => 'modules/content-management/class-custom-content-types.php',
+            'media-folders'           => 'modules/content-management/class-media-folders.php',
+
+            // Custom Code
+            'code-snippets'           => 'modules/custom-code/class-code-snippets.php',
+
+            // Compliance
+            'cookie-consent'          => 'modules/compliance/class-cookie-consent.php',
+
+            // Login/Logout
+            'login-customizer'        => 'modules/login-logout/class-login-customizer.php',
         ];
     }
 }
