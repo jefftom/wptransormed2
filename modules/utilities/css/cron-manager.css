@@ -1,0 +1,132 @@
+/**
+ * Cron Manager -- Table and form styling.
+ *
+ * @package WPTransformed
+ */
+
+/* ── Cron Events Table ────────────────────────────────────────── */
+
+.wpt-cron-table {
+    margin-top: 10px;
+}
+
+.wpt-cron-table th,
+.wpt-cron-table td {
+    vertical-align: middle;
+}
+
+.wpt-cron-table code {
+    font-size: 13px;
+    background: #f0f0f1;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.wpt-cron-table .wpt-cron-args {
+    max-width: 200px;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* ── Overdue Row ──────────────────────────────────────────────── */
+
+.wpt-cron-overdue td {
+    background-color: #fcf0f0 !important;
+}
+
+.wpt-cron-overdue-label {
+    color: #d63638;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+/* ── System Badge ─────────────────────────────────────────────── */
+
+.wpt-cron-badge {
+    display: inline-block;
+    font-size: 11px;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.wpt-cron-badge-system {
+    background: #dcdcde;
+    color: #50575e;
+}
+
+/* ── Actions Column ───────────────────────────────────────────── */
+
+.wpt-cron-actions {
+    white-space: nowrap;
+}
+
+.wpt-cron-actions .button {
+    margin-right: 4px;
+}
+
+.wpt-cron-actions .wpt-cron-spinner {
+    vertical-align: middle;
+}
+
+/* ── Add Form ─────────────────────────────────────────────────── */
+
+.wpt-cron-add-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.wpt-cron-add-form label {
+    font-weight: 600;
+}
+
+.wpt-cron-add-form input[type="text"] {
+    max-width: 300px;
+}
+
+.wpt-cron-add-form select {
+    max-width: 300px;
+}
+
+.wpt-cron-add-form .spinner {
+    margin: 0;
+}
+
+/* ── Count Badge ──────────────────────────────────────────────── */
+
+.wpt-cron-count {
+    font-weight: 400;
+    color: #787c82;
+    font-size: 14px;
+}
+
+/* ── Schedules Reference ──────────────────────────────────────── */
+
+.wpt-cron-schedules-ref .button-link {
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.wpt-cron-schedules-ref .button-link:hover {
+    text-decoration: underline;
+}
+
+/* ── Notice Inline ────────────────────────────────────────────── */
+
+.wpt-cron-notice {
+    max-width: 800px;
+}
+
+/* ── Row fade-out on delete ───────────────────────────────────── */
+
+.wpt-cron-table tbody tr {
+    transition: opacity 0.3s ease;
+}
