@@ -1,0 +1,324 @@
+/**
+ * WPTransformed — Media Folders Sidebar Styles
+ *
+ * @package WPTransformed
+ */
+
+/* ── Sidebar Layout ────────────────────────────────────────── */
+
+.wpt-mf-has-sidebar {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.wpt-mf-sidebar {
+    width: 220px;
+    min-width: 220px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    background: #f0f0f1;
+    border-right: 1px solid #c3c4c7;
+    padding: 0;
+    margin-right: 16px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    position: sticky;
+    top: 32px;
+}
+
+.wpt-mf-sidebar--modal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 10;
+    margin-right: 0;
+    border-right: 1px solid #c3c4c7;
+    max-height: none;
+}
+
+.wpt-mf-has-sidebar .attachments-browser {
+    margin-left: 220px;
+}
+
+/* ── Header ────────────────────────────────────────────────── */
+
+.wpt-mf-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid #c3c4c7;
+    background: #fff;
+}
+
+.wpt-mf-header h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.wpt-mf-add-btn {
+    font-size: 11px !important;
+    padding: 2px 8px !important;
+    min-height: 26px !important;
+    line-height: 22px !important;
+}
+
+/* ── Folder Items ──────────────────────────────────────────── */
+
+.wpt-mf-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    position: relative;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+}
+
+.wpt-mf-item:hover {
+    background: #e0e0e0;
+}
+
+.wpt-mf-item--active {
+    background: #2271b1;
+    color: #fff;
+}
+
+.wpt-mf-item--active:hover {
+    background: #135e96;
+}
+
+.wpt-mf-item--active .wpt-mf-icon,
+.wpt-mf-item--active .wpt-mf-name,
+.wpt-mf-item--active .wpt-mf-count {
+    color: #fff;
+}
+
+.wpt-mf-icon {
+    font-size: 16px;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    color: #646970;
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+.wpt-mf-name {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wpt-mf-count {
+    font-size: 11px;
+    color: #787c82;
+    background: #dcdcde;
+    border-radius: 10px;
+    padding: 0 6px;
+    min-width: 18px;
+    text-align: center;
+    line-height: 18px;
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
+.wpt-mf-item--active .wpt-mf-count {
+    background: rgba(255, 255, 255, 0.25);
+    color: #fff;
+}
+
+/* ── Actions Button ────────────────────────────────────────── */
+
+.wpt-mf-actions {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    margin-left: 4px;
+}
+
+.wpt-mf-item:hover .wpt-mf-actions {
+    opacity: 1;
+}
+
+.wpt-mf-action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 4px;
+    color: inherit;
+    border-radius: 3px;
+}
+
+.wpt-mf-action-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.wpt-mf-item--active .wpt-mf-action-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Context Menu ──────────────────────────────────────────── */
+
+.wpt-mf-context-menu {
+    position: absolute;
+    right: 8px;
+    top: 100%;
+    z-index: 100;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    min-width: 140px;
+    padding: 4px 0;
+}
+
+.wpt-mf-context-option {
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #1d2327;
+    white-space: nowrap;
+}
+
+.wpt-mf-context-option:hover {
+    background: #2271b1;
+    color: #fff;
+}
+
+.wpt-mf-context-option--danger {
+    color: #b32d2e;
+}
+
+.wpt-mf-context-option--danger:hover {
+    background: #b32d2e;
+    color: #fff;
+}
+
+/* ── Inline Form ───────────────────────────────────────────── */
+
+.wpt-mf-inline-form {
+    padding: 4px 12px;
+    border-bottom: 1px solid #c3c4c7;
+}
+
+.wpt-mf-input {
+    width: 100%;
+    padding: 4px 8px;
+    font-size: 13px;
+    border: 1px solid #8c8f94;
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+
+.wpt-mf-input:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+    outline: none;
+}
+
+.wpt-mf-rename-input {
+    margin: 0;
+    padding: 2px 6px;
+    font-size: 13px;
+}
+
+/* ── Children / Nesting ────────────────────────────────────── */
+
+.wpt-mf-children {
+    /* Children are indented via inline padding on items. */
+}
+
+.wpt-mf-list {
+    padding: 4px 0;
+}
+
+/* ── Drag and Drop ─────────────────────────────────────────── */
+
+.wpt-mf-drop-over {
+    background: #cce0f5 !important;
+    border-bottom: 2px solid #2271b1;
+}
+
+.wpt-mf-item--active.wpt-mf-drop-over {
+    background: #1a5f9e !important;
+}
+
+.wpt-mf-dragging {
+    opacity: 0.5;
+}
+
+/* Make attachments show a move cursor when hovering near sidebar. */
+.wpt-mf-has-sidebar .attachment[draggable="true"] {
+    cursor: grab;
+}
+
+.wpt-mf-has-sidebar .attachment[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+/* ── Scrollbar (Webkit) ────────────────────────────────────── */
+
+.wpt-mf-sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.wpt-mf-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.wpt-mf-sidebar::-webkit-scrollbar-thumb {
+    background: #c3c4c7;
+    border-radius: 3px;
+}
+
+.wpt-mf-sidebar::-webkit-scrollbar-thumb:hover {
+    background: #8c8f94;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+
+@media screen and (max-width: 782px) {
+    .wpt-mf-sidebar {
+        width: 180px;
+        min-width: 180px;
+    }
+
+    .wpt-mf-sidebar--modal {
+        width: 180px;
+    }
+
+    .wpt-mf-has-sidebar .attachments-browser {
+        margin-left: 180px;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    .wpt-mf-has-sidebar {
+        flex-direction: column;
+    }
+
+    .wpt-mf-sidebar {
+        width: 100%;
+        min-width: 100%;
+        max-height: 200px;
+        border-right: none;
+        border-bottom: 1px solid #c3c4c7;
+        margin-right: 0;
+        margin-bottom: 12px;
+        position: static;
+    }
+
+    .wpt-mf-has-sidebar .attachments-browser {
+        margin-left: 0;
+    }
+}
