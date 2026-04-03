@@ -1,0 +1,111 @@
+/**
+ * Client Dashboard styles
+ *
+ * @package WPTransformed
+ */
+
+.wpt-client-dashboard {
+    padding: 12px 0;
+}
+
+.wpt-client-welcome-message h2 {
+    font-size: 1.5em;
+    margin: 0 0 8px;
+    color: #1d2327;
+}
+
+.wpt-client-welcome-message p {
+    color: #50575e;
+    font-size: 14px;
+    margin: 0 0 20px;
+}
+
+/* Quick Links */
+.wpt-client-quick-links {
+    margin-bottom: 24px;
+}
+
+.wpt-client-quick-links h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: #1d2327;
+}
+
+.wpt-client-links-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.wpt-client-link-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: #2271b1;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.2s ease;
+}
+
+.wpt-client-link-button:hover,
+.wpt-client-link-button:focus {
+    background: #135e96;
+    color: #fff;
+}
+
+.wpt-client-link-button .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+}
+
+/* Site Stats */
+.wpt-client-stats h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: #1d2327;
+}
+
+.wpt-client-stats-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.wpt-client-stat-card {
+    background: #f0f0f1;
+    border-radius: 4px;
+    padding: 16px 20px;
+    text-align: center;
+    min-width: 120px;
+    flex: 1;
+}
+
+.wpt-client-stat-card .dashicons {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    color: #2271b1;
+    display: block;
+    margin: 0 auto 8px;
+}
+
+.wpt-client-stat-number {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1d2327;
+    line-height: 1.2;
+}
+
+.wpt-client-stat-label {
+    font-size: 12px;
+    color: #50575e;
+    margin-top: 4px;
+}

@@ -1,0 +1,36 @@
+/**
+ * Webhook Manager styles
+ *
+ * @package WPTransformed
+ */
+
+.wpt-webhook-manager .form-table th {
+    width: 140px;
+}
+
+.wpt-webhook-table {
+    margin-top: 12px;
+}
+
+.wpt-webhook-table .wpt-webhook-status-active {
+    color: #00a32a;
+    font-weight: 600;
+}
+
+.wpt-webhook-table .wpt-webhook-status-inactive {
+    color: #d63638;
+    font-weight: 600;
+}
+
+.wpt-webhook-table .wpt-webhook-actions {
+    white-space: nowrap;
+}
+
+.wpt-webhook-table .wpt-webhook-actions .button {
+    margin-right: 4px;
+}
+
+.wpt-webhook-table td code {
+    font-size: 11px;
+    color: #999;
+}

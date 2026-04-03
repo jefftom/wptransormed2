@@ -173,6 +173,20 @@ class Module_Registry {
             'keyboard-shortcuts'      => 'modules/admin-interface/class-keyboard-shortcuts.php',
             'admin-color-schemes'     => 'modules/admin-interface/class-admin-color-schemes.php',
             'page-hierarchy-organizer' => 'modules/admin-interface/class-page-hierarchy-organizer.php',
+
+            // Wave 6C — Unique Differentiators
+            'activity-feed'           => 'modules/admin-interface/class-activity-feed.php',
+            '404-monitor'             => 'modules/utilities/class-404-monitor.php',
+            'notification-center'     => 'modules/admin-interface/class-notification-center.php',
+            'content-calendar'        => 'modules/content-management/class-content-calendar.php',
+            'environment-indicator'   => 'modules/admin-interface/class-environment-indicator.php',
+            'temporary-user-access'   => 'modules/security/class-temporary-user-access.php',
+            'client-dashboard'        => 'modules/admin-interface/class-client-dashboard.php',
+            'plugin-profiler'         => 'modules/performance/class-plugin-profiler.php',
+            'webhook-manager'         => 'modules/utilities/class-webhook-manager.php',
+            'error-log-viewer'        => 'modules/utilities/class-error-log-viewer.php',
+            'passkey-auth'            => 'modules/security/class-passkey-auth.php',
+            'workflow-automation'     => 'modules/utilities/class-workflow-automation.php',
         ];
     }
 }
