@@ -245,7 +245,7 @@ class System_Summary extends Module_Base {
 
         return [
             __( 'Server', 'wptransformed' )    => (string) $db_version,
-            __( 'Client', 'wptransformed' )    => $wpdb->db_server_info() ?: __( 'Unknown', 'wptransformed' ),
+            __( 'Client', 'wptransformed' )    => $wpdb->db_version() ?: __( 'Unknown', 'wptransformed' ),
             __( 'Charset', 'wptransformed' )   => $wpdb->charset ?: __( 'Unknown', 'wptransformed' ),
             __( 'Collation', 'wptransformed' ) => $wpdb->collate ?: __( 'Default', 'wptransformed' ),
             __( 'Prefix', 'wptransformed' )    => $wpdb->prefix,

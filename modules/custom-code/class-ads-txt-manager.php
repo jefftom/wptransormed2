@@ -215,7 +215,7 @@ class Ads_Txt_Manager extends Module_Base {
             }
 
             // Allow comments
-            if ( str_starts_with( $line, '#' ) ) {
+            if ( isset( $line[0] ) && $line[0] === '#' ) {
                 $clean[] = sanitize_text_field( $line );
                 continue;
             }

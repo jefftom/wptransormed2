@@ -164,11 +164,35 @@ class Public_Preview extends Module_Base {
                                 var resp = JSON.parse(xhr.responseText);
                                 if (resp.success && resp.data && resp.data.url) {
                                     var container = document.getElementById('wpt-preview-container');
-                                    container.innerHTML = '<p><input type="text" id="wpt-preview-url" value="' +
-                                        resp.data.url + '" readonly class="widefat" onclick="this.select();" /></p>' +
-                                        '<p class="description">' + expiryLabel + '</p>' +
-                                        '<p><button type="button" id="wpt-generate-preview" class="button button-secondary" data-post-id="' + postId + '">' +
-                                        regenLabel + '</button></p>';
+                                    // Build DOM nodes to avoid XSS via unescaped URL in innerHTML.
+                                    var urlInput = document.createElement('input');
+                                    urlInput.type = 'text';
+                                    urlInput.id = 'wpt-preview-url';
+                                    urlInput.setAttribute('value', resp.data.url);
+                                    urlInput.readOnly = true;
+                                    urlInput.className = 'widefat';
+                                    urlInput.setAttribute('onclick', 'this.select();');
+
+                                    var pUrl = document.createElement('p');
+                                    pUrl.appendChild(urlInput);
+
+                                    var pExpiry = document.createElement('p');
+                                    pExpiry.className = 'description';
+                                    pExpiry.textContent = expiryLabel;
+
+                                    var regenBtn = document.createElement('button');
+                                    regenBtn.type = 'button';
+                                    regenBtn.id = 'wpt-generate-preview';
+                                    regenBtn.className = 'button button-secondary';
+                                    regenBtn.setAttribute('data-post-id', postId);
+                                    regenBtn.textContent = regenLabel;
+                                    var pBtn = document.createElement('p');
+                                    pBtn.appendChild(regenBtn);
+
+                                    container.innerHTML = '';
+                                    container.appendChild(pUrl);
+                                    container.appendChild(pExpiry);
+                                    container.appendChild(pBtn);
                                     bindButton();
                                 }
                             } catch(e) {}
