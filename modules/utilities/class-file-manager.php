@@ -270,13 +270,13 @@ class File_Manager extends Module_Base {
         // For new files that don't exist yet, verify parent.
         if ( $real === false ) {
             $parent_real = realpath( dirname( $full_path ) );
-            if ( $parent_real === false || strpos( $parent_real, $real_root ) !== 0 ) {
+            if ( $parent_real === false || ( strpos( $parent_real, $real_root . DIRECTORY_SEPARATOR ) !== 0 && $parent_real !== $real_root ) ) {
                 return false;
             }
             return $parent_real . '/' . basename( $full_path );
         }
 
-        if ( strpos( $real, $real_root ) !== 0 ) {
+        if ( strpos( $real, $real_root . DIRECTORY_SEPARATOR ) !== 0 && $real !== $real_root ) {
             return false;
         }
 
@@ -580,6 +580,14 @@ class File_Manager extends Module_Base {
 
         $filename = sanitize_file_name( wp_unslash( $_FILES['file']['name'] ) );
         $dest     = $parent . '/' . $filename;
+
+        // Validate extension against allowlist — NEVER allow .php uploads.
+        $ext = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
+        $allowed = (array) $settings['allowed_extensions'];
+        $blocked = [ 'php', 'php3', 'php4', 'php5', 'php7', 'phtml', 'phar' ];
+        if ( in_array( $ext, $blocked, true ) || ( ! empty( $allowed ) && ! in_array( $ext, $allowed, true ) ) ) {
+            wp_send_json_error( [ 'message' => __( 'File type not allowed.', 'wptransformed' ) ] );
+        }
 
         // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
         if ( ! @move_uploaded_file( $_FILES['file']['tmp_name'], $dest ) ) {

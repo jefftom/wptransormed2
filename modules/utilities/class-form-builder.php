@@ -489,8 +489,10 @@ class Form_Builder extends Module_Base {
         }
 
         $title    = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
-        $fields   = isset( $_POST['fields'] ) ? sanitize_text_field( wp_unslash( $_POST['fields'] ) ) : '[]';
-        $settings = isset( $_POST['settings'] ) ? sanitize_text_field( wp_unslash( $_POST['settings'] ) ) : '{}';
+        // Don't sanitize_text_field on JSON — it strips tags and corrupts JSON values.
+        // Individual field values are sanitized after json_decode below.
+        $fields   = isset( $_POST['fields'] ) ? wp_unslash( $_POST['fields'] ) : '[]';
+        $settings = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : '{}';
 
         // Validate JSON.
         $fields_arr   = json_decode( $fields, true );

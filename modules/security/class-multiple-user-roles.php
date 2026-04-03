@@ -136,8 +136,11 @@ class Multiple_User_Roles extends Module_Base {
             return;
         }
 
-        // Check capability.
-        if ( ! current_user_can( 'promote_users' ) && ! current_user_can( 'edit_users' ) ) {
+        // Check capabilities — must be able to promote AND edit this specific user.
+        if ( ! current_user_can( 'promote_users' ) ) {
+            return;
+        }
+        if ( ! current_user_can( 'edit_user', $user_id ) ) {
             return;
         }
 
