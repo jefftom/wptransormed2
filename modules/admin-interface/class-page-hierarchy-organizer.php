@@ -532,6 +532,11 @@ class Page_Hierarchy_Organizer extends Module_Base {
             wp_send_json_error( __( 'Post not found or not a page.', 'wptransformed' ) );
         }
 
+        // Per-post capability check — editors can only reorder pages they can edit.
+        if ( ! current_user_can( 'edit_post', $post_id ) ) {
+            wp_send_json_error( __( 'Permission denied for this page.', 'wptransformed' ) );
+        }
+
         // Validate new parent exists and is a page (or 0 for top-level).
         if ( $new_parent > 0 ) {
             $parent_post = get_post( $new_parent );

@@ -300,9 +300,12 @@ class Admin_Bookmarks extends Module_Base {
             wp_send_json_error( __( 'URL and title are required.', 'wptransformed' ) );
         }
 
-        // Ensure URL is within admin.
-        $admin_url = admin_url();
-        if ( strpos( $url, $admin_url ) !== 0 ) {
+        // Ensure URL is within admin — validate both prefix and host to prevent spoofing.
+        $admin_url  = admin_url();
+        $url_host   = wp_parse_url( $url, PHP_URL_HOST );
+        $admin_host = wp_parse_url( $admin_url, PHP_URL_HOST );
+        $url_scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+        if ( strpos( $url, $admin_url ) !== 0 || $url_host !== $admin_host || ! in_array( $url_scheme, [ 'http', 'https' ], true ) ) {
             wp_send_json_error( __( 'Only admin pages can be bookmarked.', 'wptransformed' ) );
         }
 

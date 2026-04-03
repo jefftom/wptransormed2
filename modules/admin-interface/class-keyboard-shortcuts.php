@@ -434,7 +434,7 @@ class Keyboard_Shortcuts extends Module_Base {
         $raw_shortcuts = $raw['wpt_shortcuts'] ?? [];
         if ( is_array( $raw_shortcuts ) ) {
             foreach ( $builtin_keys as $combo ) {
-                $url = isset( $raw_shortcuts[ $combo ] ) ? sanitize_text_field( $raw_shortcuts[ $combo ] ) : '';
+                $url = isset( $raw_shortcuts[ $combo ] ) ? esc_url_raw( wp_unslash( $raw_shortcuts[ $combo ] ) ) : '';
                 $sanitized['shortcuts'][ $combo ] = $url;
             }
         }
@@ -449,7 +449,7 @@ class Keyboard_Shortcuts extends Module_Base {
 
                 $combo = sanitize_text_field( $entry['combo'] ?? '' );
                 $label = sanitize_text_field( $entry['label'] ?? '' );
-                $url   = sanitize_text_field( $entry['url'] ?? '' );
+                $url   = esc_url_raw( wp_unslash( $entry['url'] ?? '' ) );
 
                 // Validate combo format: must be modifier+key.
                 if ( $combo === '' || $url === '' ) {
