@@ -159,6 +159,20 @@ class Module_Registry {
             'registration-date-column' => 'modules/admin-interface/class-registration-date-column.php',
             'custom-frontend-css'     => 'modules/custom-code/class-custom-frontend-css.php',
             'redirect-404'            => 'modules/utilities/class-redirect-404.php',
+
+            // Wave 6B — Admin Polish
+            'search-visibility-status' => 'modules/admin-interface/class-search-visibility-status.php',
+            'active-plugins-first'    => 'modules/admin-interface/class-active-plugins-first.php',
+            'media-infinite-scroll'   => 'modules/admin-interface/class-media-infinite-scroll.php',
+            'preserve-taxonomy-hierarchy' => 'modules/admin-interface/class-preserve-taxonomy-hierarchy.php',
+            'dashboard-columns'       => 'modules/admin-interface/class-dashboard-columns.php',
+            'admin-body-classes'      => 'modules/admin-interface/class-admin-body-classes.php',
+            'custom-admin-footer'     => 'modules/admin-interface/class-custom-admin-footer.php',
+            'admin-quick-notes'       => 'modules/admin-interface/class-admin-quick-notes.php',
+            'admin-bookmarks'         => 'modules/admin-interface/class-admin-bookmarks.php',
+            'keyboard-shortcuts'      => 'modules/admin-interface/class-keyboard-shortcuts.php',
+            'admin-color-schemes'     => 'modules/admin-interface/class-admin-color-schemes.php',
+            'page-hierarchy-organizer' => 'modules/admin-interface/class-page-hierarchy-organizer.php',
         ];
     }
 }
