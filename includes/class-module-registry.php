@@ -145,6 +145,20 @@ class Module_Registry {
             'image-srcset-control'    => 'modules/performance/class-image-srcset-control.php',
             'duplicate-widget'        => 'modules/utilities/class-duplicate-widget.php',
             'export-import-settings'  => 'modules/utilities/class-export-import-settings.php',
+
+            // Wave 6A — ASE Parity Gaps
+            'avif-upload'             => 'modules/content-management/class-avif-upload.php',
+            'terms-order'             => 'modules/content-management/class-terms-order.php',
+            'media-visibility-control' => 'modules/content-management/class-media-visibility-control.php',
+            'external-links-new-tab'  => 'modules/content-management/class-external-links-new-tab.php',
+            'custom-nav-new-tab'      => 'modules/content-management/class-custom-nav-new-tab.php',
+            'two-factor-auth'         => 'modules/security/class-two-factor-auth.php',
+            'hide-admin-bar'          => 'modules/admin-interface/class-hide-admin-bar.php',
+            'wider-admin-menu'        => 'modules/admin-interface/class-wider-admin-menu.php',
+            'image-sizes-panel'       => 'modules/content-management/class-image-sizes-panel.php',
+            'registration-date-column' => 'modules/admin-interface/class-registration-date-column.php',
+            'custom-frontend-css'     => 'modules/custom-code/class-custom-frontend-css.php',
+            'redirect-404'            => 'modules/utilities/class-redirect-404.php',
         ];
     }
 }
