@@ -471,7 +471,7 @@ class Two_Factor_Auth extends Module_Base {
             return false;
         }
 
-        return $this->verify_totp_code_against_secret( $secret, $code );
+        return $this->verify_totp_code_against_secret( $secret, $code, $user_id );
     }
 
     /**
@@ -481,14 +481,23 @@ class Two_Factor_Auth extends Module_Base {
      * @param string $code   The 6-digit code to verify.
      * @return bool
      */
-    private function verify_totp_code_against_secret( string $secret, string $code ): bool {
+    private function verify_totp_code_against_secret( string $secret, string $code, int $user_id = 0 ): bool {
         $code = preg_replace( '/\s+/', '', $code );
         $time = time();
 
         for ( $offset = -1; $offset <= 1; $offset++ ) {
             $check_time = $time + ( $offset * self::TOTP_PERIOD );
+            $counter    = (int) floor( $check_time / self::TOTP_PERIOD );
             $valid_code = $this->generate_totp_code( $secret, $check_time );
             if ( hash_equals( $valid_code, $code ) ) {
+                // Replay protection: reject codes at or before the last used counter.
+                if ( $user_id > 0 ) {
+                    $last_counter = (int) get_user_meta( $user_id, 'wpt_2fa_last_totp_counter', true );
+                    if ( $counter <= $last_counter ) {
+                        return false;
+                    }
+                    update_user_meta( $user_id, 'wpt_2fa_last_totp_counter', $counter );
+                }
                 return true;
             }
         }
@@ -602,7 +611,17 @@ class Two_Factor_Auth extends Module_Base {
             // Delete used code.
             delete_user_meta( $user_id, 'wpt_2fa_email_code' );
             delete_user_meta( $user_id, 'wpt_2fa_email_code_expires' );
+            delete_user_meta( $user_id, 'wpt_2fa_email_fails' );
             return true;
+        }
+
+        // Brute-force protection: lock out after 5 failed attempts.
+        $fails = (int) get_user_meta( $user_id, 'wpt_2fa_email_fails', true ) + 1;
+        update_user_meta( $user_id, 'wpt_2fa_email_fails', $fails );
+        if ( $fails >= 5 ) {
+            delete_user_meta( $user_id, 'wpt_2fa_email_code' );
+            delete_user_meta( $user_id, 'wpt_2fa_email_code_expires' );
+            delete_user_meta( $user_id, 'wpt_2fa_email_fails' );
         }
 
         return false;
@@ -715,7 +734,8 @@ class Two_Factor_Auth extends Module_Base {
         $uri  = $this->get_totp_uri( $secret, $user->user_email );
         $html = $this->render_totp_setup_html( $uri, $secret );
 
-        wp_send_json_success( [ 'html' => $html, 'secret' => $secret ] );
+        // Don't expose raw secret in JSON — it's already in the HTML for manual entry.
+        wp_send_json_success( [ 'html' => $html ] );
     }
 
     /**
@@ -792,14 +812,22 @@ class Two_Factor_Auth extends Module_Base {
      * AJAX: Send an email verification code (for login flow).
      */
     public function ajax_send_email_code(): void {
-        $user_id = isset( $_POST['user_id'] ) ? (int) $_POST['user_id'] : 0;
         $token   = isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : '';
 
-        // Verify by nonce OR by valid token.
-        $nonce_valid = wp_verify_nonce( $_POST['_wpnonce'] ?? '', 'wpt_2fa_send_email_' . $user_id );
-        $token_valid = $token && $this->get_user_id_from_token( $token ) === $user_id;
+        // Derive user_id from token (login flow) or nonce (profile flow).
+        // NEVER trust user_id from POST alone — always derive from auth.
+        $user_id = 0;
+        if ( $token ) {
+            $user_id = (int) $this->get_user_id_from_token( $token );
+        }
+        if ( ! $user_id && is_user_logged_in() ) {
+            $post_user_id = isset( $_POST['user_id'] ) ? (int) $_POST['user_id'] : 0;
+            if ( $post_user_id && wp_verify_nonce( $_POST['_wpnonce'] ?? '', 'wpt_2fa_send_email_' . $post_user_id ) ) {
+                $user_id = $post_user_id;
+            }
+        }
 
-        if ( ! $nonce_valid && ! $token_valid ) {
+        if ( ! $user_id ) {
             wp_send_json_error( __( 'Security check failed.', 'wptransformed' ) );
         }
 
