@@ -308,6 +308,12 @@ class Webhook_Manager extends Module_Base {
     private function dispatch_webhook( array $webhook, array $payload, bool $is_retry = false, bool $skip_retry = false ): array {
         global $wpdb;
 
+        // Block non-HTTP schemes to prevent SSRF.
+        $scheme = wp_parse_url( $webhook['url'] ?? '', PHP_URL_SCHEME );
+        if ( ! in_array( $scheme, [ 'http', 'https' ], true ) ) {
+            return [ 'status' => 0, 'body' => 'Blocked: non-HTTP scheme.' ];
+        }
+
         $headers = [
             'Content-Type' => 'application/json',
         ];

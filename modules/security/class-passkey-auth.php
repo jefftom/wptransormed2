@@ -386,10 +386,18 @@ class Passkey_Auth extends Module_Base {
      * Generate authentication options (challenge + allowed credentials).
      */
     public function ajax_get_auth_options(): void {
-        // No nonce check here -- this is on the login page (nopriv).
-        // The challenge itself provides CSRF protection.
+        // Rate limit: max 10 attempts per IP per minute.
+        $ip_hash = wp_hash( $_SERVER['REMOTE_ADDR'] ?? '' );
+        $rate_key = 'wpt_passkey_rate_' . $ip_hash;
+        $attempts = (int) get_transient( $rate_key );
+        if ( $attempts >= 10 ) {
+            wp_send_json_error( __( 'Too many requests. Try again later.', 'wptransformed' ), 429 );
+        }
+        set_transient( $rate_key, $attempts + 1, MINUTE_IN_SECONDS );
 
-        $username = isset( $_POST['username'] ) ? sanitize_user( wp_unslash( $_POST['username'] ) ) : '';
+        // Don't return user-specific allowCredentials to prevent credential ID harvesting.
+        // Use discoverable credentials (empty allowCredentials) for security.
+        $username = '';
 
         $challenge = random_bytes( 32 );
         $challenge_b64 = $this->base64url_encode( $challenge );
@@ -444,6 +452,16 @@ class Passkey_Auth extends Module_Base {
      * Authenticate with a passkey assertion.
      */
     public function ajax_authenticate(): void {
+        // Challenge-response provides the primary CSRF protection in WebAuthn,
+        // but add rate limiting as defense-in-depth.
+        $ip_hash = wp_hash( $_SERVER['REMOTE_ADDR'] ?? '' );
+        $rate_key = 'wpt_passkey_auth_rate_' . $ip_hash;
+        $attempts = (int) get_transient( $rate_key );
+        if ( $attempts >= 20 ) {
+            wp_send_json_error( [ 'message' => __( 'Too many attempts.', 'wptransformed' ) ], 429 );
+        }
+        set_transient( $rate_key, $attempts + 1, MINUTE_IN_SECONDS );
+
         $credential_id     = isset( $_POST['credential_id'] ) ? sanitize_text_field( wp_unslash( $_POST['credential_id'] ) ) : '';
         $client_data_b64   = isset( $_POST['client_data'] ) ? sanitize_text_field( wp_unslash( $_POST['client_data'] ) ) : '';
         $auth_data_b64     = isset( $_POST['authenticator_data'] ) ? sanitize_text_field( wp_unslash( $_POST['authenticator_data'] ) ) : '';
@@ -505,11 +523,8 @@ class Passkey_Auth extends Module_Base {
             wp_send_json_error( [ 'message' => __( 'Passkey not recognized.', 'wptransformed' ) ] );
         }
 
-        // Verify challenge.
+        // Verify challenge — user-specific only, no general fallback for security.
         $stored_challenge = get_transient( self::CHALLENGE_PREFIX . 'auth_' . $found_user->ID );
-        if ( ! $stored_challenge ) {
-            $stored_challenge = get_transient( self::CHALLENGE_PREFIX . 'auth_general' );
-        }
 
         if ( ! $stored_challenge ) {
             wp_send_json_error( [ 'message' => __( 'Challenge expired. Please try again.', 'wptransformed' ) ] );

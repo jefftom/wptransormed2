@@ -522,17 +522,18 @@ class Four_Oh_Four_Monitor extends Module_Base {
                         if (resp.data.items.length === 0) {
                             body.innerHTML = '<tr><td colspan="5">' + <?php echo wp_json_encode( esc_html__( 'No 404 entries found.', 'wptransformed' ) ); ?> + '</td></tr>';
                         }
+                        function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
                         resp.data.items.forEach(function(item) {
                             var tr = document.createElement('tr');
-                            var actions = '<button type="button" class="button button-small wpt-404-dismiss" data-id="' + item.id + '">' + <?php echo wp_json_encode( esc_html__( 'Dismiss', 'wptransformed' ) ); ?> + '</button> ';
-                            actions += '<button type="button" class="button button-small wpt-404-delete" data-id="' + item.id + '">' + <?php echo wp_json_encode( esc_html__( 'Delete', 'wptransformed' ) ); ?> + '</button>';
+                            var actions = '<button type="button" class="button button-small wpt-404-dismiss" data-id="' + esc(item.id) + '">' + <?php echo wp_json_encode( esc_html__( 'Dismiss', 'wptransformed' ) ); ?> + '</button> ';
+                            actions += '<button type="button" class="button button-small wpt-404-delete" data-id="' + esc(item.id) + '">' + <?php echo wp_json_encode( esc_html__( 'Delete', 'wptransformed' ) ); ?> + '</button>';
                             if (hasRm) {
                                 actions += ' <a href="' + <?php echo wp_json_encode( esc_url( admin_url( 'admin.php?page=wptransformed&module=redirect-manager' ) ) ); ?> + '&from=' + encodeURIComponent(item.path) + '" class="button button-small button-primary">' + <?php echo wp_json_encode( esc_html__( 'Create Redirect', 'wptransformed' ) ); ?> + '</a>';
                             }
-                            tr.innerHTML = '<td title="' + item.url + '"><code>' + item.path + '</code></td>'
-                                + '<td>' + item.count + '</td>'
-                                + '<td>' + (item.referrer ? '<a href="' + item.referrer + '" target="_blank" rel="noopener">' + item.referrer.substring(0, 40) + '</a>' : '&mdash;') + '</td>'
-                                + '<td>' + item.last_seen + '</td>'
+                            tr.innerHTML = '<td title="' + esc(item.url) + '"><code>' + esc(item.path) + '</code></td>'
+                                + '<td>' + esc(item.count) + '</td>'
+                                + '<td>' + (item.referrer ? '<a href="' + esc(item.referrer) + '" target="_blank" rel="noopener">' + esc(item.referrer.substring(0, 40)) + '</a>' : '&mdash;') + '</td>'
+                                + '<td>' + esc(item.last_seen) + '</td>'
                                 + '<td>' + actions + '</td>';
                             body.appendChild(tr);
                         });

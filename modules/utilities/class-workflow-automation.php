@@ -454,7 +454,7 @@ class Workflow_Automation extends Module_Base {
      * Send email action.
      */
     private function action_send_email( array $action, array $context ): array {
-        $to      = $this->replace_merge_tags( $action['to'] ?? '', $context );
+        $to      = sanitize_email( $this->replace_merge_tags( $action['to'] ?? '', $context ) );
         $subject = $this->replace_merge_tags( $action['subject'] ?? '', $context );
         $body    = $this->replace_merge_tags( $action['body'] ?? '', $context );
 
@@ -477,7 +477,9 @@ class Workflow_Automation extends Module_Base {
     private function action_send_webhook( array $action, array $context ): array {
         $url = $action['url'] ?? '';
 
-        if ( empty( $url ) || ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
+        // Restrict to HTTP(S) schemes only — prevents SSRF via file://, gopher://, etc.
+        $scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+        if ( empty( $url ) || ! in_array( $scheme, [ 'http', 'https' ], true ) || ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
             return [ 'type' => 'send_webhook', 'success' => false, 'message' => 'Invalid webhook URL.' ];
         }
 

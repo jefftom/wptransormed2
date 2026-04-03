@@ -120,7 +120,9 @@ class Error_Log_Viewer extends Module_Base {
         $real_path    = str_replace( '\\', '/', $real_path );
         $real_abspath = str_replace( '\\', '/', $real_abspath );
 
-        return strpos( $real_path, $real_abspath ) === 0;
+        // Append separator to prevent sibling-directory bypass (e.g. /html_evil matching /html).
+        $safe_prefix = rtrim( $real_abspath, '/' ) . '/';
+        return strpos( $real_path, $safe_prefix ) === 0 || $real_path === rtrim( $real_abspath, '/' );
     }
 
     // -- AJAX: Clear Log --------------------------------------------------
