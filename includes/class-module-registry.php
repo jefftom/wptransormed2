@@ -74,6 +74,77 @@ class Module_Registry {
             'search-replace'          => 'modules/utilities/class-search-replace.php',
             'broken-link-checker'     => 'modules/utilities/class-broken-link-checker.php',
             'setup-wizard'            => 'modules/admin-interface/class-setup-wizard.php',
+
+            // Wave 4A — Login, Security & Access
+            'change-login-url'        => 'modules/login-logout/class-change-login-url.php',
+            'login-id-type'           => 'modules/login-logout/class-login-id-type.php',
+            'site-identity-login'     => 'modules/login-logout/class-site-identity-login.php',
+            'login-logout-menu'       => 'modules/login-logout/class-login-logout-menu.php',
+            'last-login-column'       => 'modules/login-logout/class-last-login-column.php',
+            'redirect-after-login'    => 'modules/login-logout/class-redirect-after-login.php',
+            'disable-xmlrpc'          => 'modules/security/class-disable-xmlrpc.php',
+            'obfuscate-author-slugs'  => 'modules/security/class-obfuscate-author-slugs.php',
+            'email-obfuscator'        => 'modules/security/class-email-obfuscator.php',
+            'password-protection'     => 'modules/security/class-password-protection.php',
+
+            // Wave 4B — Disable Components & Admin Tweaks
+            'disable-gutenberg'       => 'modules/disable-components/class-disable-gutenberg.php',
+            'disable-rest-api'        => 'modules/disable-components/class-disable-rest-api.php',
+            'disable-feeds'           => 'modules/disable-components/class-disable-feeds.php',
+            'disable-embeds'          => 'modules/disable-components/class-disable-embeds.php',
+            'disable-updates'         => 'modules/disable-components/class-disable-updates.php',
+            'disable-author-archives' => 'modules/disable-components/class-disable-author-archives.php',
+            'admin-columns-enhancer'  => 'modules/admin-interface/class-admin-columns-enhancer.php',
+            'taxonomy-filter'         => 'modules/admin-interface/class-taxonomy-filter.php',
+            'custom-admin-css'        => 'modules/custom-code/class-custom-admin-css.php',
+            'custom-frontend-code'    => 'modules/custom-code/class-custom-frontend-code.php',
+
+            // Wave 4C — Content, Performance & Utility
+            'revision-control'        => 'modules/performance/class-revision-control.php',
+            'content-order'           => 'modules/content-management/class-content-order.php',
+            'media-replace'           => 'modules/content-management/class-media-replace.php',
+            'public-preview'          => 'modules/content-management/class-public-preview.php',
+            'external-permalinks'     => 'modules/content-management/class-external-permalinks.php',
+            'auto-publish-missed'     => 'modules/content-management/class-auto-publish-missed.php',
+            'enhance-list-tables'     => 'modules/admin-interface/class-enhance-list-tables.php',
+            'hide-dashboard-widgets'  => 'modules/admin-interface/class-hide-dashboard-widgets.php',
+            'admin-bar-enhancer'      => 'modules/admin-interface/class-admin-bar-enhancer.php',
+            'white-label'             => 'modules/admin-interface/class-white-label.php',
+
+            // Wave 5A — WooCommerce & Advanced Content
+            'woo-admin-cleanup'       => 'modules/woocommerce/class-woo-admin-cleanup.php',
+            'woo-custom-statuses'     => 'modules/woocommerce/class-woo-custom-statuses.php',
+            'woo-login-redirect'      => 'modules/woocommerce/class-woo-login-redirect.php',
+            'woo-disable-reviews'     => 'modules/woocommerce/class-woo-disable-reviews.php',
+            'woo-empty-cart-button'   => 'modules/woocommerce/class-woo-empty-cart-button.php',
+            'bulk-edit-posts'         => 'modules/content-management/class-bulk-edit-posts.php',
+            'duplicate-menu'          => 'modules/content-management/class-duplicate-menu.php',
+            'post-type-switcher'      => 'modules/content-management/class-post-type-switcher.php',
+            'custom-body-class'       => 'modules/custom-code/class-custom-body-class.php',
+            'ads-txt-manager'         => 'modules/custom-code/class-ads-txt-manager.php',
+
+            // Wave 5B — Pro Features & Advanced Tools
+            'admin-columns-pro'       => 'modules/admin-interface/class-admin-columns-pro.php',
+            'captcha-protection'      => 'modules/security/class-captcha-protection.php',
+            'form-builder'            => 'modules/utilities/class-form-builder.php',
+            'file-manager'            => 'modules/utilities/class-file-manager.php',
+            'multiple-user-roles'     => 'modules/security/class-multiple-user-roles.php',
+            'view-as-role'            => 'modules/admin-interface/class-view-as-role.php',
+            'local-user-avatar'       => 'modules/content-management/class-local-user-avatar.php',
+            'system-summary'          => 'modules/utilities/class-system-summary.php',
+            'robots-txt-manager'      => 'modules/custom-code/class-robots-txt-manager.php',
+            'email-log'               => 'modules/utilities/class-email-log.php',
+
+            // Wave 5C — Final Stretch
+            'disable-rest-fields'     => 'modules/disable-components/class-disable-rest-fields.php',
+            'disable-emojis'          => 'modules/disable-components/class-disable-emojis.php',
+            'disable-self-pingbacks'  => 'modules/disable-components/class-disable-self-pingbacks.php',
+            'disable-attachment-pages' => 'modules/disable-components/class-disable-attachment-pages.php',
+            'page-template-column'    => 'modules/admin-interface/class-page-template-column.php',
+            'auto-clear-caches'       => 'modules/performance/class-auto-clear-caches.php',
+            'image-srcset-control'    => 'modules/performance/class-image-srcset-control.php',
+            'duplicate-widget'        => 'modules/utilities/class-duplicate-widget.php',
+            'export-import-settings'  => 'modules/utilities/class-export-import-settings.php',
         ];
     }
 }

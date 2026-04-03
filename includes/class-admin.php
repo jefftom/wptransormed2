@@ -74,13 +74,16 @@ class Admin {
 
         // Fixed category tabs — always shown regardless of loaded modules
         $categories = [
-            'content-management' => __( 'Content Management', 'wptransformed' ),
-            'admin-interface'    => __( 'Admin Interface', 'wptransformed' ),
-            'security'           => __( 'Security', 'wptransformed' ),
-            'login-logout'       => __( 'Login & Logout', 'wptransformed' ),
-            'performance'        => __( 'Performance', 'wptransformed' ),
-            'compliance'         => __( 'Compliance', 'wptransformed' ),
-            'utilities'          => __( 'Utilities', 'wptransformed' ),
+            'content-management'  => __( 'Content Management', 'wptransformed' ),
+            'admin-interface'     => __( 'Admin Interface', 'wptransformed' ),
+            'security'            => __( 'Security', 'wptransformed' ),
+            'login-logout'        => __( 'Login & Logout', 'wptransformed' ),
+            'performance'         => __( 'Performance', 'wptransformed' ),
+            'compliance'          => __( 'Compliance', 'wptransformed' ),
+            'utilities'           => __( 'Utilities', 'wptransformed' ),
+            'custom-code'         => __( 'Custom Code', 'wptransformed' ),
+            'disable-components'  => __( 'Disable Components', 'wptransformed' ),
+            'woocommerce'         => __( 'WooCommerce', 'wptransformed' ),
         ];
 
         // Group loaded modules by category
