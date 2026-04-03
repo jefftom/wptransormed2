@@ -221,6 +221,10 @@ class Search_Replace extends Module_Base {
      */
     private function string_replace( string $data, string $search, string $replace, bool $case_sensitive = true, bool $regex = false ): string {
         if ( $regex ) {
+            // Block /e modifier — it executes $replace as PHP code (RCE on PHP 7.x).
+            if ( preg_match( '/[a-zA-Z]*e[a-zA-Z]*\s*$/', $search ) ) {
+                return $data;
+            }
             $result = @preg_replace( $search, $replace, $data );
             return ( $result !== null ) ? $result : $data;
         }

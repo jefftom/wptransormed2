@@ -28,6 +28,7 @@ class Safe_Mode {
      */
     public static function is_active(): bool {
         if ( ! is_admin() ) return false;
+        if ( ! is_user_logged_in() ) return false;
         if ( ! isset( $_GET['wpt_safe_mode'] ) ) return false;
 
         $provided = sanitize_text_field( $_GET['wpt_safe_mode'] );

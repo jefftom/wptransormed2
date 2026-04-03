@@ -53,7 +53,7 @@ class File_Manager extends Module_Base {
     public function get_default_settings(): array {
         return [
             'root_dir'           => 'wp-content',
-            'allowed_extensions' => [ 'php', 'css', 'js', 'txt', 'html', 'json' ],
+            'allowed_extensions' => [ 'css', 'js', 'txt', 'html', 'json', 'md', 'log' ],
             'max_upload_size'    => 10,
         ];
     }
@@ -498,6 +498,13 @@ class File_Manager extends Module_Base {
 
         $new_path = dirname( $full ) . '/' . $new_name;
 
+        // Block renaming to PHP or other executable extensions.
+        $new_ext = strtolower( pathinfo( $new_name, PATHINFO_EXTENSION ) );
+        $blocked_ext = [ 'php', 'php3', 'php4', 'php5', 'php7', 'phtml', 'phar' ];
+        if ( in_array( $new_ext, $blocked_ext, true ) ) {
+            wp_send_json_error( [ 'message' => __( 'File type not allowed.', 'wptransformed' ) ] );
+        }
+
         if ( file_exists( $new_path ) ) {
             wp_send_json_error( [ 'message' => __( 'A file with that name already exists.', 'wptransformed' ) ] );
         }
@@ -529,6 +536,15 @@ class File_Manager extends Module_Base {
         }
 
         $full_path = $parent . '/' . $name;
+
+        // Block creating PHP or executable files.
+        if ( $type === 'file' ) {
+            $ext = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+            $blocked_ext = [ 'php', 'php3', 'php4', 'php5', 'php7', 'phtml', 'phar' ];
+            if ( in_array( $ext, $blocked_ext, true ) ) {
+                wp_send_json_error( [ 'message' => __( 'File type not allowed.', 'wptransformed' ) ] );
+            }
+        }
 
         if ( file_exists( $full_path ) ) {
             wp_send_json_error( [ 'message' => __( 'Already exists.', 'wptransformed' ) ] );
@@ -607,6 +623,11 @@ class File_Manager extends Module_Base {
 
         if ( $full === false || ! is_file( $full ) ) {
             wp_send_json_error( [ 'message' => __( 'File not found.', 'wptransformed' ) ] );
+        }
+
+        // Apply same blocked-file guard as read.
+        if ( method_exists( $this, 'is_blocked_file' ) && $this->is_blocked_file( $full ) ) {
+            wp_send_json_error( [ 'message' => __( 'This file cannot be downloaded.', 'wptransformed' ) ] );
         }
 
         // For download, send back base64 content and let JS handle it.

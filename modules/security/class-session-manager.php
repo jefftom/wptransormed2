@@ -271,6 +271,11 @@ class Session_Manager extends Module_Base {
         }
 
         $user_id  = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+
+        // Verify caller can edit this specific user (prevents cross-admin session destruction).
+        if ( $user_id && ! current_user_can( 'edit_user', $user_id ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permission denied for this user.', 'wptransformed' ) ] );
+        }
         $verifier = isset( $_POST['verifier'] ) ? sanitize_text_field( wp_unslash( $_POST['verifier'] ) ) : '';
 
         if ( empty( $user_id ) || empty( $verifier ) ) {

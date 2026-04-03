@@ -132,8 +132,9 @@ class Password_Protection extends Module_Base {
         );
 
         // Redirect to the originally requested page or home.
+        // Validate redirect stays on same host — prevents open redirect.
         $redirect = ! empty( $_POST['wpt_redirect'] )
-            ? esc_url_raw( wp_unslash( $_POST['wpt_redirect'] ) )
+            ? wp_validate_redirect( wp_unslash( $_POST['wpt_redirect'] ), home_url( '/' ) )
             : home_url( '/' );
 
         wp_safe_redirect( $redirect );

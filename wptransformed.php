@@ -39,8 +39,11 @@ spl_autoload_register( function( $class ) {
     if ( $parts[0] === 'Core' ) {
         $filename = 'class-' . strtolower( str_replace( '_', '-', $parts[1] ) ) . '.php';
         $path = WPT_PATH . 'includes/' . $filename;
-        if ( file_exists( $path ) ) {
-            require_once $path;
+        // Path traversal guard — ensure resolved path stays within includes/.
+        $real = realpath( $path );
+        $includes_dir = realpath( WPT_PATH . 'includes' );
+        if ( $real && $includes_dir && strpos( $real, $includes_dir . DIRECTORY_SEPARATOR ) === 0 ) {
+            require_once $real;
         }
     }
 

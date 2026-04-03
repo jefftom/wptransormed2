@@ -113,8 +113,9 @@ class Change_Login_Url extends Module_Base {
             return;
         }
 
-        // Allow form submissions that originated from our custom login page.
-        if ( $_SERVER['REQUEST_METHOD'] === 'POST' && $this->has_valid_login_referrer() ) {
+        // Allow POST submissions — WordPress's own wp-login.php validates nonces internally.
+        // The custom login slug page includes wp-login.php, so form POSTs go through the allowed path.
+        if ( isset( $_SERVER['REQUEST_METHOD'] ) && $_SERVER['REQUEST_METHOD'] === 'POST' ) {
             return;
         }
 

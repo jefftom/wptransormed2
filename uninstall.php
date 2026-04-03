@@ -98,8 +98,12 @@ foreach ( $tasks as $task ) {
                 break;
 
             case 'table':
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-                $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}{$task['name']}" );
+                // Validate table name to prevent SQL injection from tampered module files.
+                $table_name = $task['name'] ?? '';
+                if ( preg_match( '/^[a-zA-Z0-9_]+$/', $table_name ) ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+                    $wpdb->query( "DROP TABLE IF EXISTS `{$wpdb->prefix}{$table_name}`" );
+                }
                 break;
         }
     } catch ( \Throwable $e ) {

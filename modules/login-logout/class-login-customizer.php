@@ -160,7 +160,9 @@ class Login_Customizer extends Module_Base {
         // Custom CSS.
         $custom_css = $s['custom_css'];
         if ( ! empty( $custom_css ) ) {
-            $css .= wp_strip_all_tags( $custom_css ) . "\n";
+            $safe_css = wp_strip_all_tags( $custom_css );
+            $safe_css = str_replace( '</', '', $safe_css );
+            $css .= $safe_css . "\n";
         }
 
         if ( ! empty( $css ) ) {

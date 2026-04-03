@@ -252,13 +252,8 @@ class View_As_Role extends Module_Base {
             return $allcaps;
         }
 
-        // Also always allow AJAX cap checks for switching back.
-        if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
-            $action = sanitize_text_field( wp_unslash( $_POST['action'] ?? $_GET['action'] ?? '' ) );
-            if ( $action === 'wpt_switch_back' ) {
-                return $allcaps;
-            }
-        }
+        // The switch-back AJAX handler verifies its own nonce — no need to bypass
+        // cap filtering here. manage_options is preserved in the simulated caps below.
 
         // Get the target role's capabilities.
         $role_obj = get_role( $switch_data['role'] );
