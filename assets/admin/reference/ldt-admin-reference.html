@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LearnDash Transformed — Admin Dashboard Reference</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ══════════════════════════════════════════
+           DESIGN TOKENS — WPTransformed V3 Blue Palette
+        ══════════════════════════════════════════ */
+        :root {
+            --primary: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-dark: #1e3a8a;
+            --primary-glow: rgba(37,99,235,0.12);
+            --primary-glow-strong: rgba(37,99,235,0.25);
+
+            --accent: #06d6a0;
+            --accent-glow: rgba(6,214,160,0.12);
+            --amber: #f59e0b;
+            --amber-glow: rgba(245,158,11,0.12);
+            --rose: #ef4444;
+            --rose-glow: rgba(239,68,68,0.1);
+            --violet: #a855f7;
+            --violet-glow: rgba(168,85,247,0.1);
+
+            --bg: #f0f4f8;
+            --surface: rgba(255,255,255,0.8);
+            --surface-solid: #ffffff;
+            --surface-hover: rgba(255,255,255,0.95);
+            --surface-alt: #f1f5f9;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: rgba(0,0,0,0.06);
+            --border-strong: rgba(0,0,0,0.1);
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.03);
+            --card-hover-shadow: 0 8px 40px rgba(37,99,235,0.1), 0 2px 12px rgba(0,0,0,0.04);
+            --glass-blur: blur(20px);
+            --toggle-bg: #cbd5e1;
+            --grain-opacity: 0.025;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        /* Grain texture overlay */
+        .ldt-wrap::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: var(--grain-opacity);
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        .ldt-wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        /* ══════════════════════════════════════════
+           HEADER BANNER — Gradient with orb animation
+        ══════════════════════════════════════════ */
+        .ldt-banner {
+            position: relative;
+            padding: 2rem 2.25rem;
+            border-radius: 16px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);
+            color: #fff;
+            margin-bottom: 1.5rem;
+        }
+
+        .ldt-banner::before {
+            content: '';
+            position: absolute;
+            top: -60%; right: -15%;
+            width: 55%; height: 220%;
+            background: radial-gradient(ellipse, rgba(6,214,160,0.15) 0%, transparent 65%);
+            animation: orb-drift 14s ease-in-out infinite;
+        }
+
+        @keyframes orb-drift {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(25px, -20px) scale(1.06); }
+            66% { transform: translate(-18px, 12px) scale(0.96); }
+        }
+
+        .ldt-banner h1 {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            position: relative; z-index: 1;
+            margin-bottom: 4px;
+        }
+
+        .ldt-banner-sub {
+            font-size: 14px;
+            opacity: 0.7;
+            position: relative; z-index: 1;
+        }
+
+        .ldt-banner-badges {
+            display: flex;
+            gap: 8px;
+            margin-top: 1rem;
+            position: relative; z-index: 1;
+        }
+
+        .ldt-banner-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* ══════════════════════════════════════════
+           TOOLBAR — Category pills + actions
+        ══════════════════════════════════════════ */
+        .ldt-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .ldt-pills {
+            display: flex;
+            gap: 3px;
+            padding: 4px;
+            border-radius: 11px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+        }
+
+        .ldt-pill {
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 12.5px;
+            font-weight: 500;
+            color: var(--text-muted);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ldt-pill:hover { color: var(--text-secondary); }
+
+        .ldt-pill.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+        }
+
+        .ldt-actions { display: flex; gap: 8px; }
+
+        .ldt-btn {
+            padding: 9px 18px;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.22,1,0.36,1);
+            border: 1px solid var(--border);
+            background: var(--surface-solid);
+            color: var(--text-secondary);
+        }
+
+        .ldt-btn:hover { border-color: var(--border-strong); color: var(--text); }
+
+        .ldt-btn--primary {
+            background: var(--primary);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .ldt-btn--primary:hover {
+            background: var(--primary-light);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+        }
+
+        /* ══════════════════════════════════════════
+           CATEGORY SECTIONS
+        ══════════════════════════════════════════ */
+        .ldt-section {
+            margin-bottom: 2rem;
+        }
+
+        .ldt-section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .ldt-section-icon {
+            width: 32px; height: 32px;
+            border-radius: 9px;
+            display: grid; place-items: center;
+            font-size: 14px;
+        }
+
+        .ldt-section-icon.blue { background: var(--primary-glow); color: var(--primary); }
+        .ldt-section-icon.green { background: var(--accent-glow); color: var(--accent); }
+        .ldt-section-icon.amber { background: var(--amber-glow); color: var(--amber); }
+        .ldt-section-icon.rose { background: var(--rose-glow); color: var(--rose); }
+        .ldt-section-icon.violet { background: var(--violet-glow); color: var(--violet); }
+
+        .ldt-section-title {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .ldt-section-count {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: var(--surface-alt);
+            color: var(--text-muted);
+        }
+
+        .ldt-section-toggle {
+            margin-left: auto;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--primary);
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .ldt-section-toggle:hover { text-decoration: underline; }
+
+        /* ══════════════════════════════════════════
+           MODULE GRID + CARDS — Glassmorphic
+        ══════════════════════════════════════════ */
+        .ldt-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 14px;
+        }
+
+        .ldt-card {
+            background: var(--surface);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.25rem;
+            transition: all 0.35s cubic-bezier(0.22,1,0.36,1);
+            position: relative;
+            cursor: default;
+        }
+
+        /* Gradient border reveal on hover */
+        .ldt-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 14px;
+            padding: 1px;
+            background: linear-gradient(135deg, transparent 25%, var(--primary-glow-strong));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.35s;
+            pointer-events: none;
+        }
+
+        .ldt-card:hover::before { opacity: 1; }
+        .ldt-card:hover {
+            transform: translateY(-4px) scale(1.008);
+            box-shadow: var(--card-hover-shadow);
+        }
+
+        .ldt-card.disabled { opacity: 0.45; }
+        .ldt-card.disabled:hover { opacity: 0.6; transform: translateY(-2px); }
+
+        .ldt-card__top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .ldt-card__icon {
+            width: 42px; height: 42px;
+            border-radius: 11px;
+            display: grid; place-items: center;
+            font-size: 17px;
+        }
+
+        .ldt-card__icon.blue { background: var(--primary-glow); color: var(--primary); }
+        .ldt-card__icon.green { background: var(--accent-glow); color: var(--accent); }
+        .ldt-card__icon.amber { background: var(--amber-glow); color: var(--amber); }
+        .ldt-card__icon.rose { background: var(--rose-glow); color: var(--rose); }
+        .ldt-card__icon.violet { background: var(--violet-glow); color: var(--violet); }
+
+        /* Toggle switch */
+        .ldt-toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+        .ldt-toggle input { opacity: 0; width: 0; height: 0; }
+
+        .ldt-toggle__track {
+            position: absolute; inset: 0;
+            background: var(--toggle-bg);
+            border-radius: 24px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.22,1,0.36,1);
+        }
+
+        .ldt-toggle__track::before {
+            content: '';
+            position: absolute;
+            width: 18px; height: 18px;
+            left: 3px; top: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: all 0.3s cubic-bezier(0.22,1,0.36,1);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+        }
+
+        .ldt-toggle input:checked + .ldt-toggle__track {
+            background: var(--primary);
+        }
+
+        .ldt-toggle input:checked + .ldt-toggle__track::before {
+            transform: translateX(18px);
+        }
+
+        .ldt-card__name {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            margin-bottom: 4px;
+        }
+
+        .ldt-card__desc {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 14px;
+        }
+
+        .ldt-card__footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .ldt-card__badges { display: flex; gap: 5px; }
+
+        .ldt-badge {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 3px 7px;
+            border-radius: 5px;
+        }
+
+        .ldt-badge--pro { background: var(--amber-glow); color: var(--amber); }
+        .ldt-badge--new { background: var(--accent-glow); color: var(--accent); }
+        .ldt-badge--popular { background: var(--primary-glow); color: var(--primary); }
+
+        .ldt-card__gear {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-muted);
+            display: grid; place-items: center;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.15s;
+        }
+
+        .ldt-card__gear:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+            background: var(--primary-glow);
+        }
+
+        .ldt-card__gear.active {
+            color: #fff;
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* ══════════════════════════════════════════
+           SLIDE-OUT SETTINGS PANEL
+        ══════════════════════════════════════════ */
+        .ldt-panel {
+            position: fixed;
+            top: 0; right: 0;
+            width: 380px;
+            height: 100vh;
+            background: var(--surface-solid);
+            border-left: 1px solid var(--border);
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -8px 0 40px rgba(0,0,0,0.06);
+        }
+
+        .ldt-panel.open { transform: translateX(0); }
+
+        .ldt-panel__header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .ldt-panel__title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ldt-panel__icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: var(--primary-glow);
+            color: var(--primary);
+            display: grid; place-items: center;
+            font-size: 15px;
+        }
+
+        .ldt-panel__name {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+        }
+
+        .ldt-panel__close {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 18px;
+            display: grid; place-items: center;
+            transition: all 0.15s;
+        }
+
+        .ldt-panel__close:hover { background: var(--surface-alt); color: var(--text); }
+
+        .ldt-panel__body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .ldt-panel__body::-webkit-scrollbar { width: 6px; }
+        .ldt-panel__body::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 3px; }
+
+        /* Settings form fields */
+        .ldt-field { margin-bottom: 1.25rem; }
+
+        .ldt-field__label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ldt-field__input {
+            width: 100%;
+            padding: 11px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface-alt);
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            color: var(--text);
+            transition: all 0.2s;
+        }
+
+        .ldt-field__input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--surface-solid);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        /* Toggle row for boolean settings */
+        .ldt-field__toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: var(--surface-alt);
+            transition: all 0.2s;
+        }
+
+        .ldt-field__toggle-row:hover { background: var(--surface-hover); }
+
+        .ldt-field__toggle-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .ldt-panel__footer {
+            padding: 1.25rem 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .ldt-panel__save {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.22,1,0.36,1);
+        }
+
+        .ldt-panel__save:hover {
+            background: var(--primary-light);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+        }
+
+        .ldt-panel__save.saving { opacity: 0.7; pointer-events: none; }
+        .ldt-panel__save.saved { background: var(--accent); }
+
+        /* Push main content when panel is open */
+        .ldt-wrap.panel-open .ldt-main {
+            margin-right: 396px;
+            transition: margin-right 0.3s cubic-bezier(0.22,1,0.36,1);
+        }
+
+        .ldt-main {
+            transition: margin-right 0.3s cubic-bezier(0.22,1,0.36,1);
+        }
+
+        /* ══════════════════════════════════════════
+           RESPONSIVE
+        ══════════════════════════════════════════ */
+        @media (max-width: 960px) {
+            .ldt-wrap.panel-open .ldt-main { margin-right: 0; }
+            .ldt-panel { box-shadow: -4px 0 24px rgba(0,0,0,0.15); }
+            .ldt-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+        }
+
+        @media (max-width: 600px) {
+            .ldt-pills { overflow-x: auto; }
+            .ldt-toolbar { flex-direction: column; align-items: stretch; }
+            .ldt-panel { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="ldt-wrap">
+        <div class="ldt-main">
+
+            <!-- ═══ BANNER ═══ -->
+            <div class="ldt-banner">
+                <h1>LearnDash Transformed</h1>
+                <div class="ldt-banner-sub">34 modules • 9 categories • Built for LearnDash 4.x & 5.0</div>
+                <div class="ldt-banner-badges">
+                    <span class="ldt-banner-badge">v1.0.0</span>
+                    <span class="ldt-banner-badge">LearnDash 4.20.5</span>
+                    <span class="ldt-banner-badge">10 / 34 active</span>
+                </div>
+            </div>
+
+            <!-- ═══ TOOLBAR ═══ -->
+            <div class="ldt-toolbar">
+                <div class="ldt-pills">
+                    <button class="ldt-pill active">All</button>
+                    <button class="ldt-pill">Progress</button>
+                    <button class="ldt-pill">Display</button>
+                    <button class="ldt-pill">Certs</button>
+                    <button class="ldt-pill">Admin</button>
+                    <button class="ldt-pill">Access</button>
+                    <button class="ldt-pill">Groups</button>
+                    <button class="ldt-pill">Quiz</button>
+                    <button class="ldt-pill">Gamify</button>
+                    <button class="ldt-pill">Perf</button>
+                </div>
+                <div class="ldt-actions">
+                    <button class="ldt-btn">Enable All</button>
+                    <button class="ldt-btn">Disable All</button>
+                    <button class="ldt-btn ldt-btn--primary">Save Changes</button>
+                </div>
+            </div>
+
+            <!-- ═══ PROGRESS & COMPLETION ═══ -->
+            <div class="ldt-section">
+                <div class="ldt-section-header">
+                    <div class="ldt-section-icon blue">📊</div>
+                    <span class="ldt-section-title">Progress & Completion</span>
+                    <span class="ldt-section-count">5</span>
+                    <button class="ldt-section-toggle">Enable all</button>
+                </div>
+                <div class="ldt-grid">
+                    <!-- Card: Course Timer (PRO) -->
+                    <div class="ldt-card">
+                        <div class="ldt-card__top">
+                            <div class="ldt-card__icon blue">⏱</div>
+                            <label class="ldt-toggle">
+                                <input type="checkbox" checked>
+                                <span class="ldt-toggle__track"></span>
+                            </label>
+                        </div>
+                        <div class="ldt-card__name">Course Timer</div>
+                        <div class="ldt-card__desc">Track time spent on lessons/topics and enforce minimum viewing time before completion.</div>
+                        <div class="ldt-card__footer">
+                            <div class="ldt-card__badges">
+                                <span class="ldt-badge ldt-badge--pro">PRO</span>
+                            </div>
+                            <button class="ldt-card__gear" title="Settings">⚙</button>
+                        </div>
+                    </div>
+
+                    <!-- Card: Course Expiry Countdown -->
+                    <div class="ldt-card">
+                        <div class="ldt-card__top">
+                            <div class="ldt-card__icon amber">⏳</div>
+                            <label class="ldt-toggle">
+                                <input type="checkbox" checked>
+                                <span class="ldt-toggle__track"></span>
+                            </label>
+                        </div>
+                        <div class="ldt-card__name">Course Expiry Countdown</div>
+                        <div class="ldt-card__desc">Show days remaining before a user's course access expires.</div>
+                        <div class="ldt-card__footer">
+                            <div class="ldt-card__badges"></div>
+                            <button class="ldt-card__gear" title="Settings">⚙</button>
+                        </div>
+                    </div>
+
+                    <!-- Card: Mark Complete Button -->
+                    <div class="ldt-card">
+                        <div class="ldt-card__top">
+                            <div class="ldt-card__icon green">✓</div>
+                            <label class="ldt-toggle">
+                                <input type="checkbox" checked>
+                                <span class="ldt-toggle__track"></span>
+                            </label>
+                        </div>
+                        <div class="ldt-card__name">Mark Complete Button</div>
+                        <div class="ldt-card__desc">AJAX-powered completion button for lessons & topics.</div>
+                        <div class="ldt-card__footer">
+                            <div class="ldt-card__badges">
+                                <span class="ldt-badge ldt-badge--popular">Popular</span>
+                            </div>
+                            <button class="ldt-card__gear" title="Settings">⚙</button>
+                        </div>
+                    </div>
+
+                    <!-- Card: Course Progress Bar -->
+                    <div class="ldt-card">
+                        <div class="ldt-card__top">
+                            <div class="ldt-card__icon blue">📈</div>
+                            <label class="ldt-toggle">
+                                <input type="checkbox">
+                                <span class="ldt-toggle__track"></span>
+                            </label>
+                        </div>
+                        <div class="ldt-card__name">Course Progress Bar</div>
+                        <div class="ldt-card__desc">Clean progress bar shortcode with bar, circle, or minimal styles.</div>
+                        <div class="ldt-card__footer">
+                            <div class="ldt-card__badges"></div>
+                            <button class="ldt-card__gear" title="Settings">⚙</button>
+                        </div>
+                    </div>
+
+                    <!-- Card: Resume Button -->
+                    <div class="ldt-card">
+                        <div class="ldt-card__top">
+                            <div class="ldt-card__icon violet">▶</div>
+                            <label class="ldt-toggle">
+                                <input type="checkbox" checked>
+                                <span class="ldt-toggle__track"></span>
+                            </label>
+                        </div>
+                        <div class="ldt-card__name">Resume Button</div>
+                        <div class="ldt-card__desc">Smart Continue/Start button that links to the last incomplete lesson.</div>
+                        <div class="ldt-card__footer">
+                            <div class="ldt-card__badges"></div>
+                            <button class="ldt-card__gear" title="Settings">⚙</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ DISPLAY & LAYOUT ═══ -->
+            <div class="ldt-section">
+                <div class="ldt-section-header">
+                    <div class="ldt-section-icon violet">🎨</div>
+                    <span class="ldt-section-title">Display & Layout</span>
+                    <span class="ldt-section-count">5</span>
+                    <button class="ldt-section-toggle">Enable all</button>
+                </div>
+                <div class="ldt-grid">
+                    <div class="ldt-card">
+                        <div class="ldt-card__top">
+                            <div class="ldt-card__icon violet">🗺</div>
+                            <label class="ldt-toggle">
+                                <input type="checkbox">
+                                <span class="ldt-toggle__track"></span>
+                            </label>
+                        </div>
+                        <div class="ldt-card__name">Course Breadcrumbs</div>
+                        <div class="ldt-card__desc">Accessible navigation trail: Home → Course → Lesson → Topic.</div>
+                        <div class="ldt-card__footer">
+                            <div class="ldt-card__badges"></div>
+                            <button class="ldt-card__gear" title="Settings">⚙</button>
+                        </div>
+                    </div>
+
+                    <div class="ldt-card">
+                        <div class="ldt-card__top">
+                            <div class="ldt-card__icon blue">👁</div>
+                            <label class="ldt-toggle">
+                                <input type="checkbox" checked>
+                                <span class="ldt-toggle__track"></span>
+                            </label>
+                        </div>
+                        <div class="ldt-card__name">Show / Hide Content</div>
+                        <div class="ldt-card__desc">Shortcodes to show or hide content based on enrollment, completion, or login.</div>
+                        <div class="ldt-card__footer">
+                            <div class="ldt-card__badges">
+                                <span class="ldt-badge ldt-badge--popular">Popular</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ldt-card">
+                        <div class="ldt-card__top">
+                            <div class="ldt-card__icon green">📋</div>
+                            <label class="ldt-toggle">
+                                <input type="checkbox" checked>
+                                <span class="ldt-toggle__track"></span>
+                            </label>
+                        </div>
+                        <div class="ldt-card__name">Student Dashboard</div>
+                        <div class="ldt-card__desc">Card grid of enrolled courses with progress, status, and resume links.</div>
+                        <div class="ldt-card__footer">
+                            <div class="ldt-card__badges">
+                                <span class="ldt-badge ldt-badge--popular">Popular</span>
+                            </div>
+                            <button class="ldt-card__gear" title="Settings">⚙</button>
+                        </div>
+                    </div>
+
+                    <div class="ldt-card disabled">
+                        <div class="ldt-card__top">
+                            <div class="ldt-card__icon amber">🏷</div>
+                            <label class="ldt-toggle">
+                                <input type="checkbox">
+                                <span class="ldt-toggle__track"></span>
+                            </label>
+                        </div>
+                        <div class="ldt-card__name">Custom Labels</div>
+                        <div class="ldt-card__desc">Rename Course, Lesson, Topic, and Quiz labels throughout LearnDash.</div>
+                        <div class="ldt-card__footer">
+                            <div class="ldt-card__badges">
+                                <span class="ldt-badge ldt-badge--pro">PRO</span>
+                            </div>
+                            <button class="ldt-card__gear" title="Settings">⚙</button>
+                        </div>
+                    </div>
+
+                    <div class="ldt-card disabled">
+                        <div class="ldt-card__top">
+                            <div class="ldt-card__icon rose">📱</div>
+                            <label class="ldt-toggle">
+                                <input type="checkbox">
+                                <span class="ldt-toggle__track"></span>
+                            </label>
+                        </div>
+                        <div class="ldt-card__name">PWA Support</div>
+                        <div class="ldt-card__desc">Progressive Web App with offline lesson access and service worker.</div>
+                        <div class="ldt-card__footer">
+                            <div class="ldt-card__badges">
+                                <span class="ldt-badge ldt-badge--pro">PRO</span>
+                            </div>
+                            <button class="ldt-card__gear" title="Settings">⚙</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ ADMIN TOOLS (abbreviated for reference) ═══ -->
+            <div class="ldt-section">
+                <div class="ldt-section-header">
+                    <div class="ldt-section-icon amber">🔧</div>
+                    <span class="ldt-section-title">Admin Tools</span>
+                    <span class="ldt-section-count">8</span>
+                    <button class="ldt-section-toggle">Enable all</button>
+                </div>
+                <div class="ldt-grid">
+                    <div class="ldt-card">
+                        <div class="ldt-card__top">
+                            <div class="ldt-card__icon rose">🔕</div>
+                            <label class="ldt-toggle">
+                                <input type="checkbox">
+                                <span class="ldt-toggle__track"></span>
+                            </label>
+                        </div>
+                        <div class="ldt-card__name">Disable LD Emails</div>
+                        <div class="ldt-card__desc">Selectively suppress LearnDash notification emails.</div>
+                        <div class="ldt-card__footer">
+                            <div class="ldt-card__badges"></div>
+                            <button class="ldt-card__gear" title="Settings">⚙</button>
+                        </div>
+                    </div>
+
+                    <div class="ldt-card">
+                        <div class="ldt-card__top">
+                            <div class="ldt-card__icon blue">📊</div>
+                            <label class="ldt-toggle">
+                                <input type="checkbox">
+                                <span class="ldt-toggle__track"></span>
+                            </label>
+                        </div>
+                        <div class="ldt-card__name">Reporting Dashboard</div>
+                        <div class="ldt-card__desc">Course, user, and quiz analytics with CSV export.</div>
+                        <div class="ldt-card__footer">
+                            <div class="ldt-card__badges">
+                                <span class="ldt-badge ldt-badge--pro">PRO</span>
+                                <span class="ldt-badge ldt-badge--popular">Popular</span>
+                            </div>
+                            <button class="ldt-card__gear" title="Settings">⚙</button>
+                        </div>
+                    </div>
+
+                    <div class="ldt-card">
+                        <div class="ldt-card__top">
+                            <div class="ldt-card__icon green">📝</div>
+                            <label class="ldt-toggle">
+                                <input type="checkbox">
+                                <span class="ldt-toggle__track"></span>
+                            </label>
+                        </div>
+                        <div class="ldt-card__name">Login History</div>
+                        <div class="ldt-card__desc">Track user logins with IP, timestamps, and student-facing shortcode.</div>
+                        <div class="ldt-card__footer">
+                            <div class="ldt-card__badges">
+                                <span class="ldt-badge ldt-badge--new">New</span>
+                            </div>
+                            <button class="ldt-card__gear" title="Settings">⚙</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- .ldt-main -->
+
+        <!-- ═══ SETTINGS PANEL ═══ -->
+        <div class="ldt-panel open" id="ldt-panel">
+            <div class="ldt-panel__header">
+                <div class="ldt-panel__title-row">
+                    <div class="ldt-panel__icon">⚙</div>
+                    <span class="ldt-panel__name">Course Timer</span>
+                </div>
+                <button class="ldt-panel__close" title="Close">✕</button>
+            </div>
+            <div class="ldt-panel__body">
+                <div class="ldt-field">
+                    <label class="ldt-field__label">Minimum Seconds</label>
+                    <input type="number" class="ldt-field__input" value="0" placeholder="0">
+                </div>
+
+                <div class="ldt-field">
+                    <div class="ldt-field__toggle-row">
+                        <span class="ldt-field__toggle-label">Show Timer</span>
+                        <label class="ldt-toggle">
+                            <input type="checkbox" checked>
+                            <span class="ldt-toggle__track"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="ldt-field">
+                    <div class="ldt-field__toggle-row">
+                        <span class="ldt-field__toggle-label">Track All Pages</span>
+                        <label class="ldt-toggle">
+                            <input type="checkbox" checked>
+                            <span class="ldt-toggle__track"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="ldt-field">
+                    <label class="ldt-field__label">Cache TTL (seconds)</label>
+                    <input type="number" class="ldt-field__input" value="3600">
+                </div>
+            </div>
+            <div class="ldt-panel__footer">
+                <button class="ldt-panel__save">Save Settings</button>
+            </div>
+        </div>
+
+    </div><!-- .ldt-wrap -->
+
+    <script>
+        // Panel toggle demo
+        document.querySelectorAll('.ldt-card__gear').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.getElementById('ldt-panel').classList.toggle('open');
+                btn.classList.toggle('active');
+            });
+        });
+
+        document.querySelector('.ldt-panel__close').addEventListener('click', () => {
+            document.getElementById('ldt-panel').classList.remove('open');
+            document.querySelectorAll('.ldt-card__gear.active').forEach(g => g.classList.remove('active'));
+        });
+
+        // Toggle disabled state
+        document.querySelectorAll('.ldt-toggle input').forEach(toggle => {
+            toggle.addEventListener('change', () => {
+                const card = toggle.closest('.ldt-card');
+                if (card) card.classList.toggle('disabled', !toggle.checked);
+            });
+        });
+
+        // Pill filter (demo)
+        document.querySelectorAll('.ldt-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                document.querySelectorAll('.ldt-pill').forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

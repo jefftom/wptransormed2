@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WP Transformation — Editor Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-dark: #1e3a8a;
+            --primary-glow: rgba(37,99,235,0.1);
+            --accent: #06d6a0;
+            --accent-glow: rgba(6,214,160,0.1);
+            --amber: #f59e0b;
+            --amber-glow: rgba(245,158,11,0.1);
+            --rose: #f43f5e;
+            --rose-glow: rgba(244,63,94,0.1);
+            --violet: #8b5cf6;
+            --violet-glow: rgba(139,92,246,0.1);
+            --teal: #14b8a6;
+            --teal-glow: rgba(20,184,166,0.1);
+
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --surface-hover: #f8fafc;
+            --surface-alt: #f1f5f9;
+            --text: #0f172a;
+            --text-secondary: #334155;
+            --text-muted: #94a3b8;
+            --text-desc: #64748b;
+            --border: rgba(0,0,0,0.06);
+            --border-strong: rgba(0,0,0,0.1);
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            --card-hover-shadow: 0 8px 30px rgba(0,0,0,0.08);
+
+            --sidebar-bg: #ffffff;
+            --sidebar-border: #e2e8f0;
+        }
+
+        .dark {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-hover: #273449;
+            --surface-alt: #334155;
+            --text: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #64748b;
+            --text-desc: #94a3b8;
+            --border: rgba(255,255,255,0.06);
+            --border-strong: rgba(255,255,255,0.1);
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            --card-hover-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            --sidebar-bg: #1e293b;
+            --sidebar-border: #334155;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            transition: background 0.4s, color 0.3s;
+        }
+
+        /* ═══════════════════════════════════════════
+           SIMPLE SIDEBAR
+        ═══════════════════════════════════════════ */
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0;
+            width: 240px;
+            height: 100vh;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--sidebar-border);
+            padding: 1.25rem 0.75rem;
+            display: flex;
+            flex-direction: column;
+            z-index: 50;
+            transition: background 0.4s, border-color 0.4s;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.25rem 0.5rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+
+        .logo-icon {
+            width: 34px; height: 34px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            border-radius: 9px;
+            display: grid; place-items: center;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .sidebar-logo h1 {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .sidebar-logo h1 small {
+            display: block;
+            font-size: 10.5px;
+            font-weight: 400;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+
+        .nav-section { margin-bottom: 1.5rem; }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            padding: 0 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 13.5px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            background: var(--surface-alt);
+            color: var(--text);
+        }
+
+        .nav-item.active {
+            background: var(--primary-glow);
+            color: var(--primary);
+        }
+
+        .nav-item i { width: 18px; text-align: center; font-size: 14px; }
+
+        .nav-item .count {
+            margin-left: auto;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: var(--surface-alt);
+            color: var(--text-muted);
+        }
+
+        .nav-item.active .count {
+            background: rgba(37,99,235,0.15);
+            color: var(--primary);
+        }
+
+        .sidebar-user {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            border-radius: 10px;
+            background: var(--surface-alt);
+        }
+
+        .user-avatar {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: grid; place-items: center;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .user-info h4 { font-size: 13px; font-weight: 600; }
+        .user-info p { font-size: 11px; color: var(--text-muted); }
+
+        /* ═══════════════════════════════════════════
+           MAIN CONTENT
+        ═══════════════════════════════════════════ */
+        .main {
+            margin-left: 240px;
+            min-height: 100vh;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.75rem;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            transition: background 0.4s;
+        }
+
+        .topbar-left h2 {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .topbar-left p {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+
+        .topbar-right { display: flex; align-items: center; gap: 8px; }
+
+        .tb-btn {
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            display: grid; place-items: center;
+            cursor: pointer;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        .tb-btn:hover {
+            background: var(--primary-glow);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .create-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: 10px;
+            border: none;
+            background: var(--primary);
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .create-btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .create-btn:active { transform: scale(0.97); }
+
+        .content { padding: 1.75rem; max-width: 1200px; }
+
+        /* ═══════════════════════════════════════════
+           WELCOME CARD
+        ═══════════════════════════════════════════ */
+        .welcome-card {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary), var(--primary-light));
+            border-radius: 16px;
+            padding: 1.75rem 2rem;
+            color: #fff;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .welcome-card::before {
+            content: '';
+            position: absolute;
+            top: -50%; right: -10%;
+            width: 50%; height: 200%;
+            background: radial-gradient(ellipse, rgba(255,255,255,0.1) 0%, transparent 60%);
+        }
+
+        .welcome-card h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            position: relative;
+        }
+
+        .welcome-card p {
+            font-size: 14px;
+            opacity: 0.8;
+            position: relative;
+            max-width: 400px;
+            line-height: 1.5;
+        }
+
+        /* ═══════════════════════════════════════════
+           STATS ROW
+        ═══════════════════════════════════════════ */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 1.75rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.25rem;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--card-hover-shadow);
+            border-color: var(--primary);
+        }
+
+        .stat-icon {
+            width: 42px; height: 42px;
+            border-radius: 11px;
+            display: grid; place-items: center;
+            font-size: 17px;
+            margin-bottom: 12px;
+        }
+
+        .stat-icon.blue { background: var(--primary-glow); color: var(--primary); }
+        .stat-icon.amber { background: var(--amber-glow); color: var(--amber); }
+        .stat-icon.green { background: var(--accent-glow); color: var(--accent); }
+        .stat-icon.violet { background: var(--violet-glow); color: var(--violet); }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12.5px;
+            color: var(--text-muted);
+        }
+
+        /* ═══════════════════════════════════════════
+           QUICK ACTIONS
+        ═══════════════════════════════════════════ */
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title i { color: var(--primary); font-size: 14px; }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 1.75rem;
+        }
+
+        .quick-action {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 1.25rem 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .quick-action:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--card-hover-shadow);
+            border-color: var(--primary);
+        }
+
+        .quick-action .qa-icon {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: grid; place-items: center;
+            font-size: 20px;
+        }
+
+        .quick-action .qa-icon.blue { background: var(--primary-glow); color: var(--primary); }
+        .quick-action .qa-icon.teal { background: var(--teal-glow); color: var(--teal); }
+        .quick-action .qa-icon.violet { background: var(--violet-glow); color: var(--violet); }
+        .quick-action .qa-icon.amber { background: var(--amber-glow); color: var(--amber); }
+
+        .quick-action h4 {
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .quick-action p {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        /* ═══════════════════════════════════════════
+           CONTENT GRID
+        ═══════════════════════════════════════════ */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 1.25rem;
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-header h3 i { color: var(--primary); font-size: 13px; }
+
+        .panel-header a {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .panel-header a:hover { text-decoration: underline; }
+
+        /* Recent Posts */
+        .post-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 1.25rem;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+            cursor: pointer;
+        }
+
+        .post-item:last-child { border-bottom: none; }
+        .post-item:hover { background: var(--surface-hover); }
+
+        .post-thumb {
+            width: 50px; height: 50px;
+            border-radius: 10px;
+            background: var(--surface-alt);
+            display: grid; place-items: center;
+            font-size: 18px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .post-thumb img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+        }
+
+        .post-info { flex: 1; min-width: 0; }
+
+        .post-info h4 {
+            font-size: 13.5px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .post-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11.5px;
+            color: var(--text-muted);
+        }
+
+        .post-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .post-status {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 10.5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .post-status.published { background: var(--accent-glow); color: var(--accent); }
+        .post-status.draft { background: var(--surface-alt); color: var(--text-muted); }
+        .post-status.scheduled { background: var(--amber-glow); color: var(--amber); }
+        .post-status.review { background: var(--violet-glow); color: var(--violet); }
+
+        /* Schedule Panel */
+        .schedule-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 1.25rem;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+            cursor: pointer;
+        }
+
+        .schedule-item:last-child { border-bottom: none; }
+        .schedule-item:hover { background: var(--surface-hover); }
+
+        .schedule-date {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            background: var(--primary-glow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .schedule-date .day {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .schedule-date .month {
+            font-size: 9px;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .schedule-info { flex: 1; min-width: 0; }
+
+        .schedule-info h4 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .schedule-info p {
+            font-size: 11.5px;
+            color: var(--text-muted);
+        }
+
+        /* ═══════════════════════════════════════════
+           TIPS CARD
+        ═══════════════════════════════════════════ */
+        .tips-card {
+            background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(37,99,235,0.08));
+            border: 1px solid rgba(139,92,246,0.15);
+            border-radius: 14px;
+            padding: 1.25rem;
+            margin-top: 1.25rem;
+        }
+
+        .tips-card h4 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tips-card h4 i { color: var(--violet); }
+
+        .tips-card p {
+            font-size: 12.5px;
+            color: var(--text-desc);
+            line-height: 1.55;
+        }
+
+        .tips-card a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .tips-card a:hover { text-decoration: underline; }
+
+        /* ═══════════════════════════════════════════
+           ANIMATIONS
+        ═══════════════════════════════════════════ */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .welcome-card { animation: fadeUp 0.45s ease both; }
+        .stat-card { animation: fadeUp 0.4s ease both; }
+        .stat-card:nth-child(2) { animation-delay: 0.05s; }
+        .stat-card:nth-child(3) { animation-delay: 0.1s; }
+        .stat-card:nth-child(4) { animation-delay: 0.15s; }
+        .quick-action { animation: fadeUp 0.4s ease both; }
+        .quick-action:nth-child(2) { animation-delay: 0.05s; }
+        .quick-action:nth-child(3) { animation-delay: 0.1s; }
+        .quick-action:nth-child(4) { animation-delay: 0.15s; }
+        .content-grid { animation: fadeUp 0.45s 0.15s ease both; }
+
+        /* ═══════════════════════════════════════════
+           RESPONSIVE
+        ═══════════════════════════════════════════ */
+        @media (max-width: 1100px) {
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .quick-actions { grid-template-columns: repeat(2, 1fr); }
+            .content-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main { margin-left: 0; }
+            .stats-row { grid-template-columns: 1fr 1fr; }
+            .quick-actions { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon"><i class="fas fa-edit"></i></div>
+            <h1>Editor Dashboard<small>WP Transformation</small></h1>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">Content</div>
+            <a class="nav-item active"><i class="fas fa-home"></i> Dashboard</a>
+            <a class="nav-item"><i class="fas fa-file-alt"></i> All Posts <span class="count">24</span></a>
+            <a class="nav-item"><i class="fas fa-copy"></i> Pages <span class="count">8</span></a>
+            <a class="nav-item"><i class="fas fa-images"></i> Media</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">Workflow</div>
+            <a class="nav-item"><i class="fas fa-pencil-alt"></i> Drafts <span class="count">5</span></a>
+            <a class="nav-item"><i class="fas fa-clock"></i> Scheduled <span class="count">3</span></a>
+            <a class="nav-item"><i class="fas fa-eye"></i> In Review <span class="count">2</span></a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">Organize</div>
+            <a class="nav-item"><i class="fas fa-tags"></i> Categories</a>
+            <a class="nav-item"><i class="fas fa-hashtag"></i> Tags</a>
+            <a class="nav-item"><i class="fas fa-calendar-alt"></i> Calendar</a>
+        </div>
+
+        <div class="sidebar-user">
+            <div class="user-avatar">J</div>
+            <div class="user-info">
+                <h4>Jeff</h4>
+                <p>Editor</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+        <header class="topbar">
+            <div class="topbar-left">
+                <h2>Dashboard</h2>
+                <p>Welcome back! Here's your content overview.</p>
+            </div>
+            <div class="topbar-right">
+                <button class="tb-btn" onclick="toggleTheme()" title="Toggle theme">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                </button>
+                <button class="tb-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                </button>
+                <button class="create-btn">
+                    <i class="fas fa-plus"></i> New Post
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <!-- Welcome Card -->
+            <div class="welcome-card">
+                <h2>Good evening, Jeff! 👋</h2>
+                <p>You have 5 drafts waiting and 3 posts scheduled for this week. Keep up the great work!</p>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fas fa-file-alt"></i></div>
+                    <div class="stat-value" data-count="24">0</div>
+                    <div class="stat-label">Published Posts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon amber"><i class="fas fa-pencil-alt"></i></div>
+                    <div class="stat-value" data-count="5">0</div>
+                    <div class="stat-label">Drafts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fas fa-clock"></i></div>
+                    <div class="stat-value" data-count="3">0</div>
+                    <div class="stat-label">Scheduled</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon violet"><i class="fas fa-eye"></i></div>
+                    <div class="stat-value" data-count="2">0</div>
+                    <div class="stat-label">In Review</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="section-title"><i class="fas fa-bolt"></i> Quick Actions</div>
+            <div class="quick-actions">
+                <a class="quick-action">
+                    <div class="qa-icon blue"><i class="fas fa-plus"></i></div>
+                    <h4>New Post</h4>
+                    <p>Create a new article</p>
+                </a>
+                <a class="quick-action">
+                    <div class="qa-icon teal"><i class="fas fa-copy"></i></div>
+                    <h4>New Page</h4>
+                    <p>Create a new page</p>
+                </a>
+                <a class="quick-action">
+                    <div class="qa-icon violet"><i class="fas fa-upload"></i></div>
+                    <h4>Upload Media</h4>
+                    <p>Add images or files</p>
+                </a>
+                <a class="quick-action">
+                    <div class="qa-icon amber"><i class="fas fa-th-large"></i></div>
+                    <h4>Block Patterns</h4>
+                    <p>Pre-built templates</p>
+                </a>
+            </div>
+
+            <!-- Content Grid -->
+            <div class="content-grid">
+                <!-- Recent Posts -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3><i class="fas fa-file-alt"></i> Recent Posts</h3>
+                        <a href="#">View All →</a>
+                    </div>
+                    <div class="post-item">
+                        <div class="post-thumb"><i class="fas fa-image"></i></div>
+                        <div class="post-info">
+                            <h4>Getting Started with WordPress Blocks</h4>
+                            <div class="post-meta">
+                                <span><i class="fas fa-calendar"></i> Feb 4, 2026</span>
+                                <span><i class="fas fa-folder"></i> Tutorials</span>
+                            </div>
+                        </div>
+                        <span class="post-status published">Published</span>
+                    </div>
+                    <div class="post-item">
+                        <div class="post-thumb"><i class="fas fa-image"></i></div>
+                        <div class="post-info">
+                            <h4>10 Tips for Better Content Writing</h4>
+                            <div class="post-meta">
+                                <span><i class="fas fa-calendar"></i> Feb 3, 2026</span>
+                                <span><i class="fas fa-folder"></i> Writing</span>
+                            </div>
+                        </div>
+                        <span class="post-status published">Published</span>
+                    </div>
+                    <div class="post-item">
+                        <div class="post-thumb"><i class="fas fa-image"></i></div>
+                        <div class="post-info">
+                            <h4>SEO Best Practices for 2026</h4>
+                            <div class="post-meta">
+                                <span><i class="fas fa-calendar"></i> Feb 2, 2026</span>
+                                <span><i class="fas fa-folder"></i> SEO</span>
+                            </div>
+                        </div>
+                        <span class="post-status draft">Draft</span>
+                    </div>
+                    <div class="post-item">
+                        <div class="post-thumb"><i class="fas fa-image"></i></div>
+                        <div class="post-info">
+                            <h4>How to Optimize Your Images</h4>
+                            <div class="post-meta">
+                                <span><i class="fas fa-calendar"></i> Feb 1, 2026</span>
+                                <span><i class="fas fa-folder"></i> Performance</span>
+                            </div>
+                        </div>
+                        <span class="post-status review">Review</span>
+                    </div>
+                    <div class="post-item">
+                        <div class="post-thumb"><i class="fas fa-image"></i></div>
+                        <div class="post-info">
+                            <h4>Building a Content Calendar</h4>
+                            <div class="post-meta">
+                                <span><i class="fas fa-calendar"></i> Jan 30, 2026</span>
+                                <span><i class="fas fa-folder"></i> Strategy</span>
+                            </div>
+                        </div>
+                        <span class="post-status published">Published</span>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div>
+                    <!-- Upcoming Schedule -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-calendar-alt"></i> Upcoming</h3>
+                            <a href="#">View Calendar →</a>
+                        </div>
+                        <div class="schedule-item">
+                            <div class="schedule-date">
+                                <span class="day">06</span>
+                                <span class="month">Feb</span>
+                            </div>
+                            <div class="schedule-info">
+                                <h4>Winter Product Launch</h4>
+                                <p>Scheduled for 9:00 AM</p>
+                            </div>
+                        </div>
+                        <div class="schedule-item">
+                            <div class="schedule-date">
+                                <span class="day">08</span>
+                                <span class="month">Feb</span>
+                            </div>
+                            <div class="schedule-info">
+                                <h4>Weekly Newsletter Roundup</h4>
+                                <p>Scheduled for 10:00 AM</p>
+                            </div>
+                        </div>
+                        <div class="schedule-item">
+                            <div class="schedule-date">
+                                <span class="day">10</span>
+                                <span class="month">Feb</span>
+                            </div>
+                            <div class="schedule-info">
+                                <h4>Case Study: Client Success</h4>
+                                <p>Scheduled for 2:00 PM</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tips Card -->
+                    <div class="tips-card">
+                        <h4><i class="fas fa-lightbulb"></i> Writing Tip</h4>
+                        <p>Headlines with numbers get 36% more clicks! Try using lists and specific data in your next post. <a href="#">Learn more →</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme Toggle
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            const icon = document.getElementById('themeIcon');
+            icon.className = document.body.classList.contains('dark') ? 'fas fa-sun' : 'fas fa-moon';
+        }
+
+        // Animated Counters
+        function animateCounters() {
+            document.querySelectorAll('[data-count]').forEach(el => {
+                const target = parseInt(el.dataset.count);
+                let current = 0;
+                const step = Math.max(1, Math.floor(target / 25));
+                const interval = setInterval(() => {
+                    current += step;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(interval);
+                    }
+                    el.textContent = current;
+                }, 35);
+            });
+        }
+
+        // Init
+        setTimeout(animateCounters, 300);
+    </script>
+</body>
+</html>

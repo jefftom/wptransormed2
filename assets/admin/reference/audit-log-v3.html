@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WP Transformed — Security Audit Log</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-glow: rgba(37,99,235,0.12);
+            --primary-glow-strong: rgba(37,99,235,0.25);
+            --accent: #06d6a0;
+            --accent-glow: rgba(6,214,160,0.12);
+            --amber: #f59e0b;
+            --amber-glow: rgba(245,158,11,0.12);
+            --rose: #ef4444;
+            --rose-glow: rgba(239,68,68,0.1);
+            --violet: #a855f7;
+            --violet-glow: rgba(168,85,247,0.1);
+            --teal: #14b8a6;
+            --teal-glow: rgba(20,184,166,0.1);
+
+            --bg: #f0f4f8;
+            --surface: rgba(255,255,255,0.8);
+            --surface-solid: #ffffff;
+            --surface-alt: #f1f5f9;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: rgba(0,0,0,0.06);
+            --border-strong: rgba(0,0,0,0.1);
+            --glass-blur: blur(20px);
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.03);
+            --card-hover-shadow: 0 8px 40px rgba(37,99,235,0.1), 0 2px 12px rgba(0,0,0,0.04);
+            --grain-opacity: 0.025;
+        }
+
+        .dark {
+            --bg: #0c1222;
+            --surface: rgba(17,24,39,0.75);
+            --surface-solid: #111827;
+            --surface-alt: #1e293b;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255,255,255,0.06);
+            --border-strong: rgba(255,255,255,0.1);
+            --grain-opacity: 0.018;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 1.75rem;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: var(--grain-opacity);
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .page-header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.3px;
+        }
+
+        .page-header h1 i {
+            width: 40px; height: 40px;
+            background: var(--rose-glow);
+            color: var(--rose);
+            border-radius: 11px;
+            display: grid; place-items: center;
+            font-size: 16px;
+        }
+
+        .header-actions { display: flex; gap: 10px; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.22,1,0.36,1);
+            border: none;
+        }
+
+        .btn-secondary {
+            background: var(--surface-solid);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover { border-color: var(--border-strong); }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-light); transform: translateY(-1px); }
+
+        /* Stats Row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.25rem;
+            transition: all 0.35s cubic-bezier(0.22,1,0.36,1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 14px;
+            padding: 1px;
+            background: linear-gradient(135deg, transparent 40%, var(--primary-glow-strong));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.35s;
+            pointer-events: none;
+        }
+
+        .stat-card:hover::before { opacity: 1; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: var(--card-hover-shadow); }
+
+        .stat-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .stat-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            display: grid; place-items: center;
+            font-size: 15px;
+        }
+
+        .stat-icon.blue { background: var(--primary-glow); color: var(--primary); }
+        .stat-icon.green { background: var(--accent-glow); color: var(--accent); }
+        .stat-icon.amber { background: var(--amber-glow); color: var(--amber); }
+        .stat-icon.rose { background: var(--rose-glow); color: var(--rose); }
+
+        .stat-label { font-size: 12px; color: var(--text-muted); }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            line-height: 1;
+        }
+
+        .stat-change {
+            font-size: 11.5px;
+            margin-top: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .stat-change.up { background: var(--accent-glow); color: var(--accent); }
+        .stat-change.warning { background: var(--amber-glow); color: var(--amber); }
+        .stat-change.danger { background: var(--rose-glow); color: var(--rose); }
+
+        /* Filters */
+        .filters-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 11px 14px 11px 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface-solid);
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        .search-box input:focus { outline: none; border-color: var(--primary); }
+
+        .filter-select {
+            padding: 11px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface-solid);
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            color: var(--text);
+            cursor: pointer;
+        }
+
+        .date-range {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface-solid);
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .date-range i { color: var(--primary); }
+
+        /* Table */
+        .log-table-wrap {
+            background: var(--surface-solid);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .log-table { width: 100%; border-collapse: collapse; }
+
+        .log-table th {
+            text-align: left;
+            padding: 14px 16px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            background: var(--surface-alt);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .log-table td {
+            padding: 14px 16px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .log-table tr:last-child td { border-bottom: none; }
+        .log-table tr:hover td { background: var(--surface-alt); }
+
+        .event-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+
+        .event-type.login { background: var(--primary-glow); color: var(--primary); }
+        .event-type.content { background: var(--accent-glow); color: var(--accent); }
+        .event-type.settings { background: var(--amber-glow); color: var(--amber); }
+        .event-type.security { background: var(--rose-glow); color: var(--rose); }
+        .event-type.plugin { background: var(--violet-glow); color: var(--violet); }
+        .event-type.user { background: var(--teal-glow); color: var(--teal); }
+
+        .user-cell { display: flex; align-items: center; gap: 10px; }
+
+        .user-avatar {
+            width: 32px; height: 32px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: grid; place-items: center;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .user-info span { display: block; font-weight: 500; }
+        .user-info small { font-size: 11px; color: var(--text-muted); }
+
+        .action-desc code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--surface-alt);
+            color: var(--primary);
+        }
+
+        .ip-cell {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .time-cell { font-size: 12px; color: var(--text-muted); }
+        .time-cell strong { display: block; font-weight: 500; color: var(--text-secondary); }
+
+        .severity-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .severity-dot.low { background: var(--accent); }
+        .severity-dot.medium { background: var(--amber); }
+        .severity-dot.high { background: var(--rose); }
+
+        .detail-btn {
+            width: 30px; height: 30px;
+            border-radius: 8px;
+            border: none;
+            background: var(--surface-alt);
+            color: var(--text-muted);
+            cursor: pointer;
+            display: grid; place-items: center;
+            font-size: 11px;
+            transition: all 0.15s;
+        }
+
+        .detail-btn:hover { background: var(--primary-glow); color: var(--primary); }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-top: 1px solid var(--border);
+            background: var(--surface-alt);
+        }
+
+        .pagination-info { font-size: 13px; color: var(--text-muted); }
+        .pagination-controls { display: flex; align-items: center; gap: 4px; }
+
+        .page-btn {
+            min-width: 34px; height: 34px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface-solid);
+            color: var(--text-secondary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .page-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stat-card { animation: fadeUp 0.4s ease both; }
+        .stat-card:nth-child(2) { animation-delay: 0.05s; }
+        .stat-card:nth-child(3) { animation-delay: 0.1s; }
+        .stat-card:nth-child(4) { animation-delay: 0.15s; }
+        .log-table-wrap { animation: fadeUp 0.4s 0.15s ease both; }
+    </style>
+</head>
+<body>
+    <header class="page-header">
+        <h1><i class="fas fa-shield-alt"></i> Security Audit Log</h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary"><i class="fas fa-cog"></i> Settings</button>
+            <button class="btn btn-secondary"><i class="fas fa-download"></i> Export CSV</button>
+            <button class="btn btn-primary"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+    </header>
+
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-icon blue"><i class="fas fa-list"></i></div>
+                <span class="stat-label">Total Events</span>
+            </div>
+            <div class="stat-value">2,847</div>
+            <div class="stat-change up"><i class="fas fa-arrow-up"></i> 124 today</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-icon green"><i class="fas fa-sign-in-alt"></i></div>
+                <span class="stat-label">Successful Logins</span>
+            </div>
+            <div class="stat-value">156</div>
+            <div class="stat-change up"><i class="fas fa-arrow-up"></i> 12 today</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-icon amber"><i class="fas fa-exclamation-triangle"></i></div>
+                <span class="stat-label">Failed Logins</span>
+            </div>
+            <div class="stat-value">23</div>
+            <div class="stat-change warning"><i class="fas fa-arrow-up"></i> 8 today</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-icon rose"><i class="fas fa-ban"></i></div>
+                <span class="stat-label">Blocked IPs</span>
+            </div>
+            <div class="stat-value">7</div>
+            <div class="stat-change danger"><i class="fas fa-arrow-up"></i> 2 new</div>
+        </div>
+    </div>
+
+    <div class="filters-bar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search events, users, IPs...">
+        </div>
+        <select class="filter-select">
+            <option>All Event Types</option>
+            <option>Logins</option>
+            <option>Content Changes</option>
+            <option>Settings</option>
+            <option>Security</option>
+        </select>
+        <select class="filter-select">
+            <option>All Users</option>
+            <option>Jeff (admin)</option>
+            <option>Sarah (editor)</option>
+        </select>
+        <div class="date-range">
+            <i class="fas fa-calendar"></i>
+            <span>Last 7 days</span>
+            <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i>
+        </div>
+    </div>
+
+    <div class="log-table-wrap">
+        <table class="log-table">
+            <thead>
+                <tr>
+                    <th>Event</th>
+                    <th>User</th>
+                    <th>Description</th>
+                    <th>IP Address</th>
+                    <th>Time</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="event-type login"><i class="fas fa-sign-in-alt"></i> Login</span></td>
+                    <td>
+                        <div class="user-cell">
+                            <div class="user-avatar">J</div>
+                            <div class="user-info"><span>Jeff</span><small>Administrator</small></div>
+                        </div>
+                    </td>
+                    <td class="action-desc"><span class="severity-dot low"></span>Successful login from Chrome on macOS</td>
+                    <td class="ip-cell">192.168.1.105</td>
+                    <td class="time-cell"><strong>2 min ago</strong>Feb 6, 2026 · 9:42 PM</td>
+                    <td><button class="detail-btn"><i class="fas fa-chevron-right"></i></button></td>
+                </tr>
+                <tr>
+                    <td><span class="event-type content"><i class="fas fa-edit"></i> Content</span></td>
+                    <td>
+                        <div class="user-cell">
+                            <div class="user-avatar">J</div>
+                            <div class="user-info"><span>Jeff</span><small>Administrator</small></div>
+                        </div>
+                    </td>
+                    <td class="action-desc"><span class="severity-dot low"></span>Updated post <code>WordPress Block Tutorial</code></td>
+                    <td class="ip-cell">192.168.1.105</td>
+                    <td class="time-cell"><strong>15 min ago</strong>Feb 6, 2026 · 9:29 PM</td>
+                    <td><button class="detail-btn"><i class="fas fa-chevron-right"></i></button></td>
+                </tr>
+                <tr>
+                    <td><span class="event-type security"><i class="fas fa-shield-alt"></i> Security</span></td>
+                    <td>
+                        <div class="user-cell">
+                            <div class="user-avatar" style="background: var(--rose);">?</div>
+                            <div class="user-info"><span>Unknown</span><small>—</small></div>
+                        </div>
+                    </td>
+                    <td class="action-desc"><span class="severity-dot high"></span><strong>Failed login attempt</strong> for username "admin"</td>
+                    <td class="ip-cell">45.33.32.156</td>
+                    <td class="time-cell"><strong>32 min ago</strong>Feb 6, 2026 · 9:12 PM</td>
+                    <td><button class="detail-btn"><i class="fas fa-chevron-right"></i></button></td>
+                </tr>
+                <tr>
+                    <td><span class="event-type plugin"><i class="fas fa-plug"></i> Plugin</span></td>
+                    <td>
+                        <div class="user-cell">
+                            <div class="user-avatar">J</div>
+                            <div class="user-info"><span>Jeff</span><small>Administrator</small></div>
+                        </div>
+                    </td>
+                    <td class="action-desc"><span class="severity-dot medium"></span>Activated plugin <code>WP Transformed</code></td>
+                    <td class="ip-cell">192.168.1.105</td>
+                    <td class="time-cell"><strong>1 hour ago</strong>Feb 6, 2026 · 8:44 PM</td>
+                    <td><button class="detail-btn"><i class="fas fa-chevron-right"></i></button></td>
+                </tr>
+                <tr>
+                    <td><span class="event-type settings"><i class="fas fa-cog"></i> Settings</span></td>
+                    <td>
+                        <div class="user-cell">
+                            <div class="user-avatar">J</div>
+                            <div class="user-info"><span>Jeff</span><small>Administrator</small></div>
+                        </div>
+                    </td>
+                    <td class="action-desc"><span class="severity-dot medium"></span>Changed <code>Login URL</code> setting</td>
+                    <td class="ip-cell">192.168.1.105</td>
+                    <td class="time-cell"><strong>1 hour ago</strong>Feb 6, 2026 · 8:41 PM</td>
+                    <td><button class="detail-btn"><i class="fas fa-chevron-right"></i></button></td>
+                </tr>
+                <tr>
+                    <td><span class="event-type user"><i class="fas fa-user"></i> User</span></td>
+                    <td>
+                        <div class="user-cell">
+                            <div class="user-avatar" style="background: linear-gradient(135deg, var(--violet), var(--rose));">S</div>
+                            <div class="user-info"><span>Sarah</span><small>Editor</small></div>
+                        </div>
+                    </td>
+                    <td class="action-desc"><span class="severity-dot low"></span>Profile updated: changed email address</td>
+                    <td class="ip-cell">192.168.1.112</td>
+                    <td class="time-cell"><strong>3 hours ago</strong>Feb 6, 2026 · 6:15 PM</td>
+                    <td><button class="detail-btn"><i class="fas fa-chevron-right"></i></button></td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="pagination">
+            <div class="pagination-info">Showing 1-6 of 2,847 events</div>
+            <div class="pagination-controls">
+                <button class="page-btn" disabled><i class="fas fa-chevron-left"></i></button>
+                <button class="page-btn active">1</button>
+                <button class="page-btn">2</button>
+                <button class="page-btn">3</button>
+                <button class="page-btn">...</button>
+                <button class="page-btn">407</button>
+                <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

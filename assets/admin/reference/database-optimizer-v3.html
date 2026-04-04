@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WP Transformed — Database Optimizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-glow: rgba(37,99,235,0.12);
+            --primary-glow-strong: rgba(37,99,235,0.25);
+            --accent: #06d6a0;
+            --accent-glow: rgba(6,214,160,0.12);
+            --amber: #f59e0b;
+            --amber-glow: rgba(245,158,11,0.12);
+            --rose: #ef4444;
+            --rose-glow: rgba(239,68,68,0.1);
+            --violet: #a855f7;
+            --violet-glow: rgba(168,85,247,0.1);
+
+            --bg: #f0f4f8;
+            --surface: rgba(255,255,255,0.8);
+            --surface-solid: #ffffff;
+            --surface-alt: #f1f5f9;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: rgba(0,0,0,0.06);
+            --border-strong: rgba(0,0,0,0.1);
+            --glass-blur: blur(20px);
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.03);
+            --card-hover-shadow: 0 8px 40px rgba(37,99,235,0.1), 0 2px 12px rgba(0,0,0,0.04);
+            --toggle-bg: #cbd5e1;
+            --grain-opacity: 0.025;
+        }
+
+        .dark {
+            --bg: #0c1222;
+            --surface: rgba(17,24,39,0.75);
+            --surface-solid: #111827;
+            --surface-alt: #1e293b;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255,255,255,0.06);
+            --toggle-bg: #334155;
+            --grain-opacity: 0.018;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 1.75rem;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: var(--grain-opacity);
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .page-header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.3px;
+        }
+
+        .page-header h1 i {
+            width: 40px; height: 40px;
+            background: var(--accent-glow);
+            color: var(--accent);
+            border-radius: 11px;
+            display: grid; place-items: center;
+            font-size: 16px;
+        }
+
+        .header-actions { display: flex; gap: 10px; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.22,1,0.36,1);
+            border: none;
+        }
+
+        .btn-secondary {
+            background: var(--surface-solid);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-primary { background: var(--accent); color: #0f172a; }
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+        /* Overview Cards */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 1.5rem;
+        }
+
+        .overview-card {
+            background: var(--surface);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.25rem;
+            transition: all 0.35s cubic-bezier(0.22,1,0.36,1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .overview-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 14px;
+            padding: 1px;
+            background: linear-gradient(135deg, transparent 40%, var(--primary-glow-strong));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.35s;
+            pointer-events: none;
+        }
+
+        .overview-card:hover::before { opacity: 1; }
+        .overview-card:hover { transform: translateY(-3px); box-shadow: var(--card-hover-shadow); }
+
+        .overview-icon {
+            width: 42px; height: 42px;
+            border-radius: 11px;
+            display: grid; place-items: center;
+            font-size: 17px;
+            margin-bottom: 12px;
+        }
+
+        .overview-icon.green { background: var(--accent-glow); color: var(--accent); }
+        .overview-icon.amber { background: var(--amber-glow); color: var(--amber); }
+        .overview-icon.rose { background: var(--rose-glow); color: var(--rose); }
+        .overview-icon.blue { background: var(--primary-glow); color: var(--primary); }
+
+        .overview-value {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .overview-label { font-size: 12px; color: var(--text-muted); }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 1.25rem;
+        }
+
+        .panel {
+            background: var(--surface-solid);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-header h3 {
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.2px;
+        }
+
+        .panel-header h3 i { color: var(--primary); }
+        .panel-body { padding: 1.25rem; }
+
+        /* Cleanup Items */
+        .cleanup-list { display: flex; flex-direction: column; gap: 10px; }
+
+        .cleanup-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            background: var(--surface-alt);
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+
+        .cleanup-item:hover { background: #e2e8f0; }
+
+        .cleanup-icon {
+            width: 44px; height: 44px;
+            border-radius: 11px;
+            display: grid; place-items: center;
+            font-size: 17px;
+            flex-shrink: 0;
+        }
+
+        .cleanup-icon.blue { background: var(--primary-glow); color: var(--primary); }
+        .cleanup-icon.amber { background: var(--amber-glow); color: var(--amber); }
+        .cleanup-icon.rose { background: var(--rose-glow); color: var(--rose); }
+        .cleanup-icon.violet { background: var(--violet-glow); color: var(--violet); }
+        .cleanup-icon.green { background: var(--accent-glow); color: var(--accent); }
+
+        .cleanup-info { flex: 1; }
+        .cleanup-info h4 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+        .cleanup-info p { font-size: 12px; color: var(--text-muted); }
+
+        .cleanup-stats { text-align: right; margin-right: 10px; }
+        .cleanup-stats .count { font-size: 18px; font-weight: 700; }
+        .cleanup-stats .size { font-size: 11px; color: var(--text-muted); }
+
+        .cleanup-action {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: none;
+            background: var(--primary);
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .cleanup-action:hover { background: var(--primary-light); }
+        .cleanup-action.cleaned { background: var(--accent-glow); color: var(--accent); cursor: default; }
+
+        /* Schedule Panel */
+        .schedule-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px;
+            background: var(--surface-alt);
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .schedule-option:last-child { margin-bottom: 0; }
+
+        .schedule-label { display: flex; align-items: center; gap: 10px; }
+
+        .schedule-label i {
+            width: 32px; height: 32px;
+            background: var(--primary-glow);
+            color: var(--primary);
+            border-radius: 8px;
+            display: grid; place-items: center;
+            font-size: 13px;
+        }
+
+        .schedule-label span { font-size: 13px; font-weight: 500; }
+
+        .toggle { position: relative; width: 44px; height: 24px; }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+
+        .toggle-track {
+            position: absolute; inset: 0;
+            background: var(--toggle-bg);
+            border-radius: 24px;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+
+        .toggle-track::before {
+            content: '';
+            position: absolute;
+            width: 18px; height: 18px;
+            left: 3px; top: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: all 0.25s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .toggle input:checked + .toggle-track { background: var(--primary); }
+        .toggle input:checked + .toggle-track::before { transform: translateX(20px); }
+
+        /* Tables Info */
+        .tables-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+        .table-item {
+            padding: 12px 14px;
+            background: var(--surface-alt);
+            border-radius: 10px;
+        }
+
+        .table-item h5 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .table-item .size {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* Progress */
+        .progress-bar {
+            height: 8px;
+            background: var(--surface-alt);
+            border-radius: 4px;
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Last Cleanup */
+        .last-cleanup {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            background: var(--accent-glow);
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        .last-cleanup i {
+            width: 36px; height: 36px;
+            background: var(--accent);
+            color: #fff;
+            border-radius: 10px;
+            display: grid; place-items: center;
+            font-size: 14px;
+        }
+
+        .last-cleanup-info h4 { font-size: 13px; font-weight: 600; color: var(--accent); }
+        .last-cleanup-info p { font-size: 11px; color: var(--text-secondary); }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .overview-card { animation: fadeUp 0.4s ease both; }
+        .overview-card:nth-child(2) { animation-delay: 0.05s; }
+        .overview-card:nth-child(3) { animation-delay: 0.1s; }
+        .overview-card:nth-child(4) { animation-delay: 0.15s; }
+        .main-grid { animation: fadeUp 0.4s 0.15s ease both; }
+    </style>
+</head>
+<body>
+    <header class="page-header">
+        <h1><i class="fas fa-database"></i> Database Optimizer</h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary"><i class="fas fa-history"></i> History</button>
+            <button class="btn btn-secondary"><i class="fas fa-cog"></i> Settings</button>
+            <button class="btn btn-primary"><i class="fas fa-broom"></i> Clean All</button>
+        </div>
+    </header>
+
+    <div class="overview-grid">
+        <div class="overview-card">
+            <div class="overview-icon green"><i class="fas fa-database"></i></div>
+            <div class="overview-value">128 MB</div>
+            <div class="overview-label">Database Size</div>
+        </div>
+        <div class="overview-card">
+            <div class="overview-icon amber"><i class="fas fa-table"></i></div>
+            <div class="overview-value">47</div>
+            <div class="overview-label">Total Tables</div>
+        </div>
+        <div class="overview-card">
+            <div class="overview-icon rose"><i class="fas fa-trash"></i></div>
+            <div class="overview-value">24.3 MB</div>
+            <div class="overview-label">Cleanable Data</div>
+        </div>
+        <div class="overview-card">
+            <div class="overview-icon blue"><i class="fas fa-percent"></i></div>
+            <div class="overview-value">19%</div>
+            <div class="overview-label">Potential Savings</div>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <div class="panel">
+            <div class="panel-header">
+                <h3><i class="fas fa-broom"></i> Cleanup Tasks</h3>
+                <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-check-double"></i> Select All</button>
+            </div>
+            <div class="panel-body">
+                <div class="cleanup-list">
+                    <div class="cleanup-item">
+                        <div class="cleanup-icon blue"><i class="fas fa-history"></i></div>
+                        <div class="cleanup-info"><h4>Post Revisions</h4><p>Old versions of posts and pages</p></div>
+                        <div class="cleanup-stats"><div class="count">1,247</div><div class="size">8.4 MB</div></div>
+                        <button class="cleanup-action">Clean</button>
+                    </div>
+                    <div class="cleanup-item">
+                        <div class="cleanup-icon amber"><i class="fas fa-clock"></i></div>
+                        <div class="cleanup-info"><h4>Expired Transients</h4><p>Temporary cached data</p></div>
+                        <div class="cleanup-stats"><div class="count">843</div><div class="size">3.2 MB</div></div>
+                        <button class="cleanup-action">Clean</button>
+                    </div>
+                    <div class="cleanup-item">
+                        <div class="cleanup-icon rose"><i class="fas fa-comment-slash"></i></div>
+                        <div class="cleanup-info"><h4>Spam Comments</h4><p>Comments marked as spam</p></div>
+                        <div class="cleanup-stats"><div class="count">2,156</div><div class="size">5.8 MB</div></div>
+                        <button class="cleanup-action">Clean</button>
+                    </div>
+                    <div class="cleanup-item">
+                        <div class="cleanup-icon violet"><i class="fas fa-trash-alt"></i></div>
+                        <div class="cleanup-info"><h4>Trashed Posts</h4><p>Posts, pages, and products in trash</p></div>
+                        <div class="cleanup-stats"><div class="count">34</div><div class="size">1.1 MB</div></div>
+                        <button class="cleanup-action">Clean</button>
+                    </div>
+                    <div class="cleanup-item">
+                        <div class="cleanup-icon green"><i class="fas fa-unlink"></i></div>
+                        <div class="cleanup-info"><h4>Orphaned Meta</h4><p>Post meta without parent posts</p></div>
+                        <div class="cleanup-stats"><div class="count">567</div><div class="size">2.9 MB</div></div>
+                        <button class="cleanup-action cleaned"><i class="fas fa-check"></i> Cleaned</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="panel" style="margin-bottom: 1.25rem;">
+                <div class="panel-header"><h3><i class="fas fa-calendar-check"></i> Auto Cleanup</h3></div>
+                <div class="panel-body">
+                    <div class="schedule-option">
+                        <div class="schedule-label"><i class="fas fa-clock"></i><span>Daily Cleanup</span></div>
+                        <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+                    </div>
+                    <div class="schedule-option">
+                        <div class="schedule-label"><i class="fas fa-history"></i><span>Keep 5 Revisions</span></div>
+                        <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+                    </div>
+                    <div class="schedule-option">
+                        <div class="schedule-label"><i class="fas fa-trash"></i><span>Auto-Empty Trash</span></div>
+                        <label class="toggle"><input type="checkbox"><span class="toggle-track"></span></label>
+                    </div>
+                    <div class="schedule-option">
+                        <div class="schedule-label"><i class="fas fa-envelope"></i><span>Email Reports</span></div>
+                        <label class="toggle"><input type="checkbox"><span class="toggle-track"></span></label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header"><h3><i class="fas fa-table"></i> Largest Tables</h3></div>
+                <div class="panel-body">
+                    <div class="tables-grid">
+                        <div class="table-item"><h5>wp_postmeta</h5><p class="size">42.3 MB</p></div>
+                        <div class="table-item"><h5>wp_posts</h5><p class="size">28.7 MB</p></div>
+                        <div class="table-item"><h5>wp_options</h5><p class="size">18.2 MB</p></div>
+                        <div class="table-item"><h5>wp_comments</h5><p class="size">14.5 MB</p></div>
+                    </div>
+                    <div class="progress-bar"><div class="progress-fill" style="width: 81%;"></div></div>
+                    <div class="progress-label"><span>Database Usage</span><span>103.7 MB / 128 MB</span></div>
+                    <div class="last-cleanup">
+                        <i class="fas fa-check"></i>
+                        <div class="last-cleanup-info"><h4>Last Cleanup: 2 days ago</h4><p>Freed 12.4 MB · 3,421 items removed</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
