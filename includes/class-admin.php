@@ -113,6 +113,12 @@ class Admin {
         add_action( 'admin_menu', [ $this, 'register_page' ] );
         add_action( 'admin_init', [ $this, 'handle_save' ] );
         add_action( 'wp_ajax_wpt_toggle_module', [ $this, 'ajax_toggle_module' ] );
+
+        // Global admin reskin hooks (all admin pages)
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_global_assets' ] );
+        add_action( 'admin_menu', [ $this, 'inject_section_labels' ], 999 );
+        add_filter( 'admin_body_class', [ $this, 'add_body_classes' ] );
+        add_action( 'wp_ajax_wpt_save_dark_mode', [ $this, 'ajax_save_dark_mode' ] );
     }
 
     public function register_page(): void {
@@ -130,27 +136,11 @@ class Admin {
 
     public function enqueue_assets(): void {
         add_action( 'admin_enqueue_scripts', function() {
-            // Google Fonts
-            wp_enqueue_style(
-                'wpt-google-fonts',
-                'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap',
-                [],
-                null
-            );
-
-            // Font Awesome 6
-            wp_enqueue_style(
-                'wpt-font-awesome',
-                'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-                [],
-                '6.4.0'
-            );
-
-            // Dashboard CSS
+            // Dashboard CSS (depends on global CSS which handles fonts + FA)
             wp_enqueue_style(
                 'wpt-admin',
                 WPT_URL . 'assets/admin/css/admin.css',
-                [ 'wpt-google-fonts', 'wpt-font-awesome' ],
+                [ 'wpt-admin-global' ],
                 WPT_VERSION
             );
 
@@ -158,7 +148,7 @@ class Admin {
             wp_enqueue_script(
                 'wpt-admin',
                 WPT_URL . 'assets/admin/js/admin.js',
-                [],
+                [ 'wpt-admin-global' ],
                 WPT_VERSION,
                 true
             );
@@ -604,6 +594,188 @@ class Admin {
             </div>
         </div>
         <?php
+    }
+
+    /* ══════════════════════════════════════════
+       GLOBAL ADMIN RESKIN
+    ══════════════════════════════════════════ */
+
+    /**
+     * Enqueue Google Fonts, Font Awesome, admin-global.css, and admin-global.js
+     * on ALL admin pages (not just the WPT dashboard).
+     */
+    public function enqueue_global_assets(): void {
+        // Google Fonts: Outfit + JetBrains Mono
+        wp_enqueue_style(
+            'wpt-google-fonts',
+            'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap',
+            [],
+            null
+        );
+
+        // Font Awesome 6
+        wp_enqueue_style(
+            'wpt-font-awesome',
+            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+            [],
+            '6.4.0'
+        );
+
+        // Global admin reskin CSS
+        wp_enqueue_style(
+            'wpt-admin-global',
+            WPT_URL . 'assets/admin/css/admin-global.css',
+            [ 'wpt-google-fonts', 'wpt-font-awesome' ],
+            WPT_VERSION
+        );
+
+        // Global admin reskin JS
+        wp_enqueue_script(
+            'wpt-admin-global',
+            WPT_URL . 'assets/admin/js/admin-global.js',
+            [],
+            WPT_VERSION,
+            true
+        );
+
+        // Localize data for the global JS
+        $user     = wp_get_current_user();
+        $initials = $this->get_user_initials( $user );
+        $roles    = $user->roles;
+
+        wp_localize_script( 'wpt-admin-global', 'wptGlobal', [
+            'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+            'nonce'        => wp_create_nonce( 'wpt_global_nonce' ),
+            'version'      => WPT_VERSION,
+            'userName'     => $user->display_name,
+            'userInitials' => $initials,
+            'userRole'     => ! empty( $roles ) ? ucfirst( $roles[0] ) : __( 'User', 'wptransformed' ),
+            'profileUrl'   => admin_url( 'profile.php' ),
+            'pageTitle'    => $this->get_current_page_title(),
+            'pageCrumb'    => $this->get_current_page_crumb(),
+            'darkMode'     => get_user_meta( $user->ID, 'wpt_dark_mode', true ),
+        ] );
+    }
+
+    /**
+     * Inject section label separators into the admin menu.
+     * Uses priority 999 so all menu items are already registered.
+     */
+    public function inject_section_labels(): void {
+        global $menu;
+
+        $labels = [
+            3  => 'content',
+            41 => 'security',
+            59 => 'design',
+            74 => 'tools',
+            79 => 'configure',
+        ];
+
+        foreach ( $labels as $position => $label ) {
+            $menu[ $position ] = [
+                '',                                          // [0] menu title
+                'read',                                      // [1] capability
+                'wpt-sep-' . $label,                         // [2] slug
+                '',                                          // [3] page title
+                'wp-menu-separator wpt-section-sep',         // [4] CSS classes
+                'wpt-sep-' . $label,                         // [5] ID
+                '',                                          // [6] icon
+            ];
+        }
+
+        ksort( $menu );
+    }
+
+    /**
+     * Add body classes for global styling scope + dark mode.
+     */
+    public function add_body_classes( string $classes ): string {
+        $classes .= ' wpt-admin';
+
+        $user_id = get_current_user_id();
+        if ( get_user_meta( $user_id, 'wpt_dark_mode', true ) === '1' ) {
+            $classes .= ' wpt-dark';
+        }
+
+        return $classes;
+    }
+
+    /**
+     * AJAX: persist dark mode preference to user meta.
+     */
+    public function ajax_save_dark_mode(): void {
+        check_ajax_referer( 'wpt_global_nonce', 'nonce' );
+
+        $dark = isset( $_POST['dark_mode'] ) ? sanitize_text_field( wp_unslash( $_POST['dark_mode'] ) ) : '0';
+        update_user_meta( get_current_user_id(), 'wpt_dark_mode', $dark === '1' ? '1' : '0' );
+
+        wp_send_json_success();
+    }
+
+    /**
+     * Get user initials for avatar display.
+     */
+    private function get_user_initials( \WP_User $user ): string {
+        $name = $user->display_name;
+        if ( empty( $name ) ) {
+            return 'U';
+        }
+
+        $parts = preg_split( '/\s+/', trim( $name ) );
+        if ( count( $parts ) >= 2 ) {
+            return strtoupper( mb_substr( $parts[0], 0, 1 ) . mb_substr( end( $parts ), 0, 1 ) );
+        }
+
+        return strtoupper( mb_substr( $name, 0, 1 ) );
+    }
+
+    /**
+     * Derive page title for topbar from current admin screen.
+     */
+    private function get_current_page_title(): string {
+        $screen = get_current_screen();
+        if ( ! $screen ) {
+            return __( 'Dashboard', 'wptransformed' );
+        }
+
+        // Map common screen IDs to friendly titles
+        $map = [
+            'dashboard'             => __( 'Dashboard', 'wptransformed' ),
+            'edit-post'             => __( 'Posts', 'wptransformed' ),
+            'edit-page'             => __( 'Pages', 'wptransformed' ),
+            'upload'                => __( 'Media', 'wptransformed' ),
+            'edit-comments'         => __( 'Comments', 'wptransformed' ),
+            'themes'                => __( 'Appearance', 'wptransformed' ),
+            'plugins'               => __( 'Plugins', 'wptransformed' ),
+            'users'                 => __( 'Users', 'wptransformed' ),
+            'tools_page_wptransformed' => __( 'WPTransformed', 'wptransformed' ),
+            'toplevel_page_wptransformed' => __( 'WPTransformed', 'wptransformed' ),
+            'options-general'       => __( 'Settings', 'wptransformed' ),
+            'profile'               => __( 'Profile', 'wptransformed' ),
+        ];
+
+        return $map[ $screen->id ] ?? ( $screen->parent_base ? ucfirst( str_replace( '-', ' ', $screen->parent_base ) ) : __( 'Dashboard', 'wptransformed' ) );
+    }
+
+    /**
+     * Derive breadcrumb for topbar from current admin screen.
+     */
+    private function get_current_page_crumb(): string {
+        $screen = get_current_screen();
+        if ( ! $screen ) {
+            return __( 'Overview', 'wptransformed' );
+        }
+
+        if ( $screen->action === 'add' ) {
+            return __( 'Add New', 'wptransformed' );
+        }
+
+        if ( $screen->base === 'post' && $screen->action !== 'add' ) {
+            return __( 'Edit', 'wptransformed' );
+        }
+
+        return __( 'Overview', 'wptransformed' );
     }
 
     /* ══════════════════════════════════════════

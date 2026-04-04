@@ -1,0 +1,1148 @@
+/**
+ * WPTransformed — Global Admin Reskin
+ *
+ * CSS values extracted VERBATIM from:
+ *   assets/admin/reference/wp-transformation-final.html
+ *
+ * CRITICAL: Do NOT modify hex values, px values, cubic-bezier curves,
+ * or any CSS property values. Any deviation from the mockup is a bug.
+ *
+ * Scoped under body.wpt-admin to only affect WP admin when plugin active.
+ */
+
+/* ══════════════════════════════════════════════════════
+   1. CSS CUSTOM PROPERTIES — Light Mode
+   Source: wp-transformation-final.html :root
+══════════════════════════════════════════════════════ */
+:root {
+    --wpt-primary: #2563eb;
+    --wpt-primary-light: #3b82f6;
+    --wpt-primary-dark: #1e3a8a;
+    --wpt-primary-glow: rgba(37,99,235,0.12);
+    --wpt-primary-glow-strong: rgba(37,99,235,0.25);
+
+    --wpt-accent: #06d6a0;
+    --wpt-accent-glow: rgba(6,214,160,0.12);
+    --wpt-amber: #f59e0b;
+    --wpt-amber-glow: rgba(245,158,11,0.12);
+    --wpt-rose: #ef4444;
+    --wpt-rose-glow: rgba(239,68,68,0.1);
+    --wpt-violet: #a855f7;
+    --wpt-violet-glow: rgba(168,85,247,0.1);
+
+    --wpt-bg: #f0f4f8;
+    --wpt-surface: rgba(255,255,255,0.8);
+    --wpt-surface-solid: #ffffff;
+    --wpt-surface-hover: rgba(255,255,255,0.95);
+    --wpt-surface-alt: #f1f5f9;
+    --wpt-text: #0f172a;
+    --wpt-text-secondary: #334155;
+    --wpt-text-muted: #94a3b8;
+    --wpt-text-desc: #475569;
+    --wpt-border: rgba(0,0,0,0.06);
+    --wpt-border-strong: rgba(0,0,0,0.1);
+    --wpt-card-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.03);
+    --wpt-card-hover-shadow: 0 8px 40px rgba(37,99,235,0.1), 0 2px 12px rgba(0,0,0,0.04);
+    --wpt-glass-blur: blur(20px);
+    --wpt-tooltip-bg: #1e293b;
+    --wpt-tooltip-text: #f1f5f9;
+    --wpt-overlay: rgba(15,23,42,0.5);
+    --wpt-toggle-bg: #cbd5e1;
+    --wpt-grain-opacity: 0.025;
+    --wpt-divider: rgba(0,0,0,0.08);
+
+    --wpt-sidebar-text: rgba(255,255,255,0.65);
+    --wpt-sidebar-text-hover: rgba(255,255,255,0.9);
+    --wpt-sidebar-text-active: #ffffff;
+    --wpt-sidebar-divider: rgba(255,255,255,0.08);
+    --wpt-sidebar-item-hover: rgba(255,255,255,0.08);
+    --wpt-sidebar-item-active: rgba(255,255,255,0.12);
+
+    --wpt-sidebar-width: 256px;
+    --wpt-topbar-height: 58px;
+}
+
+/* ══════════════════════════════════════════════════════
+   2. DARK MODE
+   Source: wp-transformation-final.html .dark
+══════════════════════════════════════════════════════ */
+body.wpt-admin.wpt-dark {
+    --wpt-bg: #0c1222;
+    --wpt-surface: rgba(17,24,39,0.75);
+    --wpt-surface-solid: #111827;
+    --wpt-surface-hover: rgba(24,32,48,0.9);
+    --wpt-surface-alt: #1e293b;
+    --wpt-text: #f1f5f9;
+    --wpt-text-secondary: #cbd5e1;
+    --wpt-text-muted: #64748b;
+    --wpt-text-desc: #94a3b8;
+    --wpt-border: rgba(255,255,255,0.06);
+    --wpt-border-strong: rgba(255,255,255,0.1);
+    --wpt-card-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 4px 20px rgba(0,0,0,0.15);
+    --wpt-card-hover-shadow: 0 8px 40px rgba(37,99,235,0.15), 0 2px 12px rgba(0,0,0,0.2);
+    --wpt-toggle-bg: #334155;
+    --wpt-grain-opacity: 0.018;
+    --wpt-divider: rgba(255,255,255,0.08);
+}
+
+/* ══════════════════════════════════════════════════════
+   3. BASE TYPOGRAPHY & BACKGROUND
+   Source: wp-transformation-final.html body
+══════════════════════════════════════════════════════ */
+body.wpt-admin {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    background: var(--wpt-bg) !important;
+    color: var(--wpt-text) !important;
+    transition: background 0.5s, color 0.4s;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body.wpt-admin *:not(.dashicons):not(.dashicons-before)::before:not([class*="dashicons"]) {
+    font-family: inherit;
+}
+
+/* Grain texture overlay */
+body.wpt-admin::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99999;
+    opacity: var(--wpt-grain-opacity);
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ══════════════════════════════════════════════════════
+   4. LAYOUT — Sidebar Width + Content Margins
+══════════════════════════════════════════════════════ */
+html.wpt-active.wp-toolbar {
+    padding-top: var(--wpt-topbar-height) !important;
+}
+
+body.wpt-admin #adminmenuwrap {
+    width: var(--wpt-sidebar-width) !important;
+}
+
+body.wpt-admin #adminmenuback {
+    display: none !important;
+}
+
+body.wpt-admin #wpcontent,
+body.wpt-admin #wpfooter {
+    margin-left: var(--wpt-sidebar-width) !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   5. SIDEBAR RESKIN
+   Source: wp-transformation-final.html .sidebar
+══════════════════════════════════════════════════════ */
+
+/* --- Sidebar wrapper --- */
+body.wpt-admin #adminmenuwrap {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    background: linear-gradient(165deg, #0f2847 0%, #1a4180 45%, #2563eb 100%) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    z-index: 9990 !important;
+    padding: 1.5rem 0.85rem !important;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+
+/* Dark sidebar gradient */
+body.wpt-admin.wpt-dark #adminmenuwrap {
+    background: linear-gradient(165deg, #071020 0%, #0d1f42 45%, #1e3a8a 100%) !important;
+}
+
+/* Scrollbar styling */
+body.wpt-admin #adminmenuwrap::-webkit-scrollbar { width: 4px; }
+body.wpt-admin #adminmenuwrap::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.12);
+    border-radius: 4px;
+}
+body.wpt-admin #adminmenuwrap::-webkit-scrollbar-track { background: transparent; }
+
+/* --- Admin menu list --- */
+body.wpt-admin #adminmenu {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    flex: 1 1 auto;
+}
+
+/* --- Top-level menu items --- */
+body.wpt-admin #adminmenu li {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body.wpt-admin #adminmenu a.menu-top,
+body.wpt-admin #adminmenu .wp-has-current-submenu > a.menu-top,
+body.wpt-admin #adminmenu .wp-menu-open > a.menu-top {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 8px 11px !important;
+    border-radius: 9px !important;
+    color: var(--wpt-sidebar-text) !important;
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    transition: all 0.18s !important;
+    position: relative !important;
+    background: transparent !important;
+    margin: 1px 0 !important;
+    line-height: 1.4 !important;
+    height: auto !important;
+    box-shadow: none !important;
+}
+
+/* Hover state */
+body.wpt-admin #adminmenu li.menu-top:not(.wpt-section-sep) > a:hover {
+    background: var(--wpt-sidebar-item-hover) !important;
+    color: var(--wpt-sidebar-text-hover) !important;
+}
+
+/* Active state */
+body.wpt-admin #adminmenu li.wp-has-current-submenu > a.menu-top,
+body.wpt-admin #adminmenu li.current > a.menu-top,
+body.wpt-admin #adminmenu .wp-has-current-submenu a.menu-top,
+body.wpt-admin #adminmenu a.menu-top:focus {
+    background: var(--wpt-sidebar-item-active) !important;
+    color: var(--wpt-sidebar-text-active) !important;
+    box-shadow: none !important;
+}
+
+/* Green left accent bar on active */
+body.wpt-admin #adminmenu li.wp-has-current-submenu > a.menu-top::before,
+body.wpt-admin #adminmenu li.current > a.menu-top::before {
+    content: '' !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 3px !important;
+    height: 16px !important;
+    background: var(--wpt-accent) !important;
+    border-radius: 0 3px 3px 0 !important;
+}
+
+/* --- Menu icons --- */
+body.wpt-admin #adminmenu .wp-menu-image {
+    float: none !important;
+    width: 18px !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    background: none !important;
+    opacity: 0.75;
+    transition: opacity 0.18s;
+}
+
+body.wpt-admin #adminmenu li.wp-has-current-submenu .wp-menu-image,
+body.wpt-admin #adminmenu li.current .wp-menu-image {
+    opacity: 1;
+}
+
+body.wpt-admin #adminmenu .wp-menu-image::before {
+    font-size: 16px !important;
+    color: inherit !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+}
+
+body.wpt-admin #adminmenu .wp-menu-image img {
+    padding: 0 !important;
+    max-width: 16px !important;
+    max-height: 16px !important;
+    opacity: 0.75;
+    filter: brightness(10);
+}
+
+body.wpt-admin #adminmenu .wp-menu-image br {
+    display: none !important;
+}
+
+/* --- Menu name --- */
+body.wpt-admin #adminmenu .wp-menu-name {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: inherit !important;
+    padding: 0 !important;
+    line-height: 1.4 !important;
+    flex: 1 !important;
+}
+
+/* --- Menu arrow (hide) --- */
+body.wpt-admin #adminmenu .wp-menu-arrow {
+    display: none !important;
+}
+
+/* --- Count badges (awaiting-mod, update-plugins) --- */
+body.wpt-admin #adminmenu .awaiting-mod,
+body.wpt-admin #adminmenu .update-plugins {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: auto !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 2px 7px !important;
+    border-radius: 6px !important;
+    background: rgba(6,214,160,0.15) !important;
+    color: var(--wpt-accent) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    margin-left: auto !important;
+    line-height: 1.3 !important;
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+}
+
+body.wpt-admin #adminmenu .awaiting-mod .count,
+body.wpt-admin #adminmenu .update-plugins .count {
+    font-size: inherit !important;
+    color: inherit !important;
+}
+
+body.wpt-admin #adminmenu .awaiting-mod .pending-count {
+    font-size: inherit !important;
+}
+
+/* --- Default separators --- */
+body.wpt-admin #adminmenu li.wp-menu-separator:not(.wpt-section-sep) {
+    height: 1px !important;
+    margin: 8px 11px !important;
+    padding: 0 !important;
+    background: var(--wpt-sidebar-divider) !important;
+    cursor: default !important;
+}
+
+body.wpt-admin #adminmenu li.wp-menu-separator:not(.wpt-section-sep) .separator {
+    display: none !important;
+}
+
+/* --- Submenus --- */
+body.wpt-admin #adminmenu .wp-submenu {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 2px 0 6px !important;
+    min-width: auto !important;
+    width: auto !important;
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    float: none !important;
+    display: none !important;
+}
+
+body.wpt-admin #adminmenu li.wp-has-current-submenu .wp-submenu,
+body.wpt-admin #adminmenu li.wp-menu-open .wp-submenu {
+    display: block !important;
+}
+
+body.wpt-admin #adminmenu .wp-submenu-head {
+    display: none !important;
+}
+
+body.wpt-admin #adminmenu .wp-submenu a {
+    display: block !important;
+    padding: 6px 11px 6px 38px !important;
+    font-size: 12.5px !important;
+    font-weight: 400 !important;
+    color: rgba(255,255,255,0.5) !important;
+    border-radius: 7px !important;
+    line-height: 1.4 !important;
+    transition: all 0.15s !important;
+    margin: 1px 0 !important;
+}
+
+body.wpt-admin #adminmenu .wp-submenu a:hover {
+    color: rgba(255,255,255,0.8) !important;
+    background: rgba(255,255,255,0.05) !important;
+}
+
+body.wpt-admin #adminmenu .wp-submenu li.current a {
+    color: #ffffff !important;
+    background: rgba(255,255,255,0.06) !important;
+}
+
+/* --- Collapse button (hide) --- */
+body.wpt-admin #collapse-menu {
+    display: none !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   6. SIDEBAR INJECTED ELEMENTS (added via JS)
+   Source: wp-transformation-final.html sidebar
+══════════════════════════════════════════════════════ */
+
+/* --- Logo area --- */
+body.wpt-admin .wpt-sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 0.25rem 0.5rem 1.25rem;
+    border-bottom: 1px solid var(--wpt-sidebar-divider);
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+}
+
+body.wpt-admin .wpt-logo-mark {
+    width: 36px;
+    height: 36px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+    color: #fff;
+    position: relative;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    flex-shrink: 0;
+}
+
+body.wpt-admin .wpt-logo-mark::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+}
+
+body.wpt-admin .wpt-sidebar-logo h1 {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #fff !important;
+    letter-spacing: -0.3px;
+    line-height: 1.15 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+}
+
+body.wpt-admin .wpt-sidebar-logo h1 small {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.45);
+    margin-top: 2px;
+}
+
+/* --- Search bar --- */
+body.wpt-admin .wpt-sidebar-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 11px;
+    margin: 0 0.15rem 1rem;
+    border-radius: 9px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.06);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+body.wpt-admin .wpt-sidebar-search:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.1);
+}
+
+body.wpt-admin .wpt-sidebar-search i {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+}
+
+body.wpt-admin .wpt-sidebar-search span {
+    font-size: 12.5px;
+    color: rgba(255,255,255,0.5);
+    flex: 1;
+    font-family: 'Outfit', -apple-system, sans-serif;
+}
+
+body.wpt-admin .wpt-sidebar-search kbd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* --- Sidebar footer (upgrade + user) --- */
+body.wpt-admin .wpt-sidebar-footer {
+    flex-shrink: 0;
+    margin-top: auto;
+    padding-top: 0.5rem;
+}
+
+/* --- Upgrade card --- */
+body.wpt-admin .wpt-sidebar-upgrade {
+    padding: 1rem;
+    border-radius: 11px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 0.75rem;
+}
+
+body.wpt-admin .wpt-sidebar-upgrade p {
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    color: #fff !important;
+    margin-bottom: 4px !important;
+    padding: 0 !important;
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+}
+
+body.wpt-admin .wpt-sidebar-upgrade small {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.45;
+    display: block;
+    margin-bottom: 12px;
+}
+
+body.wpt-admin .wpt-sidebar-upgrade button {
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    border: none;
+    background: var(--wpt-accent);
+    color: #0f172a;
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+body.wpt-admin .wpt-sidebar-upgrade button:hover {
+    background: #00c896;
+    transform: translateY(-1px);
+}
+
+/* --- User profile at bottom --- */
+body.wpt-admin .wpt-sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 9px;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+
+body.wpt-admin .wpt-sidebar-user:hover {
+    background: rgba(255,255,255,0.06);
+}
+
+body.wpt-admin .wpt-sidebar-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--wpt-primary), var(--wpt-accent));
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    color: #fff;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    flex-shrink: 0;
+}
+
+body.wpt-admin .wpt-sidebar-user-info {
+    min-width: 0;
+}
+
+body.wpt-admin .wpt-sidebar-user-info span {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: 'Outfit', -apple-system, sans-serif;
+}
+
+body.wpt-admin .wpt-sidebar-user-info small {
+    display: block;
+    font-size: 10.5px;
+    color: rgba(255,255,255,0.45);
+    font-family: 'Outfit', -apple-system, sans-serif;
+}
+
+/* ══════════════════════════════════════════════════════
+   7. SECTION LABELS
+   Source: wp-transformation-final.html .nav-label
+══════════════════════════════════════════════════════ */
+body.wpt-admin #adminmenu li.wpt-section-sep {
+    cursor: default !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    background: transparent !important;
+}
+
+body.wpt-admin #adminmenu li.wpt-section-sep > a {
+    display: none !important;
+}
+
+body.wpt-admin #adminmenu li.wpt-section-sep .separator {
+    display: none !important;
+}
+
+body.wpt-admin .wpt-nav-label {
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.1px;
+    color: rgba(255,255,255,0.3);
+    padding: 0.6rem 0.65rem 0.4rem;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    cursor: default;
+    pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════════════
+   8. TOPBAR (#wpadminbar) RESKIN
+   Source: wp-transformation-final.html .topbar
+══════════════════════════════════════════════════════ */
+body.wpt-admin #wpadminbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: var(--wpt-sidebar-width) !important;
+    right: 0 !important;
+    width: auto !important;
+    height: var(--wpt-topbar-height) !important;
+    background: var(--wpt-surface) !important;
+    backdrop-filter: var(--wpt-glass-blur) !important;
+    -webkit-backdrop-filter: var(--wpt-glass-blur) !important;
+    border-bottom: 1px solid var(--wpt-border) !important;
+    z-index: 99990 !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 1.75rem !important;
+    min-height: var(--wpt-topbar-height) !important;
+    box-shadow: none !important;
+    transition: background 0.5s, border-color 0.4s;
+}
+
+/* Hide default WP toolbar items */
+body.wpt-admin #wpadminbar .quicklinks {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0,0,0,0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* --- Topbar inner (injected via JS) --- */
+body.wpt-admin .wpt-topbar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;
+}
+
+body.wpt-admin .wpt-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+body.wpt-admin .wpt-topbar-title {
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    color: var(--wpt-text);
+}
+
+body.wpt-admin .wpt-topbar-sep {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--wpt-text-muted);
+    opacity: 0.5;
+}
+
+body.wpt-admin .wpt-topbar-crumb {
+    font-size: 13px;
+    color: var(--wpt-text-muted);
+    font-family: 'Outfit', -apple-system, sans-serif;
+}
+
+body.wpt-admin .wpt-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+body.wpt-admin .wpt-tb-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    border: 1px solid var(--wpt-border);
+    background: transparent;
+    color: var(--wpt-text-secondary);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    position: relative;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    outline: none;
+    padding: 0;
+}
+
+body.wpt-admin .wpt-tb-btn:hover {
+    background: var(--wpt-primary-glow);
+    border-color: var(--wpt-primary);
+    color: var(--wpt-primary);
+}
+
+body.wpt-admin .wpt-notif-dot {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--wpt-rose);
+    border: 2px solid var(--wpt-surface-solid);
+}
+
+body.wpt-admin .wpt-tb-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--wpt-primary), var(--wpt-accent));
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    color: #fff;
+    font-weight: 700;
+    margin-left: 4px;
+    cursor: pointer;
+    font-family: 'Outfit', -apple-system, sans-serif;
+}
+
+/* ══════════════════════════════════════════════════════
+   9. GLOBAL CONTENT AREA
+   Source: wp-transformation-final.html content styles
+══════════════════════════════════════════════════════ */
+body.wpt-admin #wpbody-content {
+    padding: 1.75rem !important;
+    background: var(--wpt-bg) !important;
+    transition: background 0.5s;
+}
+
+body.wpt-admin #wpbody-content .wrap {
+    max-width: 1340px;
+    margin: 0 auto;
+}
+
+body.wpt-admin #wpbody-content .wrap h1 {
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.5px;
+    color: var(--wpt-text) !important;
+    padding: 0 !important;
+    margin-bottom: 1rem !important;
+    line-height: 1.3 !important;
+}
+
+/* --- Postboxes as cards --- */
+body.wpt-admin .postbox {
+    background: var(--wpt-surface) !important;
+    backdrop-filter: var(--wpt-glass-blur);
+    -webkit-backdrop-filter: var(--wpt-glass-blur);
+    border: 1px solid var(--wpt-border) !important;
+    border-radius: 14px !important;
+    box-shadow: var(--wpt-card-shadow) !important;
+    transition: all 0.35s cubic-bezier(0.22,1,0.36,1);
+    overflow: hidden;
+}
+
+body.wpt-admin .postbox:hover {
+    box-shadow: var(--wpt-card-hover-shadow) !important;
+}
+
+body.wpt-admin .postbox .postbox-header,
+body.wpt-admin .postbox .hndle {
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    border-bottom: 1px solid var(--wpt-border) !important;
+    padding: 12px 16px !important;
+    color: var(--wpt-text) !important;
+    background: transparent !important;
+}
+
+body.wpt-admin .postbox .inside {
+    padding: 16px !important;
+    color: var(--wpt-text-secondary) !important;
+}
+
+/* --- Card containers (general) --- */
+body.wpt-admin .card,
+body.wpt-admin #dashboard-widgets .postbox {
+    background: var(--wpt-surface) !important;
+    border: 1px solid var(--wpt-border) !important;
+    border-radius: 14px !important;
+    box-shadow: var(--wpt-card-shadow) !important;
+}
+
+/* --- WP notices --- */
+body.wpt-admin .notice {
+    border-radius: 10px !important;
+    border: 1px solid var(--wpt-border) !important;
+    padding: 12px 16px !important;
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+    background: var(--wpt-surface-solid) !important;
+    margin: 0 0 1rem !important;
+}
+
+body.wpt-admin .notice-success {
+    border-left: 4px solid var(--wpt-accent) !important;
+}
+
+body.wpt-admin .notice-error {
+    border-left: 4px solid var(--wpt-rose) !important;
+}
+
+body.wpt-admin .notice-warning {
+    border-left: 4px solid var(--wpt-amber) !important;
+}
+
+body.wpt-admin .notice-info {
+    border-left: 4px solid var(--wpt-primary) !important;
+}
+
+/* --- WP list tables --- */
+body.wpt-admin .wp-list-table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    border: 1px solid var(--wpt-border) !important;
+    background: var(--wpt-surface-solid) !important;
+}
+
+body.wpt-admin .wp-list-table thead th,
+body.wpt-admin .wp-list-table thead td {
+    background: var(--wpt-surface-alt) !important;
+    border-bottom: 1px solid var(--wpt-border) !important;
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    color: var(--wpt-text-muted) !important;
+    padding: 10px 12px !important;
+}
+
+body.wpt-admin .wp-list-table tbody td {
+    border-bottom: 1px solid var(--wpt-border) !important;
+    color: var(--wpt-text) !important;
+    padding: 10px 12px !important;
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+    font-size: 13px !important;
+    background: transparent !important;
+}
+
+body.wpt-admin .wp-list-table tbody tr:hover td {
+    background: var(--wpt-surface-hover) !important;
+}
+
+body.wpt-admin .wp-list-table tfoot th,
+body.wpt-admin .wp-list-table tfoot td {
+    background: var(--wpt-surface-alt) !important;
+    border-top: 1px solid var(--wpt-border) !important;
+    color: var(--wpt-text-muted) !important;
+}
+
+/* --- Screen options / Help --- */
+body.wpt-admin #screen-meta {
+    background: var(--wpt-surface-solid) !important;
+    border: 1px solid var(--wpt-border) !important;
+    border-radius: 0 0 14px 14px !important;
+}
+
+body.wpt-admin #screen-meta-links .show-settings {
+    border-radius: 0 0 8px 8px !important;
+    border-color: var(--wpt-border) !important;
+    background: var(--wpt-surface-alt) !important;
+    color: var(--wpt-text-secondary) !important;
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   10. BUTTONS & FORM INPUTS
+   Source: wp-transformation-final.html design system
+══════════════════════════════════════════════════════ */
+
+/* --- Primary buttons --- */
+body.wpt-admin .button-primary,
+body.wpt-admin .button.button-primary,
+body.wpt-admin input[type="submit"].button-primary {
+    background: var(--wpt-primary) !important;
+    border: none !important;
+    border-radius: 9px !important;
+    color: #fff !important;
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    padding: 8px 18px !important;
+    height: auto !important;
+    line-height: 1.5 !important;
+    cursor: pointer;
+    transition: all 0.2s !important;
+    text-shadow: none !important;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.25) !important;
+}
+
+body.wpt-admin .button-primary:hover,
+body.wpt-admin .button.button-primary:hover {
+    background: var(--wpt-primary-light) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(37,99,235,0.3) !important;
+}
+
+body.wpt-admin .button-primary:focus {
+    box-shadow: 0 0 0 3px var(--wpt-primary-glow-strong) !important;
+}
+
+/* --- Secondary buttons --- */
+body.wpt-admin .button,
+body.wpt-admin .button-secondary,
+body.wpt-admin input[type="submit"] {
+    background: var(--wpt-surface-solid) !important;
+    border: 1px solid var(--wpt-border-strong) !important;
+    border-radius: 9px !important;
+    color: var(--wpt-text-secondary) !important;
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    padding: 7px 16px !important;
+    height: auto !important;
+    line-height: 1.5 !important;
+    cursor: pointer;
+    transition: all 0.2s !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+}
+
+body.wpt-admin .button:hover,
+body.wpt-admin .button-secondary:hover {
+    background: var(--wpt-surface-hover) !important;
+    border-color: var(--wpt-primary) !important;
+    color: var(--wpt-primary) !important;
+}
+
+/* --- Form inputs --- */
+body.wpt-admin input[type="text"],
+body.wpt-admin input[type="email"],
+body.wpt-admin input[type="url"],
+body.wpt-admin input[type="password"],
+body.wpt-admin input[type="number"],
+body.wpt-admin input[type="search"],
+body.wpt-admin textarea,
+body.wpt-admin select {
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+    font-size: 13px !important;
+    border: 1px solid var(--wpt-border-strong) !important;
+    border-radius: 9px !important;
+    padding: 8px 12px !important;
+    background: var(--wpt-surface-solid) !important;
+    color: var(--wpt-text) !important;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    height: auto !important;
+    line-height: 1.5 !important;
+}
+
+body.wpt-admin input[type="text"]:focus,
+body.wpt-admin input[type="email"]:focus,
+body.wpt-admin input[type="url"]:focus,
+body.wpt-admin input[type="password"]:focus,
+body.wpt-admin input[type="number"]:focus,
+body.wpt-admin input[type="search"]:focus,
+body.wpt-admin textarea:focus,
+body.wpt-admin select:focus {
+    border-color: var(--wpt-primary) !important;
+    box-shadow: 0 0 0 3px var(--wpt-primary-glow) !important;
+    outline: none !important;
+}
+
+body.wpt-admin select {
+    padding-right: 28px !important;
+}
+
+/* --- Form tables --- */
+body.wpt-admin .form-table th {
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--wpt-text) !important;
+    padding: 16px 12px 16px 0 !important;
+}
+
+body.wpt-admin .form-table td {
+    padding: 12px 12px !important;
+}
+
+body.wpt-admin .form-table td p.description {
+    font-size: 12px !important;
+    color: var(--wpt-text-muted) !important;
+    margin-top: 6px !important;
+}
+
+/* --- Checkboxes & radios --- */
+body.wpt-admin input[type="checkbox"],
+body.wpt-admin input[type="radio"] {
+    border-color: var(--wpt-border-strong) !important;
+    border-radius: 4px !important;
+}
+
+body.wpt-admin input[type="checkbox"]:checked,
+body.wpt-admin input[type="radio"]:checked {
+    background: var(--wpt-primary) !important;
+    border-color: var(--wpt-primary) !important;
+}
+
+body.wpt-admin input[type="radio"] {
+    border-radius: 50% !important;
+}
+
+/* --- Tablenav (pagination, bulk actions) --- */
+body.wpt-admin .tablenav {
+    margin: 12px 0 !important;
+}
+
+body.wpt-admin .tablenav .tablenav-pages a,
+body.wpt-admin .tablenav .tablenav-pages .current {
+    border-radius: 8px !important;
+    border: 1px solid var(--wpt-border) !important;
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+    padding: 4px 10px !important;
+    font-size: 12px !important;
+    background: var(--wpt-surface-solid) !important;
+    color: var(--wpt-text-secondary) !important;
+}
+
+body.wpt-admin .tablenav .tablenav-pages .current {
+    background: var(--wpt-primary) !important;
+    color: #fff !important;
+    border-color: var(--wpt-primary) !important;
+}
+
+/* --- Footer --- */
+body.wpt-admin #wpfooter {
+    color: var(--wpt-text-muted) !important;
+    font-family: 'Outfit', -apple-system, sans-serif !important;
+}
+
+body.wpt-admin #wpfooter a {
+    color: var(--wpt-primary) !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   11. ANIMATIONS
+   Source: wp-transformation-final.html @keyframes
+══════════════════════════════════════════════════════ */
+@keyframes wpt-fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════════
+   12. RESPONSIVE & FOLDED STATE
+══════════════════════════════════════════════════════ */
+
+/* Folded sidebar */
+body.wpt-admin.folded #adminmenuwrap {
+    width: 36px !important;
+    padding: 0.5rem 0.25rem !important;
+}
+
+body.wpt-admin.folded #wpcontent,
+body.wpt-admin.folded #wpfooter {
+    margin-left: 36px !important;
+}
+
+body.wpt-admin.folded #wpadminbar {
+    left: 36px !important;
+}
+
+body.wpt-admin.folded .wpt-sidebar-logo h1,
+body.wpt-admin.folded .wpt-sidebar-search span,
+body.wpt-admin.folded .wpt-sidebar-search kbd,
+body.wpt-admin.folded .wpt-nav-label,
+body.wpt-admin.folded .wpt-sidebar-upgrade,
+body.wpt-admin.folded .wpt-sidebar-user-info,
+body.wpt-admin.folded #adminmenu .wp-menu-name {
+    display: none !important;
+}
+
+body.wpt-admin.folded #adminmenu a.menu-top {
+    justify-content: center !important;
+    padding: 8px !important;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 1150px) {
+    body.wpt-admin #wpbody-content {
+        padding: 1.25rem !important;
+    }
+}
+
+@media (max-width: 800px) {
+    body.wpt-admin #adminmenuwrap {
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+    }
+
+    body.wpt-admin.wp-responsive-open #adminmenuwrap {
+        transform: translateX(0);
+    }
+
+    body.wpt-admin #wpcontent,
+    body.wpt-admin #wpfooter {
+        margin-left: 0 !important;
+    }
+
+    body.wpt-admin #wpadminbar {
+        left: 0 !important;
+    }
+
+    html.wpt-active.wp-toolbar {
+        padding-top: var(--wpt-topbar-height) !important;
+    }
+}

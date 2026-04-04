@@ -16,6 +16,9 @@ includes/                      → Core classes (Core, Settings, Admin, Module_B
 modules/{category}/            → Module classes + their CSS/JS
 assets/admin/css/admin.css     → Shared settings page styles
 assets/admin/js/admin.js       → Shared settings page JS
+
+
+
 ```
 
 ## Naming Conventions
@@ -78,3 +81,35 @@ Red (human only): business decisions, credentials, security
 Phase: MODULE BUILDING
 Task: Build remaining 3 modules (2, 7, 10) using TDD with cross-model review
 Reference: docs/module-specs.md
+
+
+
+## Design System
+
+All admin UI styling is defined in assets/admin/reference/*.html.
+These are the finished design mockups. CSS values are extracted 
+verbatim — same hex, same px, same curves, same everything.
+
+Never modify colors, spacing, typography, border-radius, or 
+animations without explicit instruction. When in doubt, open the 
+reference HTML file and copy the CSS exactly.
+
+admin-global.css reskins the NATIVE WordPress admin sidebar and 
+chrome. We STYLE, we don't REPLACE. No remove_menu_page(). 
+Every third-party plugin's menu items must continue working.
+
+Primary reference: wp-transformation-final.html
+Tooltip pattern: tooltip-reference.html (extract tooltip only)
+
+## UI Restructure Spec
+
+The full UI restructure spec is at docs/ui-restructure-spec.md.
+It contains:
+- Sidebar structure (style-not-replace approach)
+- All 125 modules mapped to 28 parent modules across 7 categories
+- App page references (which HTML mockup maps to which page)
+- Module grid layout and interaction spec
+- Command palette spec
+- Activation wizard and default module selections
+
+Read this spec before making any admin UI changes.
