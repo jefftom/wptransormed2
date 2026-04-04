@@ -1,7 +1,7 @@
 # CLAUDE.md — WPTransformed
 
 ## What This Plugin Does
-Modular WordPress admin enhancement plugin. Replaces 15+ plugins with one. Currently building v1 with 10 modules.
+Modular WordPress admin enhancement plugin. Replaces 15+ plugins with one. Currently building v1 with 125 modules.
 
 ## Tech Stack (v1)
 - PHP 7.4+ (strict types)
@@ -78,28 +78,32 @@ Red (human only): business decisions, credentials, security
 
 ## Current Task
 <!-- Update this line before each Claude Code session -->
-Phase: MODULE BUILDING
-Task: Build remaining 3 modules (2, 7, 10) using TDD with cross-model review
-Reference: docs/module-specs.md
+Phase: UI RESTRUCTURE
+Task: Session 1 — Sidebar reskin, topbar, global styling
+Reference: docs/ui-restructure-spec.md Section 8
 
 
 
 ## Design System
 
-All admin UI styling is defined in assets/admin/reference/*.html.
-These are the finished design mockups. CSS values are extracted 
-verbatim — same hex, same px, same curves, same everything.
+All admin UI styling is defined in assets/admin/reference/ subfolders
+(dashboard/, components/, app-pages/). These are the finished design
+mockups. CSS values are extracted verbatim — same hex, same px, same
+curves, same everything.
 
-Never modify colors, spacing, typography, border-radius, or 
-animations without explicit instruction. When in doubt, open the 
+Only read the reference files specified for your current session.
+See docs/ui-restructure-spec.md Section 2 for the per-session file map.
+
+Never modify colors, spacing, typography, border-radius, or
+animations without explicit instruction. When in doubt, open the
 reference HTML file and copy the CSS exactly.
 
-admin-global.css reskins the NATIVE WordPress admin sidebar and 
-chrome. We STYLE, we don't REPLACE. No remove_menu_page(). 
+admin-global.css reskins the NATIVE WordPress admin sidebar and
+chrome. We STYLE, we don't REPLACE. No remove_menu_page().
 Every third-party plugin's menu items must continue working.
 
-Primary reference: wp-transformation-final.html
-Tooltip pattern: tooltip-reference.html (extract tooltip only)
+Primary reference: dashboard/wp-transformation-final.html
+Tooltip pattern: components/tooltip-reference.html (extract tooltip only)
 
 ## UI Restructure Spec
 
