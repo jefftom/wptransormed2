@@ -664,8 +664,30 @@ class Admin {
     public function inject_section_labels(): void {
         global $menu;
 
+        // Remove default WordPress separators (replaced by section labels)
+        unset( $menu[4] );   // separator1 (between Dashboard and Posts)
+        unset( $menu[99] );  // separator-last
+
+        // Move Plugins (65) and Users (70) into the CONFIGURE range
+        // so they appear after Settings (80) instead of between DESIGN and TOOLS.
+        if ( isset( $menu[65] ) ) {
+            $menu[81] = $menu[65];
+            unset( $menu[65] );
+        }
+        if ( isset( $menu[70] ) ) {
+            $menu[82] = $menu[70];
+            unset( $menu[70] );
+        }
+
+        // Inject section label separators.
+        // Positions chosen so core WP items fall into correct groups:
+        //   CONTENT:   Dashboard(2), Posts(5), Media(10), Pages(20), Comments(25)
+        //   SECURITY:  WPT security pages (26-58)
+        //   DESIGN:    Appearance(60), detected page builders
+        //   TOOLS:     Tools(75)
+        //   CONFIGURE: Settings(80), Plugins(81), Users(82), WPTransformed
         $labels = [
-            3  => 'content',
+            1  => 'content',
             41 => 'security',
             59 => 'design',
             74 => 'tools',

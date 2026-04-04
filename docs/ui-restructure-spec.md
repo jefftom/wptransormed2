@@ -1,4 +1,4 @@
-# WPTransformed UI Restructure — Final Spec v2
+# WPTransformed UI Restructure — Final Spec v3
 ## Complete admin transformation blueprint
 
 ---
@@ -13,22 +13,37 @@ The "holy shit" moment: activate → wizard → redirect → Editor Dashboard sh
 
 ---
 
-## 2. Reference Files (9 files)
+## 2. Reference Files
 
-Place in `assets/admin/reference/`. These ARE the design. CSS is extracted verbatim.
+Located in `assets/admin/reference/` organized by subfolder. These ARE the design. CSS is extracted verbatim — same hex, same px, same cubic-bezier, same everything.
 
-| File | Purpose |
-|------|---------|
-| `wp-transformation-final.html` | PRIMARY. Dashboard + module grid with sub-module expand panels, category sections, sidebar, topbar, bento stats, welcome banner, pill tabs, toggles, badges, command palette, dark/light mode, all animations. |
-| `wp-transformation-content.html` | Supplementary dashboard. Shows more categories (Media, Content sections) with better module density. |
-| `tooltip-reference.html` | Renamed from v4. Extract ONLY the tooltip CSS/HTML pattern. Ignore everything else in this file. |
-| `wp-transformation-editor.html` | Editor/Content Dashboard. Post stats, recent posts, upcoming scheduled, quick actions, writing tips. |
-| `command-palette-v3.html` | ⌘K command palette overlay. Grouped results, keyboard nav, fuzzy search. |
-| `database-optimizer-v3.html` | DB Optimizer app page. Bento stats, cleanup tasks, auto-cleanup sidebar, table sizes. |
-| `audit-log-v3.html` | Audit Log app page. Bento stats, filterable event table, search, pagination. |
-| `login-customizer-v3.html` | Login Customizer app page. Left settings + right live preview, template selector, device preview. |
-| `menu-editor-v3.html` | Menu Editor app page. Three-panel: live sidebar preview, drag-drop menu items, edit properties. |
-| `white-label-v3.html` | White Label app page. Settings form + live preview sidebar with branded admin. |
+```
+assets/admin/reference/
+├── dashboard/
+│   ├── wp-transformation-final.html      ← PRIMARY reference for everything
+│   ├── wp-transformation-content.html    ← More categories, module density
+│   └── wp-transformation-editor.html     ← Editor/Content Dashboard
+├── components/
+│   ├── tooltip-reference.html            ← Tooltip CSS ONLY
+│   └── command-palette-v3.html           ← ⌘K command palette
+└── app-pages/
+    ├── database-optimizer-v3.html        ← DB Optimizer app
+    ├── audit-log-v3.html                 ← Audit Log app
+    ├── login-customizer-v3.html          ← Login Customizer app
+    ├── menu-editor-v3.html               ← Menu Editor app
+    └── white-label-v3.html               ← White Label app
+```
+
+### Which files to read per session
+
+| Session | Read these files |
+|---------|-----------------|
+| 1: Sidebar + Topbar + Global | `dashboard/wp-transformation-final.html` only |
+| 2: Editor Dashboard | `dashboard/wp-transformation-editor.html` + `dashboard/wp-transformation-final.html` (for shared CSS vars) |
+| 3: Module Grid | `dashboard/wp-transformation-final.html` + `dashboard/wp-transformation-content.html` + `components/tooltip-reference.html` |
+| 4: DB Optimizer + Audit Log | `app-pages/database-optimizer-v3.html` + `app-pages/audit-log-v3.html` |
+| 5: Login + Menu + White Label | `app-pages/login-customizer-v3.html` + `app-pages/menu-editor-v3.html` + `app-pages/white-label-v3.html` |
+| 6: Command Palette | `components/command-palette-v3.html` |
 
 ---
 
@@ -56,7 +71,6 @@ CONTENT
   Menu Editor             → wpt-menu-editor (APP)
   ── if detected ──
   BuiltRight Forms        → forms plugin pages
-  Elementor / Divi / etc  → (goes under DESIGN, see below)
 
 ECOMMERCE (only if WooCommerce/EDD/SureCart active)
   Orders                  → WC orders
@@ -75,9 +89,7 @@ DESIGN
   ── if detected ──
   Elementor               → Elementor pages
   Divi Builder            → Divi pages
-  Bricks                  → Bricks pages
-  Oxygen                  → Oxygen pages
-  WPBakery                → WPBakery pages
+  Bricks / Oxygen / etc   → builder pages
 
 TOOLS
   Performance             → wpt-performance (dashboard)
@@ -88,11 +100,13 @@ CONFIGURE
   Modules            28   → wpt-modules (parent/sub grid)
   Settings                → options-general.php
   Users                   → users.php
+  Plugins                 → plugins.php
 ```
 
-### Sidebar styling rules (from mockups)
+### Sidebar styling rules (from dashboard/wp-transformation-final.html)
 - Background: `linear-gradient(165deg, #0f2847 0%, #1a4180 45%, #2563eb 100%)`
 - Dark mode bg: `linear-gradient(165deg, #071020 0%, #0d1f42 45%, #1e3a8a 100%)`
+- Width: 256px
 - Section labels: 9.5px uppercase, letter-spacing 1.1px, `rgba(255,255,255,0.3)`
 - Nav items: 13px, font-weight 500, `rgba(255,255,255,0.65)` default
 - Active item: `rgba(255,255,255,0.12)` bg, white text, green (#06d6a0) 3px left accent bar
@@ -100,706 +114,246 @@ CONFIGURE
 - Count badges: `rgba(6,214,160,0.15)` bg, `#06d6a0` text, 10px, 6px border-radius
 - PRO badge: `rgba(245,158,11,0.18)` bg, `#f59e0b` text, 8.5px uppercase
 - Search bar: `rgba(255,255,255,0.06)` bg, 9px border-radius, triggers ⌘K palette
-- Upgrade card: `rgba(255,255,255,0.06)` bg, 11px border-radius, pinned to bottom with `margin-top: auto`
-- Upgrade button: `#06d6a0` bg, `#0f172a` text, 8px border-radius
+- Upgrade card: `rgba(255,255,255,0.06)` bg, 11px border-radius, pinned bottom
 - Scrollbar: 4px width, `rgba(255,255,255,0.12)` thumb
-- Logo area: 36px icon with `rgba(255,255,255,0.12)` bg, 10px border-radius, backdrop-filter blur(8px)
-- Dividers: `rgba(255,255,255,0.08)`
-- User avatar at bottom: gradient bg `linear-gradient(135deg, var(--primary), var(--accent))`
+- Logo: 36px icon, `rgba(255,255,255,0.12)` bg, 10px border-radius
 
 ### What WP admin items map where
 | WP Default | Sidebar Section | Notes |
 |---|---|---|
-| Dashboard | Content → Dashboard | Replaced by Editor Dashboard page |
-| Posts | Content → Posts | Native page, restyled |
-| Pages | Content → Pages | Native page, restyled |
-| Media | Content → Media | Native page, enhanced by Media Library Pro |
-| Comments | Hidden by default | Shown if blog-focused wizard profile |
-| Appearance → Themes | Design → Appearance | Just themes |
-| Appearance → Menus | Content → Menu Editor | Replaced by WPT Menu Editor app |
-| Plugins | Configure → Settings (nested) | Admin-only, collapsed |
-| Users | Configure → Users | Native page, restyled |
-| Tools | Hidden | Functions absorbed by modules |
-| Settings | Configure → Settings | Native page, restyled |
+| Dashboard | Content → Dashboard | Replaced by Editor Dashboard |
+| Posts | Content → Posts | Native, restyled |
+| Pages | Content → Pages | Native, restyled |
+| Media | Content → Media | Native, enhanced |
+| Comments | Hidden by default | Shown if blog profile |
+| Appearance | Design → Appearance | Themes only |
+| Plugins | Configure → Plugins | Admin-only |
+| Users | Configure → Users | Native, restyled |
+| Tools | Hidden | Absorbed by modules |
+| Settings | Configure → Settings | Native, restyled |
 | WooCommerce | eCommerce section | If WC active |
-| Elementor | Design section | If Elementor active |
+| Elementor/Divi/etc | Design section | If detected |
+| Unrecognized plugins | Below CONFIGURE | Catch-all |
 
 ---
 
 ## 4. Module Hierarchy — All 125 Mapped
 
-28 parent modules across 7 categories.
-
----
+28 parent modules across 7 categories. Full mapping in `docs/module-hierarchy.md`.
 
 ### CORE (6 parents · 25 modules)
-
-**1. Admin Bar Manager** — POPULAR
-- clean-admin-bar
-- admin-bar-enhancer
-- hide-admin-bar
-- command-palette
-- wider-admin-menu
-
-**2. Dashboard Manager**
-- hide-dashboard-widgets
-- dashboard-columns
-- activity-feed
-- admin-quick-notes
-- client-dashboard
-- duplicate-widget
-
-**3. Notifications & Notices**
-- hide-admin-notices
-- notification-center
-
-**4. List Tables & Columns** — NEW
-- enhance-list-tables
-- admin-columns-enhancer
-- admin-columns-pro
-- page-template-column
-- registration-date-column
-- search-visibility-status
-- taxonomy-filter
-- last-login-column
-- active-plugins-first
-
-**5. Keyboard Shortcuts & Bookmarks**
-- keyboard-shortcuts
-- admin-bookmarks
-
-**6. User & Role Manager**
-- multiple-user-roles
-- user-role-editor
-- session-manager
-- temporary-user-access
-- view-as-role
-
----
+1. Admin Bar Manager [POPULAR] — 5 subs
+2. Dashboard Manager — 6 subs
+3. Notifications & Notices — 2 subs
+4. List Tables & Columns [NEW] — 9 subs
+5. Keyboard Shortcuts & Bookmarks — 2 subs
+6. User & Role Manager — 5 subs
 
 ### CONTENT (6 parents · 29 modules)
-
-**7. Content Tools** — POPULAR
-- content-duplication
-- content-order
-- terms-order
-- bulk-edit-posts
-- post-type-switcher
-- public-preview
-- external-links-new-tab
-- external-permalinks
-- disable-comments
-- form-builder
-
-**8. Content Scheduling & Workflow**
-- content-calendar
-- auto-publish-missed
-- workflow-automation
-
-**9. Editor Enhancements**
-- disable-gutenberg
-- page-hierarchy-organizer
-- preserve-taxonomy-hierarchy
-
-**10. Media Library Pro** — POPULAR
-- media-folders
-- media-replace
-- svg-upload
-- avif-upload
-- image-sizes-panel
-- media-visibility-control
-- media-infinite-scroll
-- local-user-avatar
-
-**11. Navigation & Menus** — POPULAR · APP PAGE
-- admin-menu-editor
-- smart-menu-organizer
-- custom-nav-new-tab
-- duplicate-menu
-
-**12. Page Builder Cleanup** — NEW
-- (sub-modules dynamically generated per detected builder)
-- (restrict builder by post type)
-- (optimize builder CSS/JS loading)
-- (clean builder shortcodes on deactivation)
-
----
+7. Content Tools [POPULAR] — 10 subs
+8. Content Scheduling & Workflow — 3 subs
+9. Editor Enhancements — 3 subs
+10. Media Library Pro [POPULAR] — 8 subs
+11. Navigation & Menus [POPULAR] [APP] — 4 subs
+12. Page Builder Cleanup [NEW] — dynamic subs
 
 ### SECURITY (4 parents · 13 modules)
-
-**13. Firewall & Hardening** — POPULAR
-- disable-xmlrpc
-- password-protection
-- disable-rest-api
-- disable-rest-fields
-- email-obfuscator
-- obfuscate-author-slugs
-
-**14. Login Protection** — APP PAGE
-- limit-login-attempts
-- captcha-protection
-- change-login-url
-- login-id-type
-- login-logout-menu
-- redirect-after-login
-
-**15. Two-Factor Auth** — PRO
-- two-factor-auth
-- passkey-auth
-
-**16. Audit Log** — APP PAGE
-- audit-log
-
----
+13. Firewall & Hardening [POPULAR] — 6 subs
+14. Login Protection [APP] — 6 subs
+15. Two-Factor Auth [PRO] — 2 subs
+16. Audit Log [APP] — 1 sub
 
 ### PERFORMANCE (4 parents · 15 modules)
-
-**17. Asset Optimizer** — POPULAR · NEW
-- minify-assets
-- disable-embeds
-- disable-emojis
-- auto-clear-caches
-
-**18. Image Optimizer** — NEW
-- image-upload-control
-- image-srcset-control
-- lazy-load
-
-**19. Site Speed**
-- heartbeat-control
-- disable-self-pingbacks
-- disable-attachment-pages
-- disable-author-archives
-- disable-feeds
-- revision-control
-
-**20. Database Optimizer** — APP PAGE
-- database-cleanup
-
----
+17. Asset Optimizer [POPULAR] [NEW] — 4 subs
+18. Image Optimizer [NEW] — 3 subs
+19. Site Speed — 6 subs
+20. Database Optimizer [APP] — 1 sub
 
 ### DESIGN (3 parents · 8 modules)
-
-**21. Login Designer** — POPULAR · APP PAGE
-- login-customizer
-- site-identity-login
-
-**22. White Label** — PRO · APP PAGE
-- white-label
-- custom-admin-footer
-
-**23. Admin Theme**
-- dark-mode
-- admin-color-schemes
-- environment-indicator
-- admin-body-classes
-
----
+21. Login Designer [POPULAR] [APP] — 2 subs
+22. White Label [PRO] [APP] — 2 subs
+23. Admin Theme — 4 subs
 
 ### DEVELOPER (4 parents · 23 modules)
+24. Code Snippets [POPULAR] — 5 subs
+25. Debug Tools [PRO] — 3 subs
+26. Custom Post Types [PRO] — 1 sub
+27. Site Utilities — 9 subs
+28. Developer Tools — 7 subs
 
-**24. Code Snippets** — POPULAR
-- code-snippets
-- custom-admin-css
-- custom-frontend-code
-- custom-frontend-css
-- custom-body-class
+### ECOMMERCE (1 parent · 5 modules · detected only)
+29. WooCommerce Enhancements — 5 subs
 
-**25. Debug Tools** — PRO
-- plugin-profiler
-- error-log-viewer
-- system-summary
-
-**26. Custom Post Types** — PRO
-- custom-content-types
-
-**27. Site Utilities**
-- maintenance-mode
-- redirect-manager
-- redirect-404
-- 404-monitor
-- broken-link-checker
-- cookie-consent
-- email-smtp
-- email-log
-- disable-updates
-
-**28. Developer Tools**
-- search-replace
-- cron-manager
-- file-manager
-- webhook-manager
-- ads-txt-manager
-- robots-txt-manager
-- export-import-settings
+### SYSTEM (internal)
+setup-wizard — not shown as module card
 
 ---
 
-### ECOMMERCE (1 parent · 5 modules · only if WC/EDD active)
+## 5. App Pages
 
-**29. WooCommerce Enhancements**
-- woo-admin-cleanup
-- woo-custom-statuses
-- woo-disable-reviews
-- woo-empty-cart-button
-- woo-login-redirect
-
----
-
-### SYSTEM (internal, not shown as module card)
-- setup-wizard
-
----
-
-## 5. App Pages (Purpose-Built UIs)
-
-These modules get their own full admin page with a purpose-built UI. Match the corresponding reference HTML file exactly.
-
-| App Page | Reference File | Key UI Elements |
-|----------|---------------|-----------------|
-| Database Optimizer | database-optimizer-v3.html | Bento stats (DB size, tables, cleanable, savings), cleanup task list with counts/sizes/Clean buttons, auto-cleanup sidebar toggles, largest tables grid, last cleanup status |
-| Audit Log | audit-log-v3.html | Bento stats (events, logins, failed, blocked), search + filter dropdowns, color-coded event table, pagination, export CSV |
-| Login Designer | login-customizer-v3.html | Left panel (templates, colors, form style, option toggles), right panel live preview, device preview bar, Reset + Save |
-| Menu Editor | menu-editor-v3.html | Three-panel: left live sidebar preview, center drag-drop menu list, right edit properties (title, URL, icon, role visibility) |
-| White Label | white-label-v3.html | Branding (name, desc, icon/logo uploads), colors, developer info, hide elements toggles, live preview sidebar |
-| Editor Dashboard | wp-transformation-editor.html | Welcome banner, bento stats (posts/drafts/scheduled/review), quick actions grid, recent posts list, upcoming calendar, writing tip |
-| Login Protection | (no mockup — build matching design system) | Bento stats, login attempt log, settings toggles, blocked IPs |
-| Security Overview | (no mockup — build matching design system) | Aggregate security dashboard: threat stats, recent events, hardening checklist |
-| Performance Overview | (no mockup — build matching design system) | Aggregate speed dashboard: scores, recommendations, before/after |
+| App Page | Reference | Key Elements |
+|----------|-----------|-------------|
+| Database Optimizer | `app-pages/database-optimizer-v3.html` | Bento stats, cleanup tasks, auto-cleanup sidebar |
+| Audit Log | `app-pages/audit-log-v3.html` | Bento stats, event table, filters, pagination |
+| Login Designer | `app-pages/login-customizer-v3.html` | Settings + live preview, templates |
+| Menu Editor | `app-pages/menu-editor-v3.html` | Three-panel, drag-drop |
+| White Label | `app-pages/white-label-v3.html` | Settings + live preview, PRO |
+| Editor Dashboard | `dashboard/wp-transformation-editor.html` | Content workspace, real WP data |
+| Login Protection | No mockup — match design system | Bento stats, login log |
+| Security Overview | No mockup — match design system | Aggregate dashboard |
+| Performance Overview | No mockup — match design system | Aggregate dashboard |
 
 ---
 
 ## 6. Activation Sequence
 
-```
-1. Activate WPTransformed
-   └→ Fullscreen wizard overlay (no WP chrome visible)
+1. Activate → fullscreen wizard
+2. Pick profile: Blogger / Agency / Store Owner / Developer
+3. Pick vibe: Dark / Light / Match System
+4. Review pre-checked modules → Apply & Transform
+5. Redirect → Editor Dashboard
 
-2. Wizard Step 1: "What describes you best?"
-   [ Blogger ] [ Agency ] [ Store Owner ] [ Developer ]
-
-3. Wizard Step 2: "Pick your vibe"
-   [ Dark Mode ] [ Light Mode ] [ Match System ]
-
-4. Wizard Step 3: "Here's what we're enabling"
-   (pre-checked modules based on profile, user can uncheck)
-   [ Apply & Transform → ]
-
-5. REDIRECT → Editor Dashboard (admin.php?page=wpt-dashboard)
-   - Sidebar is now the styled gradient nav
-   - Menu items reorganized into sections by Smart Menu Organizer
-   - Welcome banner greets by name with content stats
-   - Bento cards show actual post counts
-   - Quick Actions: New Post, New Page, Upload Media
-   - ⌘K hint visible in sidebar search bar
-```
-
-### Default Active Modules (all profiles)
-- Command Palette (⌘K)
-- Clean Admin Bar + Admin Bar Enhancer (Howdy→Welcome)
-- Hide Admin Notices → Notification Center
-- Disable Emojis
-- Disable Self Pingbacks
-- Heartbeat Control (60s)
-- SVG Upload
-- Content Duplication
-- Last Login Column
-- Enhance List Tables (ID column, thumbnails)
-- Environment Indicator (auto-detect)
-- Smart Menu Organizer
-- Admin Theme / Dark Mode (auto from OS preference)
-
-### Profile-based additions
-- **Blogger**: revision-control, content-calendar, lazy-load, image-upload-control
-- **Agency**: keyboard-shortcuts, admin-bookmarks, code-snippets, client-dashboard, database-cleanup, white-label, multiple-user-roles
-- **Store Owner**: woo-admin-cleanup, cookie-consent, lazy-load, image-upload-control
-- **Developer**: keyboard-shortcuts, code-snippets, plugin-profiler, error-log-viewer, admin-body-classes
+### Default Active (all profiles)
+Command Palette, Clean Admin Bar, Admin Bar Enhancer, Hide Admin Notices, Notification Center, Disable Emojis, Disable Self Pingbacks, Heartbeat Control, SVG Upload, Content Duplication, Last Login Column, Enhance List Tables, Environment Indicator, Smart Menu Organizer, Dark Mode (OS auto)
 
 ### Never on by default
-change-login-url, disable-gutenberg, disable-rest-api, disable-updates, password-protection, code-snippets (eval risk), search-replace, file-manager, any PRO module
+change-login-url, disable-gutenberg, disable-rest-api, disable-updates, password-protection, code-snippets, search-replace, file-manager, any PRO module
 
 ---
 
 ## 7. Free vs Pro
 
-### Pro parent modules (entire parent gated)
-- Two-Factor Auth
-- Custom Post Types
-- Debug Tools
-- White Label
-
-### Pro sub-modules (within free parents)
-- avif-upload (Image Optimizer)
-- passkey-auth (Two-Factor Auth)
-- workflow-automation (Content Scheduling)
-- admin-columns-pro (List Tables)
-- webhook-manager (Developer Tools)
-- temporary-user-access (User & Role Manager)
+**Pro parents:** Two-Factor Auth, Custom Post Types, Debug Tools, White Label
+**Pro subs:** avif-upload, passkey-auth, workflow-automation, admin-columns-pro, webhook-manager, temporary-user-access
 
 ---
 
-## 8. Claude Code Prompt
+## 8. Session Prompts
 
-Copy everything in the code block below into Claude Code:
-
-```
-Read ALL HTML files in assets/admin/reference/. These are the 
-design system mockups for WPTransformed's admin UI:
-
-- wp-transformation-final.html — PRIMARY dashboard reference
-- wp-transformation-content.html — Supplementary, more categories
-- tooltip-reference.html — Tooltip CSS ONLY, merge into final
-- wp-transformation-editor.html — Editor/Content Dashboard
-- command-palette-v3.html — ⌘K command palette overlay
-- database-optimizer-v3.html — DB Optimizer app page
-- audit-log-v3.html — Audit Log app page  
-- login-customizer-v3.html — Login Customizer app page
-- menu-editor-v3.html — Menu Editor app page
-- white-label-v3.html — White Label app page
-
-═══════════════════════════════════════════════════════
-CRITICAL DESIGN RULE
-═══════════════════════════════════════════════════════
-
-You are NOT designing anything. The design is DONE. It lives 
-in these HTML files.
-
-Your job is to EXTRACT the existing CSS from these files and 
-port it into the plugin's admin stylesheets — VERBATIM. Same 
-hex values, same border-radius values, same cubic-bezier curves, 
-same font sizes, same padding, same backdrop-filter values, 
-same gradients, same animation keyframes.
-
-Do NOT simplify, "improve", or reinterpret any CSS. If the 
-mockup says border-radius: 14px, you write 14px — not 12px, 
-not 1rem. If the mockup uses cubic-bezier(0.22,1,0.36,1), use 
-that exact curve. If the sidebar gradient is 
-linear-gradient(165deg, #0f2847 0%, #1a4180 45%, #2563eb 100%), 
-that is the gradient. Period.
-
-The HTML structure can change to accommodate WordPress PHP 
-rendering. The CSS values cannot change.
-
-After writing any CSS, open each reference mockup and diff your 
-output against the source. Any deviation is a bug.
-
-═══════════════════════════════════════════════════════
-SIDEBAR — STYLE, DON'T REPLACE
-═══════════════════════════════════════════════════════
-
-CRITICAL: Do NOT use remove_menu_page() or remove_submenu_page() 
-to hide WordPress menu items. Do NOT build a custom sidebar from 
-scratch. This would break every third-party plugin's menu items.
-
-Instead, STYLE the existing WP admin sidebar:
-
-1. admin-global.css already exists in the repo with --wpt-* CSS 
-   variables and a native sidebar reskin approach. UPDATE its 
-   values to match the mockup files exactly. The current sidebar 
-   gradient is wrong (zinc/dark). The correct gradient from the 
-   mockup is: linear-gradient(165deg, #0f2847 0%, #1a4180 45%, #2563eb 100%)
-
-2. Apply CSS to #adminmenu, #adminmenuwrap, #adminmenuback to 
-   achieve the mockup's sidebar appearance: gradient bg, Outfit 
-   font, item spacing, hover states, active state with green 
-   left accent bar, rounded items, section label styling.
-
-3. PHP hook on admin_menu (priority 999) injects section label 
-   separators into the menu: CONTENT, ECOMMERCE (conditional), 
-   SECURITY, DESIGN, TOOLS, CONFIGURE. These are added as menu 
-   separator items with custom CSS classes for the section label 
-   styling from the mockup.
-
-4. Smart Menu Organizer module handles reordering existing WP 
-   menu items into the correct section groups via JS/PHP. It 
-   detects WooCommerce, page builders (Elementor, Divi, Bricks, 
-   Oxygen, WPBakery), and BuiltRight Forms — slotting their 
-   menu items into the appropriate sections.
-
-5. JS injects additional DOM elements into #adminmenuwrap:
-   - Search bar at top (triggers command palette)
-   - Upgrade card at bottom
-   - User profile/avatar at very bottom
-   These are injected elements, not replacements.
-
-6. The WP admin bar (#wpadminbar) gets RESTYLED as a glassmorphic 
-   topbar matching the mockup: sticky, glass blur bg, breadcrumb 
-   left side, theme toggle + notification bell + user avatar on 
-   right. Use existing admin bar hooks where possible.
-
-Sidebar section order for Smart Menu Organizer:
-- CONTENT: Dashboard(index.php), Posts(edit.php), Pages(edit.php?post_type=page), Media(upload.php), Menu Editor(wpt-menu-editor)
-- ECOMMERCE: (WooCommerce/EDD items, only if active)
-- SECURITY: Overview(wpt-security), Audit Log(wpt-audit-log), Login Protection(wpt-login-protection)
-- DESIGN: Login Page(wpt-login-designer), White Label(wpt-white-label), Appearance(themes.php), (detected page builder items)
-- TOOLS: Performance(wpt-performance), Database(wpt-database), Developer(wpt-developer)
-- CONFIGURE: Modules(wpt-modules), Settings(options-general.php), Users(users.php)
-
-Items not in this map get placed in a "More" section or hidden 
-based on the user's wizard profile.
-
-═══════════════════════════════════════════════════════
-MODULE GRID (admin.php?page=wpt-modules)
-═══════════════════════════════════════════════════════
-
-Match wp-transformation-final.html layout exactly: parent module 
-cards grouped by category section headers, with expandable 
-sub-module panels.
-
-Pill tab filters: All | Core | Content | Security | Performance | Design | Dev | eCommerce
-Grid/list view toggle buttons
-Search bar within modules section
-Tooltip on card hover (from tooltip-reference.html)
-
-7 categories, 28+ parent modules:
-
-CORE (blue, 6 parents):
-1. Admin Bar Manager [POPULAR] — 5 subs: clean-admin-bar, admin-bar-enhancer, hide-admin-bar, command-palette, wider-admin-menu
-2. Dashboard Manager — 6 subs: hide-dashboard-widgets, dashboard-columns, activity-feed, admin-quick-notes, client-dashboard, duplicate-widget
-3. Notifications & Notices — 2 subs: hide-admin-notices, notification-center
-4. List Tables & Columns [NEW] — 9 subs: enhance-list-tables, admin-columns-enhancer, admin-columns-pro, page-template-column, registration-date-column, search-visibility-status, taxonomy-filter, last-login-column, active-plugins-first
-5. Keyboard Shortcuts & Bookmarks — 2 subs: keyboard-shortcuts, admin-bookmarks
-6. User & Role Manager — 5 subs: multiple-user-roles, user-role-editor, session-manager, temporary-user-access, view-as-role
-
-CONTENT (violet, 6 parents):
-7. Content Tools [POPULAR] — 10 subs: content-duplication, content-order, terms-order, bulk-edit-posts, post-type-switcher, public-preview, external-links-new-tab, external-permalinks, disable-comments, form-builder
-8. Content Scheduling & Workflow — 3 subs: content-calendar, auto-publish-missed, workflow-automation
-9. Editor Enhancements — 3 subs: disable-gutenberg, page-hierarchy-organizer, preserve-taxonomy-hierarchy
-10. Media Library Pro [POPULAR] — 8 subs: media-folders, media-replace, svg-upload, avif-upload, image-sizes-panel, media-visibility-control, media-infinite-scroll, local-user-avatar
-11. Navigation & Menus [POPULAR] [APP PAGE] — 4 subs: admin-menu-editor, smart-menu-organizer, custom-nav-new-tab, duplicate-menu
-
-SECURITY (rose, 4 parents):
-12. Firewall & Hardening [POPULAR] — 6 subs: disable-xmlrpc, password-protection, disable-rest-api, disable-rest-fields, email-obfuscator, obfuscate-author-slugs
-13. Login Protection [APP PAGE] — 6 subs: limit-login-attempts, captcha-protection, change-login-url, login-id-type, login-logout-menu, redirect-after-login
-14. Two-Factor Auth [PRO] — 2 subs: two-factor-auth, passkey-auth
-15. Audit Log [APP PAGE] — 1 sub: audit-log
-
-PERFORMANCE (green, 4 parents):
-16. Asset Optimizer [POPULAR] [NEW] — 4 subs: minify-assets, disable-embeds, disable-emojis, auto-clear-caches
-17. Image Optimizer [NEW] — 3 subs: image-upload-control, image-srcset-control, lazy-load
-18. Site Speed — 6 subs: heartbeat-control, disable-self-pingbacks, disable-attachment-pages, disable-author-archives, disable-feeds, revision-control
-19. Database Optimizer [APP PAGE] — 1 sub: database-cleanup
-
-DESIGN (sky/teal, 3 parents):
-20. Login Designer [POPULAR] [APP PAGE] — 2 subs: login-customizer, site-identity-login
-21. White Label [PRO] [APP PAGE] — 2 subs: white-label, custom-admin-footer
-22. Admin Theme — 4 subs: dark-mode, admin-color-schemes, environment-indicator, admin-body-classes
-
-DEVELOPER (amber, 4 parents):
-23. Code Snippets [POPULAR] — 5 subs: code-snippets, custom-admin-css, custom-frontend-code, custom-frontend-css, custom-body-class
-24. Debug Tools [PRO] — 3 subs: plugin-profiler, error-log-viewer, system-summary
-25. Custom Post Types [PRO] — 1 sub: custom-content-types
-26. Site Utilities — 9 subs: maintenance-mode, redirect-manager, redirect-404, 404-monitor, broken-link-checker, cookie-consent, email-smtp, email-log, disable-updates
-27. Developer Tools — 7 subs: search-replace, cron-manager, file-manager, webhook-manager, ads-txt-manager, robots-txt-manager, export-import-settings
-
-ECOMMERCE (only if WC/EDD active, 1 parent):
-28. WooCommerce Enhancements — 5 subs: woo-admin-cleanup, woo-custom-statuses, woo-disable-reviews, woo-empty-cart-button, woo-login-redirect
-
-Each parent card has:
-- Color-coded icon matching category color
-- Toggle switch (enables/disables entire parent + all subs)
-- Name + one-line description
-- Sub-module count: "4/6 sub-modules" with puzzle-piece icon
-- Badges: POPULAR (blue), NEW (green), PRO (amber)
-- "Configure Sub-modules ▾" expandable button
-- Expanded panel shows individual sub-module rows with their own toggles
-- If module has APP PAGE: "Open [Name] →" link/button on the card
-
-Category section headers with:
-- Color-coded icon
-- Category name (bold)
-- "X of Y active" count (right-aligned, muted)
-- Border-bottom divider
-
-═══════════════════════════════════════════════════════
-APP PAGES
-═══════════════════════════════════════════════════════
-
-Build purpose-built UIs matching reference HTML files exactly:
-
-1. Database Optimizer → database-optimizer-v3.html
-2. Audit Log → audit-log-v3.html
-3. Login Designer → login-customizer-v3.html
-4. Menu Editor → menu-editor-v3.html
-5. White Label → white-label-v3.html
-6. Editor Dashboard → wp-transformation-editor.html
-7. Login Protection → no mockup, build matching design system
-8. Security Overview → no mockup, aggregate dashboard
-9. Performance Overview → no mockup, aggregate dashboard
-
-Pages WITHOUT mockups (7, 8, 9) should use the same design 
-system patterns: topbar header with action buttons, bento stat 
-cards, content area with card containers, same CSS variables 
-and component styles from the primary mockup.
-
-═══════════════════════════════════════════════════════
-COMMAND PALETTE
-═══════════════════════════════════════════════════════
-
-Match command-palette-v3.html exactly. Available on EVERY admin 
-page, not just WPT pages.
-
-Searches across:
-- Quick Actions: New Post, New Page, New Product (if WC), Upload Media
-- Navigate: All sidebar destinations
-- Modules: Toggle any module on/off directly from palette
-- WP Pages: Jump to any WP admin page
-
-⌘K / Ctrl+K to open. Escape to close. Click outside to close.
-Arrow keys + Enter for keyboard navigation.
-Grouped results with section labels (QUICK ACTIONS, NAVIGATE, MODULES).
-Fuzzy search matching.
-
-═══════════════════════════════════════════════════════
-TOPBAR
-═══════════════════════════════════════════════════════
-
-Restyle #wpadminbar as the glassmorphic topbar from the mockup:
-- Sticky, glass blur background: backdrop-filter: blur(20px)
-- Left side: page title (bold) + separator dot + breadcrumb (muted)
-- Right side: theme toggle button (moon/sun), notification bell 
-  (with red dot if admin notices), user avatar (initials on gradient)
-- Height: 58px
-- Border-bottom: 1px solid var(--border)
-- All button styles from mockup: 36x36px, 9px radius, border, 
-  hover shows primary glow
-
-═══════════════════════════════════════════════════════
-GLOBAL ADMIN RESTYLING
-═══════════════════════════════════════════════════════
-
-Every WP admin page inherits the design system:
-- Outfit font family on all admin text
-- Card-style containers (glassmorphic) for WP admin postboxes
-- Styled buttons matching mockup (primary = blue, rounded)
-- Form inputs: rounded corners, proper padding, border styling
-- List tables get card treatment with proper spacing
-- Google Fonts (Outfit + JetBrains Mono) + Font Awesome 6 
-  enqueued on ALL admin pages, not just WPT pages
-
-═══════════════════════════════════════════════════════
-FILE STRUCTURE
-═══════════════════════════════════════════════════════
-
-- assets/admin/css/admin-global.css — EXISTS. Update CSS vars + 
-  expand with full design system from mockups
-- assets/admin/css/admin.css — WPT-specific page styles (dashboard, 
-  module grid, app pages)
-- assets/admin/js/admin.js — All interactions: module toggles, 
-  command palette, theme toggle, animated counters, sub-module 
-  expand/collapse
-- includes/admin/class-admin.php — Page rendering, menu hooks, 
-  sidebar injection, admin bar restyling
-- includes/admin/class-editor-dashboard.php — Editor Dashboard
-- includes/admin/class-module-grid.php — Parent/sub-module grid
-- includes/admin/views/ — PHP templates for each app page
-
-═══════════════════════════════════════════════════════
-IMPLEMENTATION NOTES
-═══════════════════════════════════════════════════════
-
-1. DO NOT remove_menu_page(). Style native sidebar via CSS.
-2. Module toggles save via AJAX to wp_options. Optimistic UI — 
-   toggle immediately in JS, revert on AJAX failure.
-3. Sub-module expand/collapse: max-height 0→500px transition 
-   with cubic-bezier(0.22,1,0.36,1).
-4. Dark/light mode persists to localStorage AND wp_usermeta.
-5. Fonts + FA6 enqueued on ALL admin pages.
-6. Command palette available on EVERY admin page.
-7. App pages use real data from their modules, not dummy data.
-8. Parent/sub-module grouping defined in a PHP registry array 
-   that maps each module class file to its parent and category 
-   per the hierarchy above.
-9. Detected plugins (WooCommerce, page builders, BuiltRight 
-   Forms) checked via is_plugin_active() — sidebar sections 
-   and module grid categories conditionally rendered.
-10. The parent toggle enables/disables ALL child sub-modules. 
-    Individual sub-modules can be toggled independently.
-11. setup-wizard is internal — not shown in module grid.
-12. Page Builder Cleanup sub-modules are dynamically generated 
-    based on which builders are detected.
-```
-
----
-
-## 9. CLAUDE.md Addition
-
-Add this to the repo's CLAUDE.md:
+### Session 1: Sidebar + Topbar + Global
 
 ```
-## Design System
+Read assets/admin/reference/dashboard/wp-transformation-final.html.
+This is the PRIMARY and ONLY design reference for this session.
 
-All admin UI styling is defined in assets/admin/reference/*.html.
-These are the finished design mockups. CSS values are extracted 
-verbatim — same hex, same px, same curves, same everything.
+CRITICAL: You are NOT designing. Extract CSS VERBATIM.
+CRITICAL: STYLE native WP admin. No remove_menu_page().
 
-Never modify colors, spacing, typography, border-radius, or 
-animations without explicit instruction. When in doubt, open the 
-reference HTML file and copy the CSS exactly.
+1. Update admin-global.css --wpt-* vars to match mockup.
+   Sidebar gradient: linear-gradient(165deg, #0f2847 0%, #1a4180 45%, #2563eb 100%)
+   Sidebar width: 256px
 
-admin-global.css reskins the NATIVE WordPress admin sidebar and 
-chrome. We STYLE, we don't REPLACE. No remove_menu_page(). 
-Every third-party plugin's menu items must continue working.
+2. Style #adminmenu/#adminmenuwrap: gradient bg, Outfit font,
+   nav spacing, hover, active green accent bar.
 
-Primary reference: wp-transformation-final.html
-Tooltip pattern: tooltip-reference.html (extract tooltip only)
+3. PHP admin_menu (priority 999): inject section separators.
+   Map: CONTENT (Dashboard,Posts,Media,Pages,Comments),
+   SECURITY (WPT security pages), DESIGN (Appearance, detected builders),
+   TOOLS (Tools), CONFIGURE (Plugins,Users,Settings,WPTransformed).
+   Unrecognized plugins go below CONFIGURE.
+
+4. JS inject: search bar top, upgrade card bottom, user avatar bottom.
+
+5. Restyle #wpadminbar: 58px, sticky, glass blur. Left: title+breadcrumb.
+   Right: theme toggle, bell, avatar.
+
+6. Enqueue Outfit + JetBrains Mono + FA6 on ALL admin pages.
+
+7. Dark/light toggle. Persist localStorage + user_meta.
+
+8. Global: Outfit body font, card postboxes, styled buttons/inputs.
+   Max-width 1340px content areas.
+
+Diff CSS against mockup after each task.
+Commit: "Session 1: Sidebar reskin, topbar, global styling"
 ```
-
----
-
-## 10. Session Plan
-
-### Session 1: Sidebar Reskin + Topbar + Global Styling
-- Update admin-global.css with mockup CSS values
-- Style #adminmenu with gradient, fonts, spacing, active states
-- Inject section labels (CONTENT, SECURITY, DESIGN, etc.)
-- Inject search bar, upgrade card, user avatar into sidebar
-- Restyle #wpadminbar as glassmorphic topbar
-- Dark/light mode toggle
-- Outfit + JetBrains Mono + FA6 on all admin pages
 
 ### Session 2: Editor Dashboard
-- Build content workspace as default landing page
-- Real WP queries: wp_count_posts, get_posts for recent/upcoming
-- Bento stat cards with animated counters
-- Quick Actions grid
-- Welcome banner with dynamic greeting
 
-### Session 3: Module Grid Restructure
-- Build parent/sub-module PHP registry (28 parents, 125 modules)
-- Category-grouped card grid with expandable sub-module panels
-- Pill tab filtering + search + grid/list toggle
-- AJAX toggles for parent and sub-module switches
-- Badges, sub-module counts, APP PAGE links
-- Tooltip on hover
+```
+Read assets/admin/reference/dashboard/wp-transformation-editor.html.
+Read assets/admin/reference/dashboard/wp-transformation-final.html for shared CSS vars.
 
-### Session 4: App Pages — Database Optimizer + Audit Log
-- DB Optimizer full page from mockup, real data
-- Audit Log full page from mockup, real data
+Build admin.php?page=wpt-dashboard — the default landing page.
+Match editor mockup exactly. Real WP data, not dummy data.
 
-### Session 5: App Pages — Login Designer + Menu Editor + White Label
-- Login Customizer with live preview
-- Menu Editor with drag-drop and live preview
-- White Label with live preview
-- PRO badge and gating logic
+Commit: "Session 2: Editor Dashboard with real data"
+```
 
-### Session 6: Command Palette + Plugin Detection
-- Command palette on all admin pages
-- Fuzzy search across modules, pages, actions
-- WooCommerce / page builder / Forms detection
-- Conditional sidebar sections + eCommerce category
-- Smart Menu Organizer reordering
+### Session 3: Module Grid
 
-### Session 7: Activation Wizard + Defaults
-- Setup wizard with profile selection
-- Default module activation per profile
-- Dark/light mode preference
-- Redirect to Editor Dashboard on completion
+```
+Read assets/admin/reference/dashboard/wp-transformation-final.html.
+Read assets/admin/reference/dashboard/wp-transformation-content.html.
+Read assets/admin/reference/components/tooltip-reference.html.
+Read docs/module-hierarchy.md.
 
-### Session 8: QA + Polish
-- Animation polish (fadeUp stagger, counter, orb-drift)
-- Responsive breakpoints (1150px, 800px)
-- Plugin compatibility testing
-- Accessibility (keyboard nav, screen readers, contrast)
-- Performance audit (CSS/JS weight on admin pages)
-- Edge cases: multisite, RTL, non-English
+Restructure admin.php?page=wpt-modules: 28 parents, 7 categories,
+expandable sub-module panels, pill tabs, search, tooltips, badges,
+APP PAGE links, AJAX toggles. setup-wizard NOT shown.
+
+Commit: "Session 3: Parent/sub-module grid"
+```
+
+### Session 4: DB Optimizer + Audit Log
+
+```
+Read assets/admin/reference/app-pages/database-optimizer-v3.html.
+Read assets/admin/reference/app-pages/audit-log-v3.html.
+
+Build both app pages matching mockups exactly. Real data.
+Commit: "Session 4: DB Optimizer + Audit Log app pages"
+```
+
+### Session 5: Login + Menu + White Label
+
+```
+Read assets/admin/reference/app-pages/login-customizer-v3.html.
+Read assets/admin/reference/app-pages/menu-editor-v3.html.
+Read assets/admin/reference/app-pages/white-label-v3.html.
+
+Build 3 app pages matching mockups. PRO gating on White Label.
+Commit: "Session 5: Login Designer, Menu Editor, White Label"
+```
+
+### Session 6: Command Palette + Detection
+
+```
+Read assets/admin/reference/components/command-palette-v3.html.
+
+Command palette on ALL admin pages. ⌘K/Ctrl+K. Fuzzy search.
+Plugin detection: WooCommerce, Elementor, Divi, Bricks, Oxygen, WPBakery, BuiltRight Forms.
+
+Commit: "Session 6: Command palette + plugin detection"
+```
+
+### Session 7: Wizard
+
+```
+Build setup wizard per spec Section 6. Profile, dark/light, defaults.
+Redirect to Editor Dashboard.
+Commit: "Session 7: Activation wizard"
+```
+
+### Session 8: QA
+
+```
+Polish: animations, responsive (1150px, 800px), accessibility,
+plugin compat, performance audit, edge cases.
+Commit: "Session 8: QA and polish"
+```
+
+---
+
+## 9. Implementation Rules
+
+1. STYLE native admin. No remove_menu_page().
+2. Module toggles: AJAX to wp_options, optimistic UI.
+3. Sub-module expand: max-height 0→500px, cubic-bezier(0.22,1,0.36,1).
+4. Dark/light: localStorage + wp_usermeta.
+5. Fonts + FA6: ALL admin pages.
+6. Command palette: ALL admin pages.
+7. App pages: real data, not dummy.
+8. Parent toggle enables/disables all children.
+9. Detected plugins (WC, builders, Forms): is_plugin_active(), conditional sidebar.
+10. setup-wizard: internal, not in module grid.
