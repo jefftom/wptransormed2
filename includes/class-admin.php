@@ -646,14 +646,14 @@ class Admin {
         wp_localize_script( 'wpt-admin-global', 'wptGlobal', [
             'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
             'nonce'        => wp_create_nonce( 'wpt_global_nonce' ),
-            'version'      => WPT_VERSION,
-            'userName'     => $user->display_name,
-            'userInitials' => $initials,
-            'userRole'     => ! empty( $roles ) ? ucfirst( $roles[0] ) : __( 'User', 'wptransformed' ),
-            'profileUrl'   => admin_url( 'profile.php' ),
-            'pageTitle'    => $this->get_current_page_title(),
-            'pageCrumb'    => $this->get_current_page_crumb(),
-            'darkMode'     => get_user_meta( $user->ID, 'wpt_dark_mode', true ),
+            'version'      => sanitize_text_field( WPT_VERSION ),
+            'userName'     => sanitize_text_field( $user->display_name ),
+            'userInitials' => sanitize_text_field( $initials ),
+            'userRole'     => sanitize_text_field( ! empty( $roles ) ? ucfirst( $roles[0] ) : __( 'User', 'wptransformed' ) ),
+            'profileUrl'   => esc_url( admin_url( 'profile.php' ) ),
+            'pageTitle'    => sanitize_text_field( $this->get_current_page_title() ),
+            'pageCrumb'    => sanitize_text_field( $this->get_current_page_crumb() ),
+            'darkMode'     => sanitize_text_field( get_user_meta( $user->ID, 'wpt_dark_mode', true ) ),
         ] );
     }
 

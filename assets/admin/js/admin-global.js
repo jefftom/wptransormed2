@@ -122,8 +122,13 @@
         upgrade.className = 'wpt-sidebar-upgrade';
         upgrade.innerHTML =
             '<p>Unlock Pro Features</p>' +
-            '<small>60+ extra modules, priority support, and white-labeling.</small>' +
-            '<button onclick="window.open(\'https://wptransformed.com/pro\',\'_blank\')">Upgrade \u2014 $99/yr</button>';
+            '<small>60+ extra modules, priority support, and white-labeling.</small>';
+        var upgradeBtn = document.createElement('button');
+        upgradeBtn.textContent = 'Upgrade \u2014 $99/yr';
+        upgradeBtn.addEventListener('click', function() {
+            window.open('https://wptransformed.com/pro', '_blank', 'noopener');
+        });
+        upgrade.appendChild(upgradeBtn);
 
         /* User profile */
         var user = document.createElement('div');

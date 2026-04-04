@@ -340,24 +340,38 @@ body.wpt-admin #adminmenu li.wp-menu-separator:not(.wpt-section-sep) .separator 
 }
 
 /* --- Submenus --- */
+/* Base: only restyle appearance; let WP handle visibility so hover flyouts still work */
 body.wpt-admin #adminmenu .wp-submenu {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
     margin: 0 !important;
     padding: 2px 0 6px !important;
-    min-width: auto !important;
-    width: auto !important;
-    position: static !important;
-    top: auto !important;
-    left: auto !important;
-    float: none !important;
-    display: none !important;
 }
 
+/* Current/open submenu: inline below parent */
 body.wpt-admin #adminmenu li.wp-has-current-submenu .wp-submenu,
 body.wpt-admin #adminmenu li.wp-menu-open .wp-submenu {
-    display: block !important;
+    position: static !important;
+    float: none !important;
+    min-width: auto !important;
+    width: auto !important;
+}
+
+/* Non-current hover flyout: styled glass panel */
+body.wpt-admin #adminmenu li:not(.wp-has-current-submenu):not(.wp-menu-open) .wp-submenu {
+    background: rgba(15,40,71,0.98) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-radius: 9px !important;
+    padding: 6px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+    min-width: 180px !important;
+}
+
+body.wpt-admin.wpt-dark #adminmenu li:not(.wp-has-current-submenu):not(.wp-menu-open) .wp-submenu {
+    background: rgba(7,16,32,0.98) !important;
 }
 
 body.wpt-admin #adminmenu .wp-submenu-head {
@@ -384,6 +398,11 @@ body.wpt-admin #adminmenu .wp-submenu a:hover {
 body.wpt-admin #adminmenu .wp-submenu li.current a {
     color: #ffffff !important;
     background: rgba(255,255,255,0.06) !important;
+}
+
+/* Flyout submenu items need less left padding (not indented under icon) */
+body.wpt-admin #adminmenu li:not(.wp-has-current-submenu):not(.wp-menu-open) .wp-submenu a {
+    padding: 6px 11px !important;
 }
 
 /* --- Collapse button (hide) --- */
