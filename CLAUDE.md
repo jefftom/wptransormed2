@@ -55,8 +55,8 @@ For core framework code (loader, settings, admin page, base class), read:
 `docs/architecture.md` — sections 1.1 through 1.12
 
 ## Module Specifications
-For individual module behavior, hooks, settings, and verification steps, read:
-`docs/module-specs.md` — one section per module
+Module build specs are archived in docs/archive/.
+All 125 modules are built. Current phase is UI restructure.
 
 ## Build Rules
 1. Build ONE module at a time
