@@ -96,10 +96,7 @@ body.wpt-admin {
     transition: background 0.5s, color 0.4s;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-}
-
-body.wpt-admin *:not(.dashicons):not(.dashicons-before)::before:not([class*="dashicons"]) {
-    font-family: inherit;
+    overflow-x: hidden !important;
 }
 
 /* Grain texture overlay */
@@ -118,6 +115,7 @@ body.wpt-admin::after {
 ══════════════════════════════════════════════════════ */
 html.wpt-active.wp-toolbar {
     padding-top: var(--wpt-topbar-height) !important;
+    overflow-x: hidden !important;
 }
 
 body.wpt-admin #adminmenuwrap {
@@ -669,6 +667,25 @@ body.wpt-admin #wpadminbar {
     transition: background 0.5s, border-color 0.4s;
 }
 
+/* Restore Font Awesome font-family inside #wpadminbar.
+   WP core sets #wpadminbar * { font-family: system-ui } which
+   overrides FA's .fas::before { font-family: "Font Awesome 6 Free" }. */
+body.wpt-admin #wpadminbar .fas,
+body.wpt-admin #wpadminbar .far,
+body.wpt-admin #wpadminbar .fab,
+body.wpt-admin #wpadminbar .fa-solid,
+body.wpt-admin #wpadminbar .fa-regular,
+body.wpt-admin #wpadminbar .fa-brands {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+}
+
 /* Hide default WP toolbar items */
 body.wpt-admin #wpadminbar .quicklinks {
     position: absolute !important;
@@ -703,11 +720,17 @@ body.wpt-admin .wpt-topbar-title {
 }
 
 body.wpt-admin .wpt-topbar-sep {
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: var(--wpt-text-muted);
+    display: inline-block !important;
+    width: 4px !important;
+    height: 4px !important;
+    min-width: 4px !important;
+    min-height: 4px !important;
+    border-radius: 50% !important;
+    background: var(--wpt-text-muted) !important;
     opacity: 0.5;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    vertical-align: middle;
 }
 
 body.wpt-admin .wpt-topbar-crumb {
@@ -780,6 +803,7 @@ body.wpt-admin #wpbody-content {
     padding: 1.75rem !important;
     background: var(--wpt-bg) !important;
     transition: background 0.5s;
+    overflow-x: hidden !important;
 }
 
 body.wpt-admin #wpbody-content .wrap {

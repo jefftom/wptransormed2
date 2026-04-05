@@ -254,6 +254,8 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
 }
 
 .wpt-dashboard .section-header h2 {
@@ -275,6 +277,7 @@
     border-radius: 11px;
     background: var(--surface-alt);
     border: 1px solid var(--border);
+    flex-wrap: wrap;
 }
 
 .wpt-dashboard .pill-tab {
@@ -340,7 +343,7 @@
 ══════════════════════════════════════════ */
 .wpt-dashboard .module-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 14px;
 }
 
@@ -888,14 +891,18 @@
 /* ══════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════ */
-@media (max-width: 1150px) {
-    .wpt-dashboard .bento-grid { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 1200px) {
+    .wpt-dashboard .bento-grid { grid-template-columns: repeat(3, 1fr); }
     .wpt-dashboard .bottom-grid { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 800px) {
-    .wpt-dashboard .bento-grid { grid-template-columns: 1fr 1fr; }
-    .wpt-dashboard .module-grid { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+    .wpt-dashboard .bento-grid { grid-template-columns: repeat(2, 1fr); }
     .wpt-dashboard .banner-stats { flex-wrap: wrap; gap: 1.25rem; }
+}
+
+@media (max-width: 600px) {
+    .wpt-dashboard .bento-grid { grid-template-columns: 1fr; }
+    .wpt-dashboard .module-grid { grid-template-columns: 1fr !important; }
     .wpt-dashboard .pill-tabs { display: none; }
 }
