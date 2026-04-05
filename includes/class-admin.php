@@ -264,41 +264,7 @@ class Admin {
         ?>
         <div class="wpt-dashboard" id="wptDashboard">
 
-            <!-- ═══ SIDEBAR (our own, replaces WP admin sidebar) ═══ -->
-            <aside class="sidebar">
-                <div class="sidebar-logo">
-                    <div class="logo-mark"><i class="fas fa-bolt"></i></div>
-                    <h1>WPTransformed<small>v<?php echo esc_html( WPT_VERSION ); ?></small></h1>
-                </div>
-                <div class="sidebar-search" id="wptSidebarSearch" role="button" tabindex="0">
-                    <i class="fas fa-search"></i>
-                    <span><?php esc_html_e( 'Search', 'wptransformed' ); ?>&hellip;</span>
-                    <kbd><?php echo esc_html( stripos( PHP_OS, 'darwin' ) !== false ? "\u{2318}K" : 'Ctrl+K' ); ?></kbd>
-                </div>
-                <div class="nav-group">
-                    <div class="nav-label"><?php esc_html_e( 'Overview', 'wptransformed' ); ?></div>
-                    <a class="nav-item active" href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed' ) ); ?>"><i class="fas fa-th-large"></i> <?php esc_html_e( 'Dashboard', 'wptransformed' ); ?></a>
-                    <a class="nav-item" href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed' ) ); ?>"><i class="fas fa-cubes"></i> <?php esc_html_e( 'Modules', 'wptransformed' ); ?> <span class="nav-count"><?php echo esc_html( (string) $total ); ?></span></a>
-                </div>
-                <div class="nav-group">
-                    <div class="nav-label"><?php esc_html_e( 'Optimize', 'wptransformed' ); ?></div>
-                    <a class="nav-item" href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed&module=heartbeat-control' ) ); ?>"><i class="fas fa-rocket"></i> <?php esc_html_e( 'Performance', 'wptransformed' ); ?></a>
-                    <a class="nav-item" href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed&module=limit-login-attempts' ) ); ?>"><i class="fas fa-shield-alt"></i> <?php esc_html_e( 'Security', 'wptransformed' ); ?></a>
-                </div>
-                <div class="nav-group">
-                    <div class="nav-label"><?php esc_html_e( 'Configure', 'wptransformed' ); ?></div>
-                    <a class="nav-item" href="<?php echo esc_url( admin_url( 'themes.php' ) ); ?>"><i class="fas fa-palette"></i> <?php esc_html_e( 'Appearance', 'wptransformed' ); ?></a>
-                    <a class="nav-item" href="<?php echo esc_url( admin_url( 'options-general.php' ) ); ?>"><i class="fas fa-sliders-h"></i> <?php esc_html_e( 'Settings', 'wptransformed' ); ?></a>
-                    <a class="nav-item" href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed&module=code-snippets' ) ); ?>"><i class="fas fa-code"></i> <?php esc_html_e( 'Developer', 'wptransformed' ); ?> <span class="nav-pro-badge">Pro</span></a>
-                </div>
-                <div class="sidebar-upgrade">
-                    <p><?php esc_html_e( 'Unlock Pro Features', 'wptransformed' ); ?></p>
-                    <small><?php esc_html_e( 'Get 60+ extra modules, priority support, white-labeling, and more.', 'wptransformed' ); ?></small>
-                    <button onclick="window.open('https://wptransformed.com/pro','_blank','noopener')"><?php esc_html_e( 'Upgrade', 'wptransformed' ); ?> &mdash; $99/yr</button>
-                </div>
-            </aside>
-
-            <!-- ═══ MAIN CONTENT ═══ -->
+            <!-- ═══ MAIN CONTENT (renders inside WP's #wpcontent) ═══ -->
             <div class="main">
 
                 <!-- Topbar -->
@@ -508,17 +474,21 @@ class Admin {
         ?>
         <div class="wpt-dashboard" id="wptDashboard">
 
-            <div class="main" style="margin-left:0;">
+            <div class="main">
                 <header class="topbar">
                     <div class="topbar-left">
-                        <span class="topbar-title"><?php echo esc_html( $module->get_title() ); ?></span>
+                        <span class="topbar-title"><?php esc_html_e( 'Dashboard', 'wptransformed' ); ?></span>
                         <span class="topbar-sep"></span>
-                        <span class="topbar-crumb"><?php esc_html_e( 'Settings', 'wptransformed' ); ?></span>
+                        <span class="topbar-crumb"><?php echo esc_html( $module->get_title() ); ?></span>
                     </div>
                     <div class="topbar-right">
                         <button class="tb-btn" id="wptThemeToggle" title="<?php esc_attr_e( 'Toggle theme', 'wptransformed' ); ?>">
                             <i class="fas fa-moon" id="wptThemeIcon"></i>
                         </button>
+                        <button class="tb-btn" title="<?php esc_attr_e( 'Notifications', 'wptransformed' ); ?>">
+                            <i class="fas fa-bell"></i><span class="notif-dot"></span>
+                        </button>
+                        <div class="tb-avatar"><?php echo esc_html( $this->get_user_initials( wp_get_current_user() ) ); ?></div>
                     </div>
                 </header>
 
@@ -747,7 +717,6 @@ class Admin {
 
     /**
      * Add body classes for global styling scope + dark mode.
-     * Adds wpt-fullscreen on WPTransformed's own pages to hide WP chrome.
      */
     public function add_body_classes( string $classes ): string {
         $classes .= ' wpt-admin';
@@ -755,15 +724,6 @@ class Admin {
         $user_id = get_current_user_id();
         if ( get_user_meta( $user_id, 'wpt_dark_mode', true ) === '1' ) {
             $classes .= ' wpt-dark';
-        }
-
-        // Hide WP admin chrome on WPTransformed pages
-        $screen = get_current_screen();
-        if ( $screen && in_array( $screen->id, [
-            'toplevel_page_wpt-dashboard',
-            'wptransformed_page_wptransformed',
-        ], true ) ) {
-            $classes .= ' wpt-fullscreen';
         }
 
         return $classes;

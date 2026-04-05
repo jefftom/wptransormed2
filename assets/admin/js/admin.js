@@ -27,7 +27,6 @@
         initConfigureButtons();
         initPillTabs();
         initCommandPalette();
-        initSidebarSearch();
         setTimeout(animateCounters, 350);
     });
 
