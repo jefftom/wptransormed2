@@ -2,14 +2,15 @@
  * WPTransformed Admin Dashboard
  * assets/admin/js/admin.js
  *
- * Matches wp-transformation-final.html behavior:
- * 1. Dark/light mode toggle
- * 2. Module toggle (on/off) via AJAX
- * 3. Pill-tab category filtering (shows/hides category sections)
- * 4. Configure button → settings page
- * 5. Command palette (Ctrl+K) with search and keyboard nav
- * 6. Animated bento counters (data-count + data-suffix)
- * 7. Sidebar search → opens command palette
+ * Dashboard page-specific JS. Global admin chrome (dark mode toggle,
+ * sidebar injections, topbar) handled by admin-global.js.
+ *
+ * Handles:
+ * 1. Module toggle (on/off) via AJAX
+ * 2. Pill-tab category filtering (shows/hides category sections)
+ * 3. Configure button → settings page
+ * 4. Command palette (Ctrl+K) with search and keyboard nav
+ * 5. Animated bento counters (data-count + data-suffix)
  *
  * No jQuery dependency — vanilla JS.
  */
@@ -22,55 +23,12 @@
         dashboard = document.querySelector('.wpt-dashboard');
         if (!dashboard) return;
 
-        initDarkMode();
         initModuleToggles();
         initConfigureButtons();
         initPillTabs();
         initCommandPalette();
         setTimeout(animateCounters, 350);
     });
-
-    /* ──────────────────────────────────────
-       DARK MODE
-    ────────────────────────────────────── */
-    function initDarkMode() {
-        var saved = localStorage.getItem('wpt_dark_mode');
-        if (saved === '1') {
-            dashboard.classList.add('wpt-dark');
-            updateThemeIcon();
-        }
-
-        var btn = document.getElementById('wptThemeToggle');
-        if (btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                dashboard.classList.toggle('wpt-dark');
-                var isDark = dashboard.classList.contains('wpt-dark');
-                localStorage.setItem('wpt_dark_mode', isDark ? '1' : '0');
-                updateThemeIcon();
-
-                /* Persist to user_meta via AJAX */
-                if (typeof wptGlobal !== 'undefined') {
-                    var fd = new FormData();
-                    fd.append('action', 'wpt_save_dark_mode');
-                    fd.append('dark_mode', isDark ? '1' : '0');
-                    fd.append('nonce', wptGlobal.nonce);
-                    fetch(wptGlobal.ajaxUrl || (typeof wptAdmin !== 'undefined' ? wptAdmin.ajaxUrl : ''), {
-                        method: 'POST',
-                        credentials: 'same-origin',
-                        body: fd
-                    });
-                }
-            });
-        }
-    }
-
-    function updateThemeIcon() {
-        var icon = document.getElementById('wptThemeIcon');
-        if (!icon) return;
-        var isDark = dashboard.classList.contains('wpt-dark');
-        icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
-    }
 
     /* ──────────────────────────────────────
        MODULE TOGGLES (AJAX)
@@ -194,16 +152,6 @@
     /* ──────────────────────────────────────
        SIDEBAR SEARCH → COMMAND PALETTE
     ────────────────────────────────────── */
-    function initSidebarSearch() {
-        var searchEl = document.getElementById('wptSidebarSearch');
-        if (searchEl) {
-            searchEl.addEventListener('click', function() { openCmdPalette(); });
-            searchEl.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCmdPalette(); }
-            });
-        }
-    }
-
     /* ──────────────────────────────────────
        COMMAND PALETTE
     ────────────────────────────────────── */

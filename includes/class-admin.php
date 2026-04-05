@@ -264,29 +264,6 @@ class Admin {
         ?>
         <div class="wpt-dashboard" id="wptDashboard">
 
-            <!-- ═══ MAIN CONTENT (renders inside WP's #wpcontent) ═══ -->
-            <div class="main">
-
-                <!-- Topbar -->
-                <header class="topbar">
-                    <div class="topbar-left">
-                        <span class="topbar-title"><?php esc_html_e( 'Dashboard', 'wptransformed' ); ?></span>
-                        <span class="topbar-sep"></span>
-                        <span class="topbar-crumb"><?php esc_html_e( 'Overview', 'wptransformed' ); ?></span>
-                    </div>
-                    <div class="topbar-right">
-                        <button class="tb-btn" id="wptThemeToggle" title="<?php esc_attr_e( 'Toggle theme', 'wptransformed' ); ?>">
-                            <i class="fas fa-moon" id="wptThemeIcon"></i>
-                        </button>
-                        <button class="tb-btn" title="<?php esc_attr_e( 'Notifications', 'wptransformed' ); ?>">
-                            <i class="fas fa-bell"></i><span class="notif-dot"></span>
-                        </button>
-                        <div class="tb-avatar"><?php echo esc_html( $initials ); ?></div>
-                    </div>
-                </header>
-
-                <div class="content">
-
                     <?php if ( isset( $_GET['wpt_saved'] ) ) : ?>
                         <div class="notice notice-success is-dismissible" style="border-radius:10px;margin-bottom:1rem;">
                             <p><?php esc_html_e( 'Settings saved.', 'wptransformed' ); ?></p>
@@ -445,9 +422,6 @@ class Admin {
                         </div>
                     </div>
 
-                </div><!-- .content -->
-            </div><!-- .main -->
-
             <?php $this->render_command_palette(); ?>
         </div>
         <?php
@@ -474,73 +448,52 @@ class Admin {
         ?>
         <div class="wpt-dashboard" id="wptDashboard">
 
-            <div class="main">
-                <header class="topbar">
-                    <div class="topbar-left">
-                        <span class="topbar-title"><?php esc_html_e( 'Dashboard', 'wptransformed' ); ?></span>
-                        <span class="topbar-sep"></span>
-                        <span class="topbar-crumb"><?php echo esc_html( $module->get_title() ); ?></span>
-                    </div>
-                    <div class="topbar-right">
-                        <button class="tb-btn" id="wptThemeToggle" title="<?php esc_attr_e( 'Toggle theme', 'wptransformed' ); ?>">
-                            <i class="fas fa-moon" id="wptThemeIcon"></i>
-                        </button>
-                        <button class="tb-btn" title="<?php esc_attr_e( 'Notifications', 'wptransformed' ); ?>">
-                            <i class="fas fa-bell"></i><span class="notif-dot"></span>
-                        </button>
-                        <div class="tb-avatar"><?php echo esc_html( $this->get_user_initials( wp_get_current_user() ) ); ?></div>
-                    </div>
-                </header>
-
-                <div class="content">
-                    <?php if ( isset( $_GET['wpt_saved'] ) ) : ?>
-                        <div class="notice notice-success is-dismissible" style="border-radius:10px;margin-bottom:1rem;">
-                            <p><?php esc_html_e( 'Settings saved.', 'wptransformed' ); ?></p>
-                        </div>
-                    <?php endif; ?>
-
-                    <div class="wpt-settings-page">
-                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed' ) ); ?>" class="wpt-back-link">
-                            <i class="fas fa-arrow-left"></i>
-                            <?php esc_html_e( 'Back to Dashboard', 'wptransformed' ); ?>
-                        </a>
-
-                        <div class="wpt-settings-header">
-                            <div class="mod-icon <?php echo esc_attr( $color ); ?>">
-                                <i class="fas <?php echo esc_attr( $icon ); ?>"></i>
-                            </div>
-                            <div class="wpt-settings-header-text">
-                                <h2><?php echo esc_html( $module->get_title() ); ?></h2>
-                                <p><?php echo esc_html( $module->get_description() ); ?></p>
-                            </div>
-                            <label class="toggle" style="margin-left: auto;">
-                                <input type="checkbox"
-                                       class="wpt-module-toggle"
-                                       data-module-id="<?php echo esc_attr( $module_slug ); ?>"
-                                       <?php checked( $is_active ); ?>>
-                                <span class="toggle-track"></span>
-                            </label>
-                        </div>
-
-                        <?php if ( $has_settings ) : ?>
-                            <div class="wpt-settings-form">
-                                <form method="post" action="">
-                                    <?php wp_nonce_field( 'wpt_save_' . $module_slug, 'wpt_nonce' ); ?>
-                                    <input type="hidden" name="wpt_module_id" value="<?php echo esc_attr( $module_slug ); ?>">
-                                    <input type="hidden" name="wpt_action" value="save_settings">
-                                    <?php $module->render_settings(); ?>
-                                    <?php submit_button( __( 'Save Settings', 'wptransformed' ), 'primary', 'wpt_submit', true ); ?>
-                                </form>
-                            </div>
-                        <?php else : ?>
-                            <div class="wpt-settings-form">
-                                <p style="color: var(--text-muted); font-size: 15px;">
-                                    <?php esc_html_e( 'This module has no configurable settings. Just toggle it on or off.', 'wptransformed' ); ?>
-                                </p>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+            <?php if ( isset( $_GET['wpt_saved'] ) ) : ?>
+                <div class="notice notice-success is-dismissible">
+                    <p><?php esc_html_e( 'Settings saved.', 'wptransformed' ); ?></p>
                 </div>
+            <?php endif; ?>
+
+            <div class="wpt-settings-page">
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed' ) ); ?>" class="wpt-back-link">
+                    <i class="fas fa-arrow-left"></i>
+                    <?php esc_html_e( 'Back to Dashboard', 'wptransformed' ); ?>
+                </a>
+
+                <div class="wpt-settings-header">
+                    <div class="mod-icon <?php echo esc_attr( $color ); ?>">
+                        <i class="fas <?php echo esc_attr( $icon ); ?>"></i>
+                    </div>
+                    <div class="wpt-settings-header-text">
+                        <h2><?php echo esc_html( $module->get_title() ); ?></h2>
+                        <p><?php echo esc_html( $module->get_description() ); ?></p>
+                    </div>
+                    <label class="toggle" style="margin-left: auto;">
+                        <input type="checkbox"
+                               class="wpt-module-toggle"
+                               data-module-id="<?php echo esc_attr( $module_slug ); ?>"
+                               <?php checked( $is_active ); ?>>
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+
+                <?php if ( $has_settings ) : ?>
+                    <div class="wpt-settings-form">
+                        <form method="post" action="">
+                            <?php wp_nonce_field( 'wpt_save_' . $module_slug, 'wpt_nonce' ); ?>
+                            <input type="hidden" name="wpt_module_id" value="<?php echo esc_attr( $module_slug ); ?>">
+                            <input type="hidden" name="wpt_action" value="save_settings">
+                            <?php $module->render_settings(); ?>
+                            <?php submit_button( __( 'Save Settings', 'wptransformed' ), 'primary', 'wpt_submit', true ); ?>
+                        </form>
+                    </div>
+                <?php else : ?>
+                    <div class="wpt-settings-form">
+                        <p style="color: var(--wpt-text-muted); font-size: 15px;">
+                            <?php esc_html_e( 'This module has no configurable settings. Just toggle it on or off.', 'wptransformed' ); ?>
+                        </p>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <?php $this->render_command_palette(); ?>
@@ -551,30 +504,6 @@ class Admin {
     /* ══════════════════════════════════════════
        SHARED COMPONENTS
     ══════════════════════════════════════════ */
-
-    private function render_topbar( string $crumb = '' ): void {
-        ?>
-        <div class="wpt-topbar">
-            <div class="wpt-topbar-left">
-                <span class="wpt-topbar-title"><?php esc_html_e( 'WPTransformed', 'wptransformed' ); ?></span>
-                <?php if ( $crumb ) : ?>
-                    <span class="wpt-topbar-sep"></span>
-                    <span class="wpt-topbar-crumb"><?php echo esc_html( $crumb ); ?></span>
-                <?php endif; ?>
-            </div>
-            <div class="wpt-topbar-right">
-                <button class="wpt-tb-btn wpt-tb-search" id="wptSearchTrigger">
-                    <i class="fas fa-search"></i>
-                    <span><?php esc_html_e( 'Search', 'wptransformed' ); ?></span>
-                    <kbd>Ctrl+K</kbd>
-                </button>
-                <button class="wpt-tb-btn" id="wptThemeToggle" title="<?php esc_attr_e( 'Toggle dark mode', 'wptransformed' ); ?>">
-                    <i class="fas fa-moon" id="wptThemeIcon"></i>
-                </button>
-            </div>
-        </div>
-        <?php
-    }
 
     private function render_command_palette(): void {
         ?>
