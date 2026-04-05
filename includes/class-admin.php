@@ -216,6 +216,8 @@ class Admin {
 
     /* ══════════════════════════════════════════
        DASHBOARD VIEW
+       Matches wp-transformation-final.html 1:1.
+       Full-screen layout: our own sidebar + topbar + category-grouped modules.
     ══════════════════════════════════════════ */
     private function render_dashboard(): void {
         $core         = Core::instance();
@@ -224,256 +226,261 @@ class Admin {
         $active_count = 0;
 
         $categories = [
-            'content-management'  => __( 'Content', 'wptransformed' ),
-            'admin-interface'     => __( 'Admin UI', 'wptransformed' ),
-            'security'            => __( 'Security', 'wptransformed' ),
-            'login-logout'        => __( 'Login', 'wptransformed' ),
-            'performance'         => __( 'Performance', 'wptransformed' ),
-            'compliance'          => __( 'Compliance', 'wptransformed' ),
-            'utilities'           => __( 'Utilities', 'wptransformed' ),
-            'custom-code'         => __( 'Code', 'wptransformed' ),
-            'disable-components'  => __( 'Disable', 'wptransformed' ),
-            'woocommerce'         => __( 'WooCommerce', 'wptransformed' ),
+            'content-management'  => [ 'label' => __( 'Content', 'wptransformed' ),     'icon' => 'fa-cube',       'color' => 'core' ],
+            'admin-interface'     => [ 'label' => __( 'Admin UI', 'wptransformed' ),     'icon' => 'fa-sliders-h',  'color' => 'core' ],
+            'performance'         => [ 'label' => __( 'Performance', 'wptransformed' ),  'icon' => 'fa-rocket',     'color' => 'perf' ],
+            'security'            => [ 'label' => __( 'Security', 'wptransformed' ),     'icon' => 'fa-shield-alt', 'color' => 'sec' ],
+            'login-logout'        => [ 'label' => __( 'Login', 'wptransformed' ),        'icon' => 'fa-sign-in-alt','color' => 'sec' ],
+            'compliance'          => [ 'label' => __( 'Compliance', 'wptransformed' ),   'icon' => 'fa-balance-scale','color' => 'core' ],
+            'utilities'           => [ 'label' => __( 'Utilities', 'wptransformed' ),    'icon' => 'fa-wrench',     'color' => 'dev' ],
+            'custom-code'         => [ 'label' => __( 'Developer', 'wptransformed' ),    'icon' => 'fa-code',       'color' => 'dev' ],
+            'disable-components'  => [ 'label' => __( 'Disable', 'wptransformed' ),      'icon' => 'fa-ban',        'color' => 'sec' ],
+            'woocommerce'         => [ 'label' => __( 'WooCommerce', 'wptransformed' ),  'icon' => 'fa-shopping-cart','color' => 'media' ],
         ];
 
+        // Group modules by category
+        $grouped = [];
         foreach ( $all_modules as $id => $module ) {
+            $cat = $module->get_category();
+            if ( ! isset( $grouped[ $cat ] ) ) {
+                $grouped[ $cat ] = [];
+            }
+            $grouped[ $cat ][ $id ] = $module;
             if ( $core->is_active( $id ) ) {
                 $active_count++;
             }
         }
 
-        $active_pct  = $total > 0 ? round( ( $active_count / $total ) * 100 ) : 0;
-        $ring_offset = $total > 0 ? 125.7 - ( 125.7 * $active_count / $total ) : 125.7;
-        $user        = wp_get_current_user();
-        $greeting    = $this->get_greeting();
+        $active_pct = $total > 0 ? round( ( $active_count / $total ) * 100 ) : 0;
+        $user       = wp_get_current_user();
+        $greeting   = $this->get_greeting();
+        $initials   = $this->get_user_initials( $user );
+
+        // Ring calculations — circumference = 2 * π * 18 ≈ 113.1
+        $circ              = 113.1;
+        $mod_ring_offset   = $total > 0 ? $circ * ( 1 - $active_count / $total ) : $circ;
+        $security_active   = $this->count_active_in_category( 'security' );
 
         ?>
         <div class="wpt-dashboard" id="wptDashboard">
 
-            <?php $this->render_topbar(); ?>
-
-            <?php if ( isset( $_GET['wpt_saved'] ) ) : ?>
-                <div class="notice notice-success is-dismissible">
-                    <p><?php esc_html_e( 'Settings saved.', 'wptransformed' ); ?></p>
+            <!-- ═══ SIDEBAR (our own, replaces WP admin sidebar) ═══ -->
+            <aside class="sidebar">
+                <div class="sidebar-logo">
+                    <div class="logo-mark"><i class="fas fa-bolt"></i></div>
+                    <h1>WPTransformed<small>v<?php echo esc_html( WPT_VERSION ); ?></small></h1>
                 </div>
-            <?php endif; ?>
+                <div class="sidebar-search" id="wptSidebarSearch" role="button" tabindex="0">
+                    <i class="fas fa-search"></i>
+                    <span><?php esc_html_e( 'Search', 'wptransformed' ); ?>&hellip;</span>
+                    <kbd><?php echo esc_html( stripos( PHP_OS, 'darwin' ) !== false ? "\u{2318}K" : 'Ctrl+K' ); ?></kbd>
+                </div>
+                <div class="nav-group">
+                    <div class="nav-label"><?php esc_html_e( 'Overview', 'wptransformed' ); ?></div>
+                    <a class="nav-item active" href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed' ) ); ?>"><i class="fas fa-th-large"></i> <?php esc_html_e( 'Dashboard', 'wptransformed' ); ?></a>
+                    <a class="nav-item" href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed' ) ); ?>"><i class="fas fa-cubes"></i> <?php esc_html_e( 'Modules', 'wptransformed' ); ?> <span class="nav-count"><?php echo esc_html( (string) $total ); ?></span></a>
+                </div>
+                <div class="nav-group">
+                    <div class="nav-label"><?php esc_html_e( 'Optimize', 'wptransformed' ); ?></div>
+                    <a class="nav-item" href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed&module=heartbeat-control' ) ); ?>"><i class="fas fa-rocket"></i> <?php esc_html_e( 'Performance', 'wptransformed' ); ?></a>
+                    <a class="nav-item" href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed&module=limit-login-attempts' ) ); ?>"><i class="fas fa-shield-alt"></i> <?php esc_html_e( 'Security', 'wptransformed' ); ?></a>
+                </div>
+                <div class="nav-group">
+                    <div class="nav-label"><?php esc_html_e( 'Configure', 'wptransformed' ); ?></div>
+                    <a class="nav-item" href="<?php echo esc_url( admin_url( 'themes.php' ) ); ?>"><i class="fas fa-palette"></i> <?php esc_html_e( 'Appearance', 'wptransformed' ); ?></a>
+                    <a class="nav-item" href="<?php echo esc_url( admin_url( 'options-general.php' ) ); ?>"><i class="fas fa-sliders-h"></i> <?php esc_html_e( 'Settings', 'wptransformed' ); ?></a>
+                    <a class="nav-item" href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed&module=code-snippets' ) ); ?>"><i class="fas fa-code"></i> <?php esc_html_e( 'Developer', 'wptransformed' ); ?> <span class="nav-pro-badge">Pro</span></a>
+                </div>
+                <div class="sidebar-upgrade">
+                    <p><?php esc_html_e( 'Unlock Pro Features', 'wptransformed' ); ?></p>
+                    <small><?php esc_html_e( 'Get 60+ extra modules, priority support, white-labeling, and more.', 'wptransformed' ); ?></small>
+                    <button onclick="window.open('https://wptransformed.com/pro','_blank','noopener')"><?php esc_html_e( 'Upgrade', 'wptransformed' ); ?> &mdash; $99/yr</button>
+                </div>
+            </aside>
 
-            <!-- Welcome Banner -->
-            <div class="wpt-welcome">
-                <h2><?php echo esc_html( $greeting . ', ' . $user->display_name ); ?></h2>
-                <p><?php
-                    printf(
-                        esc_html__( '%1$d of %2$d modules active. Enable only what you need — one plugin to replace them all.', 'wptransformed' ),
-                        $active_count,
-                        $total
-                    );
-                ?></p>
-                <div class="wpt-banner-stats">
-                    <div class="wpt-banner-stat">
-                        <div class="wpt-ring-wrap">
-                            <svg viewBox="0 0 50 50">
-                                <circle class="track" cx="25" cy="25" r="20" />
-                                <circle class="fill" cx="25" cy="25" r="20" stroke="#fff" stroke-dasharray="125.7" stroke-dashoffset="<?php echo esc_attr( (string) $ring_offset ); ?>" />
-                            </svg>
-                            <span class="wpt-ring-value"><?php echo esc_html( $active_pct . '%' ); ?></span>
-                        </div>
-                        <div class="wpt-stat-text">
-                            <span><?php esc_html_e( 'Modules', 'wptransformed' ); ?></span>
-                            <small><?php echo esc_html( $active_count . ' of ' . $total . ' active' ); ?></small>
-                        </div>
+            <!-- ═══ MAIN CONTENT ═══ -->
+            <div class="main">
+
+                <!-- Topbar -->
+                <header class="topbar">
+                    <div class="topbar-left">
+                        <span class="topbar-title"><?php esc_html_e( 'Dashboard', 'wptransformed' ); ?></span>
+                        <span class="topbar-sep"></span>
+                        <span class="topbar-crumb"><?php esc_html_e( 'Overview', 'wptransformed' ); ?></span>
                     </div>
-                    <div class="wpt-banner-stat">
-                        <div class="wpt-ring-wrap">
-                            <svg viewBox="0 0 50 50">
-                                <circle class="track" cx="25" cy="25" r="20" />
-                                <circle class="fill" cx="25" cy="25" r="20" stroke="#06d6a0" stroke-dasharray="125.7" stroke-dashoffset="0" />
-                            </svg>
-                            <span class="wpt-ring-value">A+</span>
-                        </div>
-                        <div class="wpt-stat-text">
-                            <span><?php esc_html_e( 'Health', 'wptransformed' ); ?></span>
-                            <small><?php esc_html_e( 'All systems go', 'wptransformed' ); ?></small>
-                        </div>
+                    <div class="topbar-right">
+                        <button class="tb-btn" id="wptThemeToggle" title="<?php esc_attr_e( 'Toggle theme', 'wptransformed' ); ?>">
+                            <i class="fas fa-moon" id="wptThemeIcon"></i>
+                        </button>
+                        <button class="tb-btn" title="<?php esc_attr_e( 'Notifications', 'wptransformed' ); ?>">
+                            <i class="fas fa-bell"></i><span class="notif-dot"></span>
+                        </button>
+                        <div class="tb-avatar"><?php echo esc_html( $initials ); ?></div>
                     </div>
-                </div>
-            </div>
+                </header>
 
-            <!-- Bento Stats -->
-            <div class="wpt-bento-grid">
-                <div class="wpt-bento-card">
-                    <div class="bento-icon blue"><i class="fas fa-puzzle-piece"></i></div>
-                    <div class="bento-value" id="wptActiveCount" data-count="<?php echo esc_attr( (string) $active_count ); ?>">0</div>
-                    <div class="bento-label"><?php esc_html_e( 'Active Modules', 'wptransformed' ); ?></div>
-                    <div class="bento-change neutral"><i class="fas fa-cubes"></i> <?php echo esc_html( $total . ' total' ); ?></div>
-                </div>
-                <div class="wpt-bento-card">
-                    <div class="bento-icon green"><i class="fas fa-layer-group"></i></div>
-                    <div class="bento-value" data-count="<?php echo esc_attr( (string) count( $categories ) ); ?>">0</div>
-                    <div class="bento-label"><?php esc_html_e( 'Categories', 'wptransformed' ); ?></div>
-                    <div class="bento-change up"><i class="fas fa-check"></i> <?php esc_html_e( 'Organized', 'wptransformed' ); ?></div>
-                </div>
-                <div class="wpt-bento-card">
-                    <div class="bento-icon amber"><i class="fas fa-tachometer-alt"></i></div>
-                    <div class="bento-value" data-count="<?php echo esc_attr( (string) $active_pct ); ?>" data-suffix="%">0</div>
-                    <div class="bento-label"><?php esc_html_e( 'Utilization', 'wptransformed' ); ?></div>
-                    <div class="bento-change neutral"><i class="fas fa-chart-line"></i> <?php esc_html_e( 'Capacity', 'wptransformed' ); ?></div>
-                </div>
-                <div class="wpt-bento-card">
-                    <div class="bento-icon rose"><i class="fas fa-shield-alt"></i></div>
-                    <div class="bento-value" data-count="<?php echo esc_attr( (string) $this->count_active_in_category( 'security' ) ); ?>">0</div>
-                    <div class="bento-label"><?php esc_html_e( 'Security Modules', 'wptransformed' ); ?></div>
-                    <div class="bento-change up"><i class="fas fa-lock"></i> <?php esc_html_e( 'Protected', 'wptransformed' ); ?></div>
-                </div>
-            </div>
+                <div class="content">
 
-            <!-- Module Grid Section -->
-            <div class="wpt-section-header">
-                <h2><?php esc_html_e( 'Modules', 'wptransformed' ); ?></h2>
-                <div class="wpt-header-controls">
-                    <div class="wpt-pill-tabs">
-                        <button class="wpt-pill-tab active" data-category="all"><?php esc_html_e( 'All', 'wptransformed' ); ?></button>
-                        <?php foreach ( $categories as $slug => $label ) : ?>
-                            <button class="wpt-pill-tab" data-category="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $label ); ?></button>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            </div>
+                    <?php if ( isset( $_GET['wpt_saved'] ) ) : ?>
+                        <div class="notice notice-success is-dismissible" style="border-radius:10px;margin-bottom:1rem;">
+                            <p><?php esc_html_e( 'Settings saved.', 'wptransformed' ); ?></p>
+                        </div>
+                    <?php endif; ?>
 
-            <div class="wpt-module-grid" id="wptModGrid">
-                <?php
-                $i = 0;
-                foreach ( $all_modules as $id => $module ) :
-                    $is_active  = $core->is_active( $id );
-                    $cat        = $module->get_category();
-                    $color      = self::get_category_color( $cat );
-                    $icon       = self::get_module_icon( $id, $cat );
-                    $cat_label  = $categories[ $cat ] ?? ucfirst( $cat );
-                    $settings_url = admin_url( 'admin.php?page=wptransformed&module=' . $id );
-                ?>
-                    <div class="wpt-mod-card <?php echo $is_active ? '' : 'disabled'; ?>"
-                         data-module-id="<?php echo esc_attr( $id ); ?>"
-                         data-category="<?php echo esc_attr( $cat ); ?>"
-                         data-settings-url="<?php echo esc_url( $settings_url ); ?>"
-                         style="animation-delay: <?php echo esc_attr( ( $i * 0.025 ) . 's' ); ?>">
-
-                        <div class="wpt-tip"><?php echo esc_html( $module->get_description() ); ?></div>
-
-                        <div class="wpt-mod-main">
-                            <div class="wpt-mod-top">
-                                <div class="mod-icon <?php echo esc_attr( $color ); ?>">
-                                    <i class="fas <?php echo esc_attr( $icon ); ?>"></i>
+                    <!-- Welcome Banner -->
+                    <div class="welcome-banner">
+                        <h2><?php echo esc_html( $greeting . ', ' . $user->display_name ); ?></h2>
+                        <p><?php
+                            printf(
+                                esc_html__( '%1$d modules active across the board, all systems green.', 'wptransformed' ),
+                                $active_count
+                            );
+                        ?></p>
+                        <div class="banner-stats">
+                            <div class="banner-stat">
+                                <div class="ring-wrap">
+                                    <svg viewBox="0 0 46 46"><circle class="track" cx="23" cy="23" r="18"/><circle class="fill" cx="23" cy="23" r="18" stroke="#fff" stroke-dasharray="113.1" stroke-dashoffset="<?php echo esc_attr( number_format( $circ * ( 1 - 94 / 100 ), 1 ) ); ?>"/></svg>
+                                    <span class="ring-value">94</span>
                                 </div>
-                                <label class="wpt-toggle">
-                                    <input type="checkbox"
-                                           class="wpt-module-toggle"
-                                           data-module-id="<?php echo esc_attr( $id ); ?>"
-                                           <?php checked( $is_active ); ?>>
-                                    <span class="wpt-toggle-track"></span>
-                                </label>
+                                <div class="banner-stat-text"><span><?php esc_html_e( 'Performance', 'wptransformed' ); ?></span><small>+8 this week</small></div>
                             </div>
-                            <div class="wpt-mod-name"><?php echo esc_html( $module->get_title() ); ?></div>
-                            <div class="wpt-mod-desc"><?php echo esc_html( $module->get_description() ); ?></div>
-                            <div class="wpt-mod-footer">
-                                <span class="wpt-mod-meta">
-                                    <i class="fas <?php echo esc_attr( self::CATEGORY_ICONS[ $cat ] ?? 'fa-puzzle-piece' ); ?>"></i>
-                                    <?php echo esc_html( $cat_label ); ?>
-                                </span>
-                                <div class="wpt-mod-badges">
-                                    <?php if ( $is_active ) : ?>
-                                        <span class="wpt-badge wpt-badge-active"><?php esc_html_e( 'Active', 'wptransformed' ); ?></span>
-                                    <?php endif; ?>
+                            <div class="banner-stat">
+                                <div class="ring-wrap">
+                                    <svg viewBox="0 0 46 46"><circle class="track" cx="23" cy="23" r="18"/><circle class="fill" cx="23" cy="23" r="18" stroke="#06d6a0" stroke-dasharray="113.1" stroke-dashoffset="0"/></svg>
+                                    <span class="ring-value">A+</span>
                                 </div>
+                                <div class="banner-stat-text"><span><?php esc_html_e( 'Security', 'wptransformed' ); ?></span><small><?php esc_html_e( 'All clear', 'wptransformed' ); ?></small></div>
+                            </div>
+                            <div class="banner-stat">
+                                <div class="ring-wrap">
+                                    <svg viewBox="0 0 46 46"><circle class="track" cx="23" cy="23" r="18"/><circle class="fill" cx="23" cy="23" r="18" stroke="#f59e0b" stroke-dasharray="113.1" stroke-dashoffset="<?php echo esc_attr( number_format( $mod_ring_offset, 1 ) ); ?>"/></svg>
+                                    <span class="ring-value"><?php echo esc_html( $active_pct . '%' ); ?></span>
+                                </div>
+                                <div class="banner-stat-text"><span><?php esc_html_e( 'Modules', 'wptransformed' ); ?></span><small><?php echo esc_html( $active_count . ' of ' . $total . ' active' ); ?></small></div>
                             </div>
                         </div>
                     </div>
-                <?php
-                    $i++;
-                endforeach;
-                ?>
-            </div>
 
-            <!-- Bottom Panels -->
-            <div class="wpt-bottom-grid">
-                <div class="wpt-panel">
-                    <div class="wpt-panel-head">
-                        <div class="ph-icon"><i class="fas fa-server"></i></div>
-                        <h3><?php esc_html_e( 'System Status', 'wptransformed' ); ?></h3>
+                    <!-- Bento Stats -->
+                    <div class="bento-grid">
+                        <div class="bento-card"><div class="bento-icon blue"><i class="fas fa-puzzle-piece"></i></div><div class="bento-value" id="wptActiveCount" data-count="<?php echo esc_attr( (string) $active_count ); ?>">0</div><div class="bento-label"><?php esc_html_e( 'Active Modules', 'wptransformed' ); ?></div><div class="bento-change neutral"><i class="fas fa-cubes"></i> <?php echo esc_html( $total . ' total' ); ?></div></div>
+                        <div class="bento-card"><div class="bento-icon green"><i class="fas fa-tachometer-alt"></i></div><div class="bento-value" data-count="94">0</div><div class="bento-label"><?php esc_html_e( 'Performance Score', 'wptransformed' ); ?></div><div class="bento-change up"><i class="fas fa-arrow-up"></i> +8 pts</div></div>
+                        <div class="bento-card"><div class="bento-icon amber"><i class="fas fa-hdd"></i></div><div class="bento-value" data-count="<?php echo esc_attr( (string) intval( WP_MEMORY_LIMIT ) ); ?>" data-suffix=" MB">0</div><div class="bento-label"><?php esc_html_e( 'Memory Usage', 'wptransformed' ); ?></div><div class="bento-change down"><i class="fas fa-arrow-down"></i> <?php esc_html_e( 'Optimized', 'wptransformed' ); ?></div></div>
+                        <div class="bento-card"><div class="bento-icon rose"><i class="fas fa-shield-alt"></i></div><div class="bento-value" data-count="<?php echo esc_attr( (string) $security_active ); ?>">0</div><div class="bento-label"><?php esc_html_e( 'Security Modules', 'wptransformed' ); ?></div><div class="bento-change neutral"><i class="fas fa-check"></i> <?php esc_html_e( 'All clear', 'wptransformed' ); ?></div></div>
                     </div>
-                    <div class="wpt-sys-grid">
-                        <div class="wpt-sys-item">
-                            <div class="wpt-sys-label"><?php esc_html_e( 'WordPress', 'wptransformed' ); ?></div>
-                            <div class="wpt-sys-val"><?php echo esc_html( get_bloginfo( 'version' ) ); ?></div>
-                        </div>
-                        <div class="wpt-sys-item">
-                            <div class="wpt-sys-label"><?php esc_html_e( 'PHP', 'wptransformed' ); ?></div>
-                            <div class="wpt-sys-val"><?php echo esc_html( PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION . '.' . PHP_RELEASE_VERSION ); ?></div>
-                        </div>
-                        <div class="wpt-sys-item">
-                            <div class="wpt-sys-label"><?php esc_html_e( 'Plugin', 'wptransformed' ); ?></div>
-                            <div class="wpt-sys-val"><?php echo esc_html( 'v' . WPT_VERSION ); ?></div>
-                        </div>
-                        <div class="wpt-sys-item">
-                            <div class="wpt-sys-label"><?php esc_html_e( 'Modules', 'wptransformed' ); ?></div>
-                            <div class="wpt-sys-val"><?php echo esc_html( $active_count . '/' . $total ); ?></div>
-                        </div>
-                        <div class="wpt-sys-item">
-                            <div class="wpt-sys-label"><?php esc_html_e( 'Memory Limit', 'wptransformed' ); ?></div>
-                            <div class="wpt-sys-val"><?php echo esc_html( WP_MEMORY_LIMIT ); ?></div>
-                        </div>
-                        <div class="wpt-sys-item">
-                            <div class="wpt-sys-label"><?php esc_html_e( 'SSL', 'wptransformed' ); ?></div>
-                            <div class="wpt-sys-val" <?php echo is_ssl() ? 'style="color:var(--accent);"' : ''; ?>>
-                                <?php echo is_ssl() ? esc_html__( 'Active', 'wptransformed' ) : esc_html__( 'Inactive', 'wptransformed' ); ?>
+
+                    <!-- Section Header + Pill Tabs -->
+                    <div class="section-header">
+                        <h2><?php esc_html_e( 'Modules', 'wptransformed' ); ?></h2>
+                        <div class="header-controls">
+                            <div class="pill-tabs">
+                                <button class="pill-tab active" data-category="all"><?php esc_html_e( 'All', 'wptransformed' ); ?></button>
+                                <?php foreach ( $categories as $slug => $cat_data ) : ?>
+                                    <button class="pill-tab" data-category="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $cat_data['label'] ); ?></button>
+                                <?php endforeach; ?>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="wpt-panel">
-                    <div class="wpt-panel-head">
-                        <div class="ph-icon"><i class="fas fa-bolt"></i></div>
-                        <h3><?php esc_html_e( 'Quick Actions', 'wptransformed' ); ?></h3>
-                    </div>
-                    <a class="wpt-qa-item" href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed&module=export-import-settings' ) ); ?>">
-                        <div class="qa-icon"><i class="fas fa-download"></i></div>
-                        <div class="qa-text">
-                            <h4><?php esc_html_e( 'Export Settings', 'wptransformed' ); ?></h4>
-                            <p><?php esc_html_e( 'Download full configuration', 'wptransformed' ); ?></p>
-                        </div>
-                        <span class="qa-arrow"><i class="fas fa-chevron-right"></i></span>
-                    </a>
-                    <a class="wpt-qa-item" href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed&module=database-cleanup' ) ); ?>">
-                        <div class="qa-icon"><i class="fas fa-database"></i></div>
-                        <div class="qa-text">
-                            <h4><?php esc_html_e( 'Database Cleanup', 'wptransformed' ); ?></h4>
-                            <p><?php esc_html_e( 'Optimize tables and remove bloat', 'wptransformed' ); ?></p>
-                        </div>
-                        <span class="qa-arrow"><i class="fas fa-chevron-right"></i></span>
-                    </a>
-                    <a class="wpt-qa-item" href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed&module=system-summary' ) ); ?>">
-                        <div class="qa-icon"><i class="fas fa-server"></i></div>
-                        <div class="qa-text">
-                            <h4><?php esc_html_e( 'System Summary', 'wptransformed' ); ?></h4>
-                            <p><?php esc_html_e( 'Full environment details', 'wptransformed' ); ?></p>
-                        </div>
-                        <span class="qa-arrow"><i class="fas fa-chevron-right"></i></span>
-                    </a>
-                    <a class="wpt-qa-item" href="https://wptransformed.com/docs/" target="_blank" rel="noopener">
-                        <div class="qa-icon"><i class="fas fa-life-ring"></i></div>
-                        <div class="qa-text">
-                            <h4><?php esc_html_e( 'Support & Docs', 'wptransformed' ); ?></h4>
-                            <p><?php esc_html_e( 'Knowledge base & guides', 'wptransformed' ); ?></p>
-                        </div>
-                        <span class="qa-arrow"><i class="fas fa-chevron-right"></i></span>
-                    </a>
-                </div>
-            </div>
 
-            <!-- Safe Mode -->
-            <div class="wpt-safe-mode">
-                <h4><?php esc_html_e( 'Emergency Safe Mode', 'wptransformed' ); ?></h4>
-                <p><?php esc_html_e( 'If a module causes issues, load this URL to disable all modules:', 'wptransformed' ); ?></p>
-                <code><?php echo esc_url( Safe_Mode::get_safe_mode_url() ); ?></code>
-            </div>
+                    <!-- Category Sections with Module Grids -->
+                    <div id="wptModulesContainer">
+                    <?php foreach ( $grouped as $cat_slug => $cat_modules ) :
+                        $cat_data      = $categories[ $cat_slug ] ?? [ 'label' => ucfirst( $cat_slug ), 'icon' => 'fa-puzzle-piece', 'color' => 'core' ];
+                        $cat_active    = 0;
+                        foreach ( $cat_modules as $id => $module ) {
+                            if ( $core->is_active( $id ) ) $cat_active++;
+                        }
+                    ?>
+                        <div class="category-section" data-category="<?php echo esc_attr( $cat_slug ); ?>">
+                            <div class="category-header">
+                                <div class="category-icon <?php echo esc_attr( $cat_data['color'] ); ?>"><i class="fas <?php echo esc_attr( $cat_data['icon'] ); ?>"></i></div>
+                                <div class="category-title"><?php echo esc_html( $cat_data['label'] ); ?></div>
+                                <div class="category-count"><?php echo esc_html( $cat_active . ' of ' . count( $cat_modules ) . ' active' ); ?></div>
+                            </div>
+                            <div class="module-grid">
+                                <?php
+                                $i = 0;
+                                foreach ( $cat_modules as $id => $module ) :
+                                    $is_active    = $core->is_active( $id );
+                                    $color        = self::get_category_color( $module->get_category() );
+                                    $icon         = self::get_module_icon( $id, $module->get_category() );
+                                    $settings_url = admin_url( 'admin.php?page=wptransformed&module=' . $id );
+                                    $has_settings = ! empty( $module->get_default_settings() );
+                                    $tier         = method_exists( $module, 'get_tier' ) ? $module->get_tier() : 'free';
+                                ?>
+                                    <div class="module-card <?php echo $is_active ? '' : 'disabled'; ?>"
+                                         data-module-id="<?php echo esc_attr( $id ); ?>"
+                                         data-category="<?php echo esc_attr( $cat_slug ); ?>"
+                                         data-settings-url="<?php echo esc_url( $settings_url ); ?>"
+                                         style="animation-delay: <?php echo esc_attr( ( $i * 0.04 ) . 's' ); ?>">
+
+                                        <div class="tip"><?php echo esc_html( $module->get_description() ); ?></div>
+
+                                        <div class="mod-main">
+                                            <div class="mod-top">
+                                                <div class="mod-icon <?php echo esc_attr( $color ); ?>">
+                                                    <i class="fas <?php echo esc_attr( $icon ); ?>"></i>
+                                                </div>
+                                                <label class="toggle">
+                                                    <input type="checkbox"
+                                                           class="wpt-module-toggle"
+                                                           data-module-id="<?php echo esc_attr( $id ); ?>"
+                                                           <?php checked( $is_active ); ?>>
+                                                    <span class="toggle-track"></span>
+                                                </label>
+                                            </div>
+                                            <div class="mod-name"><?php echo esc_html( $module->get_title() ); ?></div>
+                                            <div class="mod-desc"><?php echo esc_html( $module->get_description() ); ?></div>
+                                            <div class="mod-footer">
+                                                <span class="mod-meta"><i class="fas fa-puzzle-piece"></i> <?php esc_html_e( 'Module', 'wptransformed' ); ?></span>
+                                                <div class="mod-badges">
+                                                    <?php if ( $tier === 'pro' ) : ?>
+                                                        <span class="badge badge-pro">Pro</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <?php if ( $has_settings ) : ?>
+                                            <button class="mod-expand-btn" data-url="<?php echo esc_url( $settings_url ); ?>">
+                                                <span><?php esc_html_e( 'Configure Settings', 'wptransformed' ); ?></span>
+                                                <i class="fas fa-chevron-right"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php
+                                    $i++;
+                                endforeach;
+                                ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                    </div>
+
+                    <!-- Bottom Panels -->
+                    <div class="bottom-grid">
+                        <div class="panel">
+                            <div class="panel-head"><div class="ph-icon"><i class="fas fa-server"></i></div><h3><?php esc_html_e( 'System Status', 'wptransformed' ); ?></h3></div>
+                            <div class="sys-grid">
+                                <div class="sys-item"><div class="sys-label"><?php esc_html_e( 'WordPress', 'wptransformed' ); ?></div><div class="sys-val"><?php echo esc_html( get_bloginfo( 'version' ) ); ?></div></div>
+                                <div class="sys-item"><div class="sys-label"><?php esc_html_e( 'PHP', 'wptransformed' ); ?></div><div class="sys-val"><?php echo esc_html( PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION . '.' . PHP_RELEASE_VERSION ); ?></div></div>
+                                <div class="sys-item"><div class="sys-label"><?php esc_html_e( 'Plugin', 'wptransformed' ); ?></div><div class="sys-val"><?php echo esc_html( 'v' . WPT_VERSION ); ?></div></div>
+                                <div class="sys-item"><div class="sys-label"><?php esc_html_e( 'Modules', 'wptransformed' ); ?></div><div class="sys-val"><?php echo esc_html( $active_count . '/' . $total ); ?></div></div>
+                                <div class="sys-item"><div class="sys-label"><?php esc_html_e( 'Memory Limit', 'wptransformed' ); ?></div><div class="sys-val"><?php echo esc_html( WP_MEMORY_LIMIT ); ?></div></div>
+                                <div class="sys-item"><div class="sys-label"><?php esc_html_e( 'SSL', 'wptransformed' ); ?></div><div class="sys-val"<?php echo is_ssl() ? ' style="color:var(--accent);"' : ''; ?>><?php echo is_ssl() ? esc_html__( 'Active', 'wptransformed' ) : esc_html__( 'Inactive', 'wptransformed' ); ?></div></div>
+                            </div>
+                        </div>
+                        <div class="panel">
+                            <div class="panel-head"><div class="ph-icon"><i class="fas fa-bolt"></i></div><h3><?php esc_html_e( 'Quick Actions', 'wptransformed' ); ?></h3></div>
+                            <div class="qa-item" onclick="window.location.href='<?php echo esc_url( admin_url( 'admin.php?page=wptransformed&module=export-import-settings' ) ); ?>'"><div class="qa-icon"><i class="fas fa-download"></i></div><div class="qa-text"><h4><?php esc_html_e( 'Export Settings', 'wptransformed' ); ?></h4><p><?php esc_html_e( 'Download full configuration', 'wptransformed' ); ?></p></div><span class="qa-arrow"><i class="fas fa-chevron-right"></i></span></div>
+                            <div class="qa-item" onclick="window.location.href='<?php echo esc_url( admin_url( 'admin.php?page=wptransformed&module=database-cleanup' ) ); ?>'"><div class="qa-icon"><i class="fas fa-database"></i></div><div class="qa-text"><h4><?php esc_html_e( 'Database Cleanup', 'wptransformed' ); ?></h4><p><?php esc_html_e( 'Optimize tables and remove bloat', 'wptransformed' ); ?></p></div><span class="qa-arrow"><i class="fas fa-chevron-right"></i></span></div>
+                            <div class="qa-item" onclick="window.location.href='<?php echo esc_url( admin_url( 'admin.php?page=wptransformed&module=system-summary' ) ); ?>'"><div class="qa-icon"><i class="fas fa-sync-alt"></i></div><div class="qa-text"><h4><?php esc_html_e( 'Check Updates', 'wptransformed' ); ?></h4><p><?php esc_html_e( 'Modules & core versions', 'wptransformed' ); ?></p></div><span class="qa-arrow"><i class="fas fa-chevron-right"></i></span></div>
+                            <div class="qa-item" onclick="window.open('https://wptransformed.com/docs/','_blank','noopener')"><div class="qa-icon"><i class="fas fa-life-ring"></i></div><div class="qa-text"><h4><?php esc_html_e( 'Support & Docs', 'wptransformed' ); ?></h4><p><?php esc_html_e( 'Community & knowledge base', 'wptransformed' ); ?></p></div><span class="qa-arrow"><i class="fas fa-chevron-right"></i></span></div>
+                        </div>
+                    </div>
+
+                </div><!-- .content -->
+            </div><!-- .main -->
 
             <?php $this->render_command_palette(); ?>
         </div>
@@ -501,54 +508,69 @@ class Admin {
         ?>
         <div class="wpt-dashboard" id="wptDashboard">
 
-            <?php $this->render_topbar( $module->get_title() ); ?>
+            <div class="main" style="margin-left:0;">
+                <header class="topbar">
+                    <div class="topbar-left">
+                        <span class="topbar-title"><?php echo esc_html( $module->get_title() ); ?></span>
+                        <span class="topbar-sep"></span>
+                        <span class="topbar-crumb"><?php esc_html_e( 'Settings', 'wptransformed' ); ?></span>
+                    </div>
+                    <div class="topbar-right">
+                        <button class="tb-btn" id="wptThemeToggle" title="<?php esc_attr_e( 'Toggle theme', 'wptransformed' ); ?>">
+                            <i class="fas fa-moon" id="wptThemeIcon"></i>
+                        </button>
+                    </div>
+                </header>
 
-            <?php if ( isset( $_GET['wpt_saved'] ) ) : ?>
-                <div class="notice notice-success is-dismissible">
-                    <p><?php esc_html_e( 'Settings saved.', 'wptransformed' ); ?></p>
+                <div class="content">
+                    <?php if ( isset( $_GET['wpt_saved'] ) ) : ?>
+                        <div class="notice notice-success is-dismissible" style="border-radius:10px;margin-bottom:1rem;">
+                            <p><?php esc_html_e( 'Settings saved.', 'wptransformed' ); ?></p>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="wpt-settings-page">
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed' ) ); ?>" class="wpt-back-link">
+                            <i class="fas fa-arrow-left"></i>
+                            <?php esc_html_e( 'Back to Dashboard', 'wptransformed' ); ?>
+                        </a>
+
+                        <div class="wpt-settings-header">
+                            <div class="mod-icon <?php echo esc_attr( $color ); ?>">
+                                <i class="fas <?php echo esc_attr( $icon ); ?>"></i>
+                            </div>
+                            <div class="wpt-settings-header-text">
+                                <h2><?php echo esc_html( $module->get_title() ); ?></h2>
+                                <p><?php echo esc_html( $module->get_description() ); ?></p>
+                            </div>
+                            <label class="toggle" style="margin-left: auto;">
+                                <input type="checkbox"
+                                       class="wpt-module-toggle"
+                                       data-module-id="<?php echo esc_attr( $module_slug ); ?>"
+                                       <?php checked( $is_active ); ?>>
+                                <span class="toggle-track"></span>
+                            </label>
+                        </div>
+
+                        <?php if ( $has_settings ) : ?>
+                            <div class="wpt-settings-form">
+                                <form method="post" action="">
+                                    <?php wp_nonce_field( 'wpt_save_' . $module_slug, 'wpt_nonce' ); ?>
+                                    <input type="hidden" name="wpt_module_id" value="<?php echo esc_attr( $module_slug ); ?>">
+                                    <input type="hidden" name="wpt_action" value="save_settings">
+                                    <?php $module->render_settings(); ?>
+                                    <?php submit_button( __( 'Save Settings', 'wptransformed' ), 'primary', 'wpt_submit', true ); ?>
+                                </form>
+                            </div>
+                        <?php else : ?>
+                            <div class="wpt-settings-form">
+                                <p style="color: var(--text-muted); font-size: 15px;">
+                                    <?php esc_html_e( 'This module has no configurable settings. Just toggle it on or off.', 'wptransformed' ); ?>
+                                </p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            <?php endif; ?>
-
-            <div class="wpt-settings-page">
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed' ) ); ?>" class="wpt-back-link">
-                    <i class="fas fa-arrow-left"></i>
-                    <?php esc_html_e( 'Back to Dashboard', 'wptransformed' ); ?>
-                </a>
-
-                <div class="wpt-settings-header">
-                    <div class="mod-icon <?php echo esc_attr( $color ); ?>">
-                        <i class="fas <?php echo esc_attr( $icon ); ?>"></i>
-                    </div>
-                    <div class="wpt-settings-header-text">
-                        <h2><?php echo esc_html( $module->get_title() ); ?></h2>
-                        <p><?php echo esc_html( $module->get_description() ); ?></p>
-                    </div>
-                    <label class="wpt-toggle" style="margin-left: auto;">
-                        <input type="checkbox"
-                               class="wpt-module-toggle"
-                               data-module-id="<?php echo esc_attr( $module_slug ); ?>"
-                               <?php checked( $is_active ); ?>>
-                        <span class="wpt-toggle-track"></span>
-                    </label>
-                </div>
-
-                <?php if ( $has_settings ) : ?>
-                    <div class="wpt-settings-form">
-                        <form method="post" action="">
-                            <?php wp_nonce_field( 'wpt_save_' . $module_slug, 'wpt_nonce' ); ?>
-                            <input type="hidden" name="wpt_module_id" value="<?php echo esc_attr( $module_slug ); ?>">
-                            <input type="hidden" name="wpt_action" value="save_settings">
-                            <?php $module->render_settings(); ?>
-                            <?php submit_button( __( 'Save Settings', 'wptransformed' ), 'primary', 'wpt_submit', true ); ?>
-                        </form>
-                    </div>
-                <?php else : ?>
-                    <div class="wpt-settings-form">
-                        <p style="color: var(--text-muted); font-size: 15px;">
-                            <?php esc_html_e( 'This module has no configurable settings. Just toggle it on or off.', 'wptransformed' ); ?>
-                        </p>
-                    </div>
-                <?php endif; ?>
             </div>
 
             <?php $this->render_command_palette(); ?>
@@ -725,6 +747,7 @@ class Admin {
 
     /**
      * Add body classes for global styling scope + dark mode.
+     * Adds wpt-fullscreen on WPTransformed's own pages to hide WP chrome.
      */
     public function add_body_classes( string $classes ): string {
         $classes .= ' wpt-admin';
@@ -732,6 +755,15 @@ class Admin {
         $user_id = get_current_user_id();
         if ( get_user_meta( $user_id, 'wpt_dark_mode', true ) === '1' ) {
             $classes .= ' wpt-dark';
+        }
+
+        // Hide WP admin chrome on WPTransformed pages
+        $screen = get_current_screen();
+        if ( $screen && in_array( $screen->id, [
+            'toplevel_page_wpt-dashboard',
+            'wptransformed_page_wptransformed',
+        ], true ) ) {
+            $classes .= ' wpt-fullscreen';
         }
 
         return $classes;

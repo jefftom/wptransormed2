@@ -2,13 +2,14 @@
  * WPTransformed Admin Dashboard
  * assets/admin/js/admin.js
  *
- * Handles:
- * 1. Module toggle (on/off) via AJAX
- * 2. Dark/light mode toggle with localStorage
- * 3. Command palette (Ctrl+K) with search and keyboard nav
- * 4. Category pill-tab filtering
- * 5. Module card click → settings page navigation
- * 6. Animated bento counters
+ * Matches wp-transformation-final.html behavior:
+ * 1. Dark/light mode toggle
+ * 2. Module toggle (on/off) via AJAX
+ * 3. Pill-tab category filtering (shows/hides category sections)
+ * 4. Configure button → settings page
+ * 5. Command palette (Ctrl+K) with search and keyboard nav
+ * 6. Animated bento counters (data-count + data-suffix)
+ * 7. Sidebar search → opens command palette
  *
  * No jQuery dependency — vanilla JS.
  */
@@ -23,10 +24,11 @@
 
         initDarkMode();
         initModuleToggles();
-        initModuleCardClicks();
+        initConfigureButtons();
         initPillTabs();
         initCommandPalette();
-        animateCounters();
+        initSidebarSearch();
+        setTimeout(animateCounters, 350);
     });
 
     /* ──────────────────────────────────────
@@ -47,6 +49,19 @@
                 var isDark = dashboard.classList.contains('wpt-dark');
                 localStorage.setItem('wpt_dark_mode', isDark ? '1' : '0');
                 updateThemeIcon();
+
+                /* Persist to user_meta via AJAX */
+                if (typeof wptGlobal !== 'undefined') {
+                    var fd = new FormData();
+                    fd.append('action', 'wpt_save_dark_mode');
+                    fd.append('dark_mode', isDark ? '1' : '0');
+                    fd.append('nonce', wptGlobal.nonce);
+                    fetch(wptGlobal.ajaxUrl || (typeof wptAdmin !== 'undefined' ? wptAdmin.ajaxUrl : ''), {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        body: fd
+                    });
+                }
             });
         }
     }
@@ -64,13 +79,12 @@
     function initModuleToggles() {
         document.querySelectorAll('.wpt-module-toggle').forEach(function(toggle) {
             toggle.addEventListener('change', function(e) {
-                e.stopPropagation(); // Don't trigger card click
+                e.stopPropagation();
                 var moduleId = this.dataset.moduleId;
                 var active = this.checked ? '1' : '0';
-                var card = this.closest('.wpt-mod-card');
+                var card = this.closest('.module-card');
                 var inp = this;
 
-                // Optimistic UI
                 if (card) {
                     card.classList.toggle('disabled', !inp.checked);
                 }
@@ -89,27 +103,25 @@
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (!data.success) {
-                        revert(inp, card);
-                        console.error('Toggle failed:', data.data);
+                        inp.checked = !inp.checked;
+                        if (card) card.classList.toggle('disabled', !inp.checked);
                     } else {
+                        updateCategoryCounts();
                         updateBentoCount();
                     }
                 })
                 .catch(function() {
-                    revert(inp, card);
+                    inp.checked = !inp.checked;
+                    if (card) card.classList.toggle('disabled', !inp.checked);
                 });
             });
 
-            // Prevent label clicks from navigating to settings
-            toggle.closest('.wpt-toggle').addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
+            /* Prevent label/toggle clicks from triggering card click */
+            var label = toggle.closest('.toggle');
+            if (label) {
+                label.addEventListener('click', function(e) { e.stopPropagation(); });
+            }
         });
-    }
-
-    function revert(inp, card) {
-        inp.checked = !inp.checked;
-        if (card) card.classList.toggle('disabled', !inp.checked);
     }
 
     function updateBentoCount() {
@@ -118,15 +130,36 @@
         if (el) el.textContent = activeCount;
     }
 
+    function updateCategoryCounts() {
+        var sections = document.querySelectorAll('.category-section');
+        sections.forEach(function(section) {
+            var total = section.querySelectorAll('.module-card').length;
+            var active = section.querySelectorAll('.wpt-module-toggle:checked').length;
+            var countEl = section.querySelector('.category-count');
+            if (countEl) {
+                countEl.textContent = active + ' of ' + total + ' active';
+            }
+        });
+    }
+
     /* ──────────────────────────────────────
-       MODULE CARD CLICKS → SETTINGS
+       CONFIGURE BUTTONS → SETTINGS PAGE
     ────────────────────────────────────── */
-    function initModuleCardClicks() {
-        document.querySelectorAll('.wpt-mod-main').forEach(function(main) {
+    function initConfigureButtons() {
+        document.querySelectorAll('.mod-expand-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var url = this.dataset.url;
+                if (url) window.location.href = url;
+            });
+        });
+
+        /* Module card main area click → settings */
+        document.querySelectorAll('.mod-main').forEach(function(main) {
             main.addEventListener('click', function(e) {
-                // Don't navigate if clicking the toggle
-                if (e.target.closest('.wpt-toggle')) return;
-                var card = this.closest('.wpt-mod-card');
+                if (e.target.closest('.toggle')) return;
+                var card = this.closest('.module-card');
                 var url = card ? card.dataset.settingsUrl : null;
                 if (url) window.location.href = url;
             });
@@ -134,37 +167,42 @@
     }
 
     /* ──────────────────────────────────────
-       CATEGORY PILL TABS
+       PILL TAB FILTERING (category sections)
     ────────────────────────────────────── */
     function initPillTabs() {
-        var tabs = document.querySelectorAll('.wpt-pill-tab');
-        var cards = document.querySelectorAll('.wpt-mod-card');
+        var tabs = document.querySelectorAll('.pill-tab');
+        var sections = document.querySelectorAll('.category-section');
 
         tabs.forEach(function(tab) {
             tab.addEventListener('click', function(e) {
                 e.preventDefault();
                 var cat = this.dataset.category;
 
-                // Update active tab
                 tabs.forEach(function(t) { t.classList.remove('active'); });
                 this.classList.add('active');
 
-                // Filter cards
-                var visibleIdx = 0;
-                cards.forEach(function(card) {
-                    if (cat === 'all' || card.dataset.category === cat) {
-                        card.style.display = '';
-                        card.style.animationDelay = (visibleIdx * 0.035) + 's';
-                        card.style.animation = 'none';
-                        card.offsetHeight; // force reflow
-                        card.style.animation = '';
-                        visibleIdx++;
+                sections.forEach(function(section) {
+                    if (cat === 'all' || section.dataset.category === cat) {
+                        section.style.display = '';
                     } else {
-                        card.style.display = 'none';
+                        section.style.display = 'none';
                     }
                 });
             });
         });
+    }
+
+    /* ──────────────────────────────────────
+       SIDEBAR SEARCH → COMMAND PALETTE
+    ────────────────────────────────────── */
+    function initSidebarSearch() {
+        var searchEl = document.getElementById('wptSidebarSearch');
+        if (searchEl) {
+            searchEl.addEventListener('click', function() { openCmdPalette(); });
+            searchEl.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCmdPalette(); }
+            });
+        }
     }
 
     /* ──────────────────────────────────────
@@ -178,7 +216,6 @@
 
         selectedIdx = -1;
 
-        // Keyboard shortcut: Ctrl+K / Cmd+K
         document.addEventListener('keydown', function(e) {
             if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
                 e.preventDefault();
@@ -189,28 +226,16 @@
             }
         });
 
-        // Search button in topbar
-        var searchBtn = document.getElementById('wptSearchTrigger');
-        if (searchBtn) {
-            searchBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                toggleCmdPalette();
-            });
-        }
-
-        // Close on overlay click
         cmdOverlay.addEventListener('click', function(e) {
             if (e.target === cmdOverlay) closeCmdPalette();
         });
 
-        // Filter on input
         cmdInput.addEventListener('input', function() {
             renderCmdResults(this.value.toLowerCase().trim());
         });
 
-        // Keyboard navigation within results
         cmdInput.addEventListener('keydown', function(e) {
-            var items = cmdResults.querySelectorAll('.wpt-cmd-item');
+            var items = cmdResults.querySelectorAll('.cmd-item');
             if (!items.length) return;
 
             if (e.key === 'ArrowDown') {
@@ -230,47 +255,46 @@
             }
         });
 
-        // Initial render
         renderCmdResults('');
     }
 
     function toggleCmdPalette() {
-        if (cmdOverlay.classList.contains('open')) {
-            closeCmdPalette();
-        } else {
-            openCmdPalette();
-        }
+        if (cmdOverlay.classList.contains('open')) closeCmdPalette();
+        else openCmdPalette();
     }
 
     function openCmdPalette() {
+        if (!cmdOverlay) return;
         cmdOverlay.classList.add('open');
-        cmdInput.value = '';
+        if (cmdInput) {
+            cmdInput.value = '';
+            renderCmdResults('');
+            setTimeout(function() { cmdInput.focus(); }, 100);
+        }
         selectedIdx = -1;
-        renderCmdResults('');
-        setTimeout(function() { cmdInput.focus(); }, 100);
     }
 
     function closeCmdPalette() {
+        if (!cmdOverlay) return;
         cmdOverlay.classList.remove('open');
-        cmdInput.value = '';
+        if (cmdInput) cmdInput.value = '';
         selectedIdx = -1;
     }
 
     function renderCmdResults(query) {
-        if (!cmdResults || !wptAdmin.modules) return;
+        if (!cmdResults || typeof wptAdmin === 'undefined' || !wptAdmin.modules) return;
 
         var html = '';
         var modules = wptAdmin.modules;
         var wpPages = [
-            { title: 'All Posts', desc: 'View and manage posts', icon: 'fa-file-alt', color: 'blue', url: wptAdmin.adminUrl + 'edit.php' },
-            { title: 'Add New Post', desc: 'Create a new blog post', icon: 'fa-plus', color: 'blue', url: wptAdmin.adminUrl + 'post-new.php' },
-            { title: 'All Pages', desc: 'View and manage pages', icon: 'fa-copy', color: 'green', url: wptAdmin.adminUrl + 'edit.php?post_type=page' },
-            { title: 'Media Library', desc: 'Manage images and files', icon: 'fa-images', color: 'amber', url: wptAdmin.adminUrl + 'upload.php' },
-            { title: 'Plugins', desc: 'Manage installed plugins', icon: 'fa-plug', color: 'violet', url: wptAdmin.adminUrl + 'plugins.php' },
-            { title: 'Settings', desc: 'General WordPress settings', icon: 'fa-cog', color: 'blue', url: wptAdmin.adminUrl + 'options-general.php' }
+            { title: 'All Posts', desc: 'View and manage posts', icon: 'fa-file-alt', url: wptAdmin.adminUrl + 'edit.php' },
+            { title: 'Add New Post', desc: 'Create a new blog post', icon: 'fa-plus', url: wptAdmin.adminUrl + 'post-new.php' },
+            { title: 'All Pages', desc: 'View and manage pages', icon: 'fa-copy', url: wptAdmin.adminUrl + 'edit.php?post_type=page' },
+            { title: 'Media Library', desc: 'Manage images and files', icon: 'fa-images', url: wptAdmin.adminUrl + 'upload.php' },
+            { title: 'Plugins', desc: 'Manage installed plugins', icon: 'fa-plug', url: wptAdmin.adminUrl + 'plugins.php' },
+            { title: 'Settings', desc: 'General WordPress settings', icon: 'fa-cog', url: wptAdmin.adminUrl + 'options-general.php' }
         ];
 
-        // Filter modules
         var matchedModules = modules;
         var matchedPages = wpPages;
 
@@ -285,37 +309,34 @@
             });
         }
 
-        // Modules section
         if (matchedModules.length) {
-            html += '<div class="wpt-cmd-group-label">Modules</div>';
+            html += '<div class="cmd-group-label">Modules</div>';
             matchedModules.slice(0, 8).forEach(function(m) {
-                html += '<div class="wpt-cmd-item" data-url="' + esc(m.settingsUrl) + '">' +
-                    '<div class="cmd-icon ' + esc(m.color) + '"><i class="fas ' + esc(m.icon) + '"></i></div>' +
-                    '<div class="cmd-text"><span>' + esc(m.title) + '</span><small>' + esc(m.desc) + '</small></div>' +
+                html += '<div class="cmd-item" data-url="' + esc(m.settingsUrl) + '">' +
+                    '<i class="fas ' + esc(m.icon) + '"></i>' +
+                    '<span>' + esc(m.title) + '</span>' +
                     '</div>';
             });
         }
 
-        // WP Pages section
         if (matchedPages.length) {
-            html += '<div class="wpt-cmd-group-label">Navigate</div>';
+            html += '<div class="cmd-group-label">Navigate</div>';
             matchedPages.forEach(function(p) {
-                html += '<div class="wpt-cmd-item" data-url="' + esc(p.url) + '">' +
-                    '<div class="cmd-icon ' + esc(p.color) + '"><i class="fas ' + esc(p.icon) + '"></i></div>' +
-                    '<div class="cmd-text"><span>' + esc(p.title) + '</span><small>' + esc(p.desc) + '</small></div>' +
+                html += '<div class="cmd-item" data-url="' + esc(p.url) + '">' +
+                    '<i class="fas ' + esc(p.icon) + '"></i>' +
+                    '<span>' + esc(p.title) + '</span>' +
                     '</div>';
             });
         }
 
         if (!html) {
-            html = '<div class="wpt-cmd-group-label">No results found</div>';
+            html = '<div class="cmd-group-label">No results found</div>';
         }
 
         cmdResults.innerHTML = html;
         selectedIdx = -1;
 
-        // Add click handlers
-        cmdResults.querySelectorAll('.wpt-cmd-item').forEach(function(item) {
+        cmdResults.querySelectorAll('.cmd-item').forEach(function(item) {
             item.addEventListener('click', function() {
                 var url = this.dataset.url;
                 if (url) window.location.href = url;
@@ -341,11 +362,16 @@
 
     /* ──────────────────────────────────────
        ANIMATED BENTO COUNTERS
+       Source: wp-transformation-final.html animateCounters()
     ────────────────────────────────────── */
     function animateCounters() {
         document.querySelectorAll('.bento-value[data-count]').forEach(function(el) {
             var target = parseInt(el.dataset.count, 10);
             var suffix = el.dataset.suffix || '';
+            if (isNaN(target) || target === 0) {
+                el.textContent = '0' + suffix;
+                return;
+            }
             var current = 0;
             var step = Math.max(1, Math.floor(target / 35));
             var interval = setInterval(function() {
