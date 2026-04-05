@@ -119,16 +119,30 @@ class Admin {
         add_action( 'admin_menu', [ $this, 'inject_section_labels' ], 999 );
         add_filter( 'admin_body_class', [ $this, 'add_body_classes' ] );
         add_action( 'wp_ajax_wpt_save_dark_mode', [ $this, 'ajax_save_dark_mode' ] );
+
+        // Editor Dashboard — content workspace landing page
+        new Editor_Dashboard();
     }
 
     public function register_page(): void {
-        $hook = add_menu_page(
+        // Top-level menu item — links to Editor Dashboard
+        add_menu_page(
             __( 'WPTransformed', 'wptransformed' ),
             __( 'WPTransformed', 'wptransformed' ),
-            'manage_options',
-            'wptransformed',
-            [ $this, 'render_page' ],
+            'edit_posts',
+            'wpt-dashboard',
+            '', // Rendered by Editor_Dashboard class
             'dashicons-admin-generic'
+        );
+
+        // Modules / Settings as a submenu page under WPTransformed
+        $hook = add_submenu_page(
+            'wpt-dashboard',                                // parent slug
+            __( 'Modules', 'wptransformed' ),               // page title
+            __( 'Modules', 'wptransformed' ),               // menu title
+            'manage_options',                               // capability
+            'wptransformed',                                // menu slug (keep for back-compat)
+            [ $this, 'render_page' ]                        // callback
         );
 
         add_action( 'load-' . $hook, [ $this, 'enqueue_assets' ] );

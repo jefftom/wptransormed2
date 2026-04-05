@@ -1,0 +1,529 @@
+/**
+ * WPTransformed — Editor Dashboard Styles
+ *
+ * CSS values extracted VERBATIM from:
+ *   assets/admin/reference/dashboard/wp-transformation-editor.html
+ *
+ * Scoped under .wpt-editor-dashboard to avoid conflicts.
+ * Inherits --wpt-* design tokens from admin-global.css.
+ *
+ * CRITICAL: Do NOT modify hex values, px values, or cubic-bezier curves.
+ */
+
+/* ══════════════════════════════════════════════════════
+   EDITOR DASHBOARD — LOCAL VARS
+   Some editor-specific values differ from the main dashboard.
+   We map them to --wpt-* vars where they match, and use
+   local values where the editor mockup diverges.
+══════════════════════════════════════════════════════ */
+.wpt-editor-dashboard {
+    --ed-teal: #14b8a6;
+    --ed-teal-glow: rgba(20,184,166,0.1);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ══════════════════════════════════════════════════════
+   1. WELCOME CARD
+   Source: .welcome-card
+══════════════════════════════════════════════════════ */
+.wpt-editor-dashboard .wpt-ed-welcome {
+    background: linear-gradient(135deg, var(--wpt-primary-dark), var(--wpt-primary), var(--wpt-primary-light));
+    border-radius: 16px;
+    padding: 1.75rem 2rem;
+    color: #fff;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    animation: wpt-ed-fadeUp 0.45s ease both;
+}
+
+.wpt-editor-dashboard .wpt-ed-welcome::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 50%;
+    height: 200%;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.1) 0%, transparent 60%);
+}
+
+.wpt-editor-dashboard .wpt-ed-welcome h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    position: relative;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    color: #fff;
+    padding: 0;
+    line-height: 1.3;
+}
+
+.wpt-editor-dashboard .wpt-ed-welcome p {
+    font-size: 14px;
+    opacity: 0.8;
+    position: relative;
+    max-width: 400px;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+}
+
+/* ══════════════════════════════════════════════════════
+   2. STATS ROW
+   Source: .stats-row / .stat-card
+══════════════════════════════════════════════════════ */
+.wpt-editor-dashboard .wpt-ed-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 1.75rem;
+}
+
+.wpt-editor-dashboard .wpt-ed-stat {
+    background: var(--wpt-surface-solid);
+    border: 1px solid var(--wpt-border);
+    border-radius: 14px;
+    padding: 1.25rem;
+    transition: all 0.3s;
+    cursor: pointer;
+    animation: wpt-ed-fadeUp 0.4s ease both;
+}
+
+.wpt-editor-dashboard .wpt-ed-stat:nth-child(2) { animation-delay: 0.05s; }
+.wpt-editor-dashboard .wpt-ed-stat:nth-child(3) { animation-delay: 0.1s; }
+.wpt-editor-dashboard .wpt-ed-stat:nth-child(4) { animation-delay: 0.15s; }
+
+.wpt-editor-dashboard .wpt-ed-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--wpt-card-hover-shadow);
+    border-color: var(--wpt-primary);
+}
+
+.wpt-editor-dashboard .wpt-ed-stat-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    font-size: 17px;
+    margin-bottom: 12px;
+}
+
+.wpt-editor-dashboard .wpt-ed-stat-icon.blue   { background: var(--wpt-primary-glow); color: var(--wpt-primary); }
+.wpt-editor-dashboard .wpt-ed-stat-icon.amber  { background: var(--wpt-amber-glow); color: var(--wpt-amber); }
+.wpt-editor-dashboard .wpt-ed-stat-icon.green  { background: var(--wpt-accent-glow); color: var(--wpt-accent); }
+.wpt-editor-dashboard .wpt-ed-stat-icon.violet { background: var(--wpt-violet-glow); color: var(--wpt-violet); }
+
+.wpt-editor-dashboard .wpt-ed-stat-value {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 4px;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    color: var(--wpt-text);
+}
+
+.wpt-editor-dashboard .wpt-ed-stat-label {
+    font-size: 12.5px;
+    color: var(--wpt-text-muted);
+    font-family: 'Outfit', -apple-system, sans-serif;
+}
+
+/* ══════════════════════════════════════════════════════
+   3. QUICK ACTIONS
+   Source: .quick-actions / .quick-action
+══════════════════════════════════════════════════════ */
+.wpt-editor-dashboard .wpt-ed-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    color: var(--wpt-text);
+}
+
+.wpt-editor-dashboard .wpt-ed-section-title i {
+    color: var(--wpt-primary);
+    font-size: 14px;
+}
+
+.wpt-editor-dashboard .wpt-ed-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 1.75rem;
+}
+
+.wpt-editor-dashboard .wpt-ed-qa {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 1.25rem 1rem;
+    background: var(--wpt-surface-solid);
+    border: 1px solid var(--wpt-border);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-decoration: none;
+    color: inherit;
+    animation: wpt-ed-fadeUp 0.4s ease both;
+}
+
+.wpt-editor-dashboard .wpt-ed-qa:nth-child(2) { animation-delay: 0.05s; }
+.wpt-editor-dashboard .wpt-ed-qa:nth-child(3) { animation-delay: 0.1s; }
+.wpt-editor-dashboard .wpt-ed-qa:nth-child(4) { animation-delay: 0.15s; }
+
+.wpt-editor-dashboard .wpt-ed-qa:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--wpt-card-hover-shadow);
+    border-color: var(--wpt-primary);
+}
+
+.wpt-editor-dashboard .wpt-ed-qa-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+}
+
+.wpt-editor-dashboard .wpt-ed-qa-icon.blue   { background: var(--wpt-primary-glow); color: var(--wpt-primary); }
+.wpt-editor-dashboard .wpt-ed-qa-icon.teal   { background: var(--ed-teal-glow); color: var(--ed-teal); }
+.wpt-editor-dashboard .wpt-ed-qa-icon.violet { background: var(--wpt-violet-glow); color: var(--wpt-violet); }
+.wpt-editor-dashboard .wpt-ed-qa-icon.amber  { background: var(--wpt-amber-glow); color: var(--wpt-amber); }
+
+.wpt-editor-dashboard .wpt-ed-qa h4 {
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    color: var(--wpt-text);
+    margin: 0;
+    padding: 0;
+}
+
+.wpt-editor-dashboard .wpt-ed-qa p {
+    font-size: 11.5px;
+    color: var(--wpt-text-muted);
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+/* ══════════════════════════════════════════════════════
+   4. CONTENT GRID
+   Source: .content-grid
+══════════════════════════════════════════════════════ */
+.wpt-editor-dashboard .wpt-ed-content-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 1.25rem;
+    animation: wpt-ed-fadeUp 0.45s 0.15s ease both;
+}
+
+.wpt-editor-dashboard .wpt-ed-right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* --- Panels --- */
+.wpt-editor-dashboard .wpt-ed-panel {
+    background: var(--wpt-surface-solid);
+    border: 1px solid var(--wpt-border);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.wpt-editor-dashboard .wpt-ed-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--wpt-border);
+}
+
+.wpt-editor-dashboard .wpt-ed-panel-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    color: var(--wpt-text);
+    margin: 0;
+    padding: 0;
+}
+
+.wpt-editor-dashboard .wpt-ed-panel-header h3 i {
+    color: var(--wpt-primary);
+    font-size: 13px;
+}
+
+.wpt-editor-dashboard .wpt-ed-panel-header a {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--wpt-primary);
+    text-decoration: none;
+}
+
+.wpt-editor-dashboard .wpt-ed-panel-header a:hover {
+    text-decoration: underline;
+}
+
+/* --- Recent Posts --- */
+.wpt-editor-dashboard .wpt-ed-post-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 1.25rem;
+    border-bottom: 1px solid var(--wpt-border);
+    transition: background 0.15s;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+.wpt-editor-dashboard .wpt-ed-post-item:last-child {
+    border-bottom: none;
+}
+
+.wpt-editor-dashboard .wpt-ed-post-item:hover {
+    background: var(--wpt-surface-hover);
+}
+
+.wpt-editor-dashboard .wpt-ed-post-thumb {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    background: var(--wpt-surface-alt);
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    color: var(--wpt-text-muted);
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.wpt-editor-dashboard .wpt-ed-post-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.wpt-editor-dashboard .wpt-ed-post-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.wpt-editor-dashboard .wpt-ed-post-info h4 {
+    font-size: 13.5px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    color: var(--wpt-text);
+    padding: 0;
+}
+
+.wpt-editor-dashboard .wpt-ed-post-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11.5px;
+    color: var(--wpt-text-muted);
+}
+
+.wpt-editor-dashboard .wpt-ed-post-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.wpt-editor-dashboard .wpt-ed-post-status {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+    font-family: 'Outfit', -apple-system, sans-serif;
+}
+
+.wpt-editor-dashboard .wpt-ed-post-status.published { background: var(--wpt-accent-glow); color: var(--wpt-accent); }
+.wpt-editor-dashboard .wpt-ed-post-status.draft     { background: var(--wpt-surface-alt); color: var(--wpt-text-muted); }
+.wpt-editor-dashboard .wpt-ed-post-status.scheduled { background: var(--wpt-amber-glow); color: var(--wpt-amber); }
+.wpt-editor-dashboard .wpt-ed-post-status.review    { background: var(--wpt-violet-glow); color: var(--wpt-violet); }
+
+/* --- Schedule Panel --- */
+.wpt-editor-dashboard .wpt-ed-schedule-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 1.25rem;
+    border-bottom: 1px solid var(--wpt-border);
+    transition: background 0.15s;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+.wpt-editor-dashboard .wpt-ed-schedule-item:last-child {
+    border-bottom: none;
+}
+
+.wpt-editor-dashboard .wpt-ed-schedule-item:hover {
+    background: var(--wpt-surface-hover);
+}
+
+.wpt-editor-dashboard .wpt-ed-schedule-date {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--wpt-primary-glow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.wpt-editor-dashboard .wpt-ed-sched-day {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--wpt-primary);
+    line-height: 1;
+}
+
+.wpt-editor-dashboard .wpt-ed-sched-month {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--wpt-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.wpt-editor-dashboard .wpt-ed-schedule-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.wpt-editor-dashboard .wpt-ed-schedule-info h4 {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    color: var(--wpt-text);
+    padding: 0;
+}
+
+.wpt-editor-dashboard .wpt-ed-schedule-info p {
+    font-size: 11.5px;
+    color: var(--wpt-text-muted);
+    margin: 0;
+    padding: 0;
+}
+
+/* ══════════════════════════════════════════════════════
+   5. TIPS CARD
+   Source: .tips-card
+══════════════════════════════════════════════════════ */
+.wpt-editor-dashboard .wpt-ed-tips-card {
+    background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(37,99,235,0.08));
+    border: 1px solid rgba(139,92,246,0.15);
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin-top: 1.25rem;
+}
+
+.wpt-editor-dashboard .wpt-ed-tips-card h4 {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    color: var(--wpt-text);
+    padding: 0;
+}
+
+.wpt-editor-dashboard .wpt-ed-tips-card h4 i {
+    color: var(--wpt-violet);
+}
+
+.wpt-editor-dashboard .wpt-ed-tips-card p {
+    font-size: 12.5px;
+    color: var(--wpt-text-desc);
+    line-height: 1.55;
+    margin: 0;
+    padding: 0;
+}
+
+.wpt-editor-dashboard .wpt-ed-tips-card a {
+    color: var(--wpt-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.wpt-editor-dashboard .wpt-ed-tips-card a:hover {
+    text-decoration: underline;
+}
+
+/* ══════════════════════════════════════════════════════
+   6. EMPTY STATE
+══════════════════════════════════════════════════════ */
+.wpt-editor-dashboard .wpt-ed-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 2rem 1.25rem;
+    color: var(--wpt-text-muted);
+}
+
+.wpt-editor-dashboard .wpt-ed-empty i {
+    font-size: 24px;
+    opacity: 0.5;
+}
+
+.wpt-editor-dashboard .wpt-ed-empty p {
+    font-size: 13px;
+    margin: 0;
+}
+
+/* ══════════════════════════════════════════════════════
+   7. ANIMATIONS
+   Source: wp-transformation-editor.html @keyframes fadeUp
+══════════════════════════════════════════════════════ */
+@keyframes wpt-ed-fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════════
+   8. RESPONSIVE
+   Source: wp-transformation-editor.html @media
+══════════════════════════════════════════════════════ */
+@media (max-width: 1100px) {
+    .wpt-editor-dashboard .wpt-ed-stats { grid-template-columns: repeat(2, 1fr); }
+    .wpt-editor-dashboard .wpt-ed-quick-actions { grid-template-columns: repeat(2, 1fr); }
+    .wpt-editor-dashboard .wpt-ed-content-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+    .wpt-editor-dashboard .wpt-ed-stats { grid-template-columns: 1fr 1fr; }
+    .wpt-editor-dashboard .wpt-ed-quick-actions { grid-template-columns: 1fr 1fr; }
+}
