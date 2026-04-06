@@ -637,14 +637,14 @@
     background: var(--overlay);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    z-index: 100000;
+    z-index: 100;
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding-top: 15vh;
+    padding-top: 14vh;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.22s;
+    transition: opacity 0.2s ease;
 }
 
 .wpt-dashboard .wpt-cmd-overlay.open {
@@ -653,24 +653,40 @@
 }
 
 .wpt-dashboard .wpt-cmd-box {
-    width: 540px;
+    width: 600px;
     background: var(--surface-solid);
     border: 1px solid var(--border-strong);
     border-radius: 16px;
-    box-shadow: 0 24px 80px rgba(0,0,0,0.3);
+    box-shadow: 0 25px 100px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05) inset;
     overflow: hidden;
-    transform: translateY(-8px) scale(0.97);
+    transform: translateY(-12px) scale(0.97);
+    opacity: 0;
     transition: all 0.28s cubic-bezier(0.22,1,0.36,1);
+    position: relative;
+}
+
+.wpt-dashboard .wpt-cmd-box::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 17px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(37,99,235,0.3), transparent 60%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
 }
 
 .wpt-dashboard .wpt-cmd-overlay.open .wpt-cmd-box {
     transform: translateY(0) scale(1);
+    opacity: 1;
 }
 
 .wpt-dashboard .wpt-cmd-input-wrap {
     display: flex;
     align-items: center;
-    padding: 0 18px;
+    padding: 0 20px;
     gap: 12px;
     border-bottom: 1px solid var(--border);
 }
@@ -683,60 +699,88 @@
     background: transparent;
     font-family: 'Outfit', sans-serif;
     font-size: 15px;
-    padding: 16px 0;
+    padding: 18px 14px;
     color: var(--text);
     outline: none;
 }
 
 .wpt-dashboard .wpt-cmd-input::placeholder { color: var(--text-muted); }
 
+.wpt-dashboard .wpt-cmd-shortcut kbd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: var(--surface-alt);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+}
+
 .wpt-dashboard .wpt-cmd-results {
     padding: 8px;
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
 }
 
 .wpt-dashboard .wpt-cmd-results::-webkit-scrollbar { width: 6px; }
 .wpt-dashboard .wpt-cmd-results::-webkit-scrollbar-thumb { background: var(--surface-alt); border-radius: 3px; }
 
+.wpt-dashboard .wpt-cmd-group {
+    margin-bottom: 8px;
+}
+
 .wpt-dashboard .wpt-cmd-group-label {
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.9px;
+    letter-spacing: 1px;
     color: var(--text-muted);
-    padding: 8px 12px 6px;
+    padding: 10px 12px 6px;
 }
 
 .wpt-dashboard .wpt-cmd-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
+    gap: 14px;
+    padding: 11px 14px;
     border-radius: 10px;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: all 0.18s cubic-bezier(0.22,1,0.36,1);
     text-decoration: none;
     color: inherit;
 }
 
-.wpt-dashboard .wpt-cmd-item:hover { background: var(--primary-glow); }
-.wpt-dashboard .wpt-cmd-item.selected { background: var(--primary-glow); }
+.wpt-dashboard .wpt-cmd-item:hover { background: var(--surface-alt); }
+.wpt-dashboard .wpt-cmd-item.selected { background: var(--primary); }
 
-.wpt-dashboard .wpt-cmd-item i {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
+.wpt-dashboard .wpt-cmd-item.selected .wpt-cmd-icon,
+.wpt-dashboard .wpt-cmd-item.selected .wpt-cmd-text span,
+.wpt-dashboard .wpt-cmd-item.selected .wpt-cmd-text small,
+.wpt-dashboard .wpt-cmd-item.selected .wpt-cmd-action kbd { color: #fff; }
+
+.wpt-dashboard .wpt-cmd-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
     background: var(--surface-alt);
     display: grid;
     place-items: center;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--primary);
+    flex-shrink: 0;
 }
 
-.wpt-dashboard .wpt-cmd-item span { font-size: 13.5px; font-weight: 500; }
+.wpt-dashboard .wpt-cmd-icon.blue { background: var(--primary-glow); color: var(--primary); }
+.wpt-dashboard .wpt-cmd-icon.green { background: var(--accent-glow); color: var(--accent); }
+.wpt-dashboard .wpt-cmd-icon.amber { background: var(--amber-glow); color: var(--amber); }
+.wpt-dashboard .wpt-cmd-icon.rose { background: var(--rose-glow); color: var(--rose); }
+.wpt-dashboard .wpt-cmd-icon.violet { background: var(--violet-glow); color: var(--violet); }
 
-.wpt-dashboard .wpt-cmd-item kbd {
+.wpt-dashboard .wpt-cmd-text { flex: 1; min-width: 0; }
+.wpt-dashboard .wpt-cmd-text span { display: block; font-size: 13.5px; font-weight: 500; }
+.wpt-dashboard .wpt-cmd-text small { display: block; font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+
+.wpt-dashboard .wpt-cmd-action kbd {
     margin-left: auto;
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
@@ -756,6 +800,12 @@
     background: var(--surface-alt);
 }
 
+.wpt-dashboard .wpt-cmd-footer-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .wpt-dashboard .wpt-cmd-footer-item {
     display: flex;
     align-items: center;
@@ -772,6 +822,15 @@
     background: var(--surface-solid);
     border: 1px solid var(--border);
 }
+
+.wpt-dashboard .wpt-cmd-footer-right a {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.wpt-dashboard .wpt-cmd-footer-right a:hover { color: var(--primary); }
 
 /* ══════════════════════════════════════════
    MODULE SETTINGS PAGE

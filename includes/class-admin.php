@@ -497,7 +497,7 @@ class Admin {
                     <input type="text"
                            class="wpt-cmd-input"
                            id="wptCmdInput"
-                           placeholder="<?php esc_attr_e( 'Search modules, settings, actions...', 'wptransformed' ); ?>"
+                           placeholder="<?php esc_attr_e( 'Search posts, pages, settings, actions...', 'wptransformed' ); ?>"
                            autocomplete="off">
                     <div class="wpt-cmd-shortcut"><kbd>esc</kbd></div>
                 </div>
@@ -507,6 +507,9 @@ class Admin {
                         <div class="wpt-cmd-footer-item"><kbd>&uarr;</kbd><kbd>&darr;</kbd> <?php esc_html_e( 'Navigate', 'wptransformed' ); ?></div>
                         <div class="wpt-cmd-footer-item"><kbd>&crarr;</kbd> <?php esc_html_e( 'Select', 'wptransformed' ); ?></div>
                         <div class="wpt-cmd-footer-item"><kbd>esc</kbd> <?php esc_html_e( 'Close', 'wptransformed' ); ?></div>
+                    </div>
+                    <div class="wpt-cmd-footer-right">
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=wptransformed&module=keyboard-shortcuts' ) ); ?>"><?php esc_html_e( 'View all shortcuts', 'wptransformed' ); ?> &rarr;</a>
                     </div>
                 </div>
             </div>

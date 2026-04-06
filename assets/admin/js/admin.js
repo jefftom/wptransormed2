@@ -182,7 +182,7 @@
         });
 
         cmdInput.addEventListener('keydown', function(e) {
-            var items = cmdResults.querySelectorAll('.cmd-item');
+            var items = cmdResults.querySelectorAll('.wpt-cmd-item');
             if (!items.length) return;
 
             if (e.key === 'ArrowDown') {
@@ -228,62 +228,90 @@
         selectedIdx = -1;
     }
 
+    function cmdItemHtml(url, iconClass, colorClass, title, desc) {
+        return '<div class="wpt-cmd-item" data-url="' + esc(url) + '">' +
+            '<div class="wpt-cmd-icon ' + esc(colorClass) + '"><i class="fas ' + esc(iconClass) + '"></i></div>' +
+            '<div class="wpt-cmd-text"><span>' + esc(title) + '</span><small>' + esc(desc) + '</small></div>' +
+            '</div>';
+    }
+
     function renderCmdResults(query) {
         if (!cmdResults || typeof wptAdmin === 'undefined' || !wptAdmin.modules) return;
 
         var html = '';
         var modules = wptAdmin.modules;
-        var wpPages = [
-            { title: 'All Posts', desc: 'View and manage posts', icon: 'fa-file-alt', url: wptAdmin.adminUrl + 'edit.php' },
-            { title: 'Add New Post', desc: 'Create a new blog post', icon: 'fa-plus', url: wptAdmin.adminUrl + 'post-new.php' },
-            { title: 'All Pages', desc: 'View and manage pages', icon: 'fa-copy', url: wptAdmin.adminUrl + 'edit.php?post_type=page' },
-            { title: 'Media Library', desc: 'Manage images and files', icon: 'fa-images', url: wptAdmin.adminUrl + 'upload.php' },
-            { title: 'Plugins', desc: 'Manage installed plugins', icon: 'fa-plug', url: wptAdmin.adminUrl + 'plugins.php' },
-            { title: 'Settings', desc: 'General WordPress settings', icon: 'fa-cog', url: wptAdmin.adminUrl + 'options-general.php' }
+
+        var quickActions = [
+            { title: 'New Post', desc: 'Create a new blog post', icon: 'fa-plus', color: 'blue', url: wptAdmin.adminUrl + 'post-new.php' },
+            { title: 'New Page', desc: 'Create a new page', icon: 'fa-plus', color: 'green', url: wptAdmin.adminUrl + 'post-new.php?post_type=page' },
+            { title: 'Upload Media', desc: 'Upload images and files', icon: 'fa-cloud-upload-alt', color: 'violet', url: wptAdmin.adminUrl + 'media-new.php' }
         ];
 
+        var navPages = [
+            { title: 'All Posts', desc: 'View and manage posts', icon: 'fa-file-alt', color: 'blue', url: wptAdmin.adminUrl + 'edit.php' },
+            { title: 'All Pages', desc: 'View and manage pages', icon: 'fa-copy', color: 'green', url: wptAdmin.adminUrl + 'edit.php?post_type=page' },
+            { title: 'Media Library', desc: 'Browse media files', icon: 'fa-images', color: 'violet', url: wptAdmin.adminUrl + 'upload.php' },
+            { title: 'Plugins', desc: 'Manage installed plugins', icon: 'fa-plug', color: 'amber', url: wptAdmin.adminUrl + 'plugins.php' },
+            { title: 'Settings', desc: 'General WordPress settings', icon: 'fa-cog', color: 'rose', url: wptAdmin.adminUrl + 'options-general.php' },
+            { title: 'Users', desc: 'Manage user accounts', icon: 'fa-users', color: 'blue', url: wptAdmin.adminUrl + 'users.php' }
+        ];
+
+        var matchedActions = quickActions;
         var matchedModules = modules;
-        var matchedPages = wpPages;
+        var matchedNav = navPages;
 
         if (query) {
+            matchedActions = quickActions.filter(function(a) {
+                return a.title.toLowerCase().indexOf(query) !== -1 ||
+                       a.desc.toLowerCase().indexOf(query) !== -1;
+            });
             matchedModules = modules.filter(function(m) {
                 return m.title.toLowerCase().indexOf(query) !== -1 ||
                        m.category.toLowerCase().indexOf(query) !== -1;
             });
-            matchedPages = wpPages.filter(function(p) {
+            matchedNav = navPages.filter(function(p) {
                 return p.title.toLowerCase().indexOf(query) !== -1 ||
                        p.desc.toLowerCase().indexOf(query) !== -1;
             });
         }
 
-        if (matchedModules.length) {
-            html += '<div class="cmd-group-label">Modules</div>';
-            matchedModules.slice(0, 8).forEach(function(m) {
-                html += '<div class="cmd-item" data-url="' + esc(m.settingsUrl) + '">' +
-                    '<i class="fas ' + esc(m.icon) + '"></i>' +
-                    '<span>' + esc(m.title) + '</span>' +
-                    '</div>';
+        if (matchedActions.length) {
+            html += '<div class="wpt-cmd-group">';
+            html += '<div class="wpt-cmd-group-label">Quick Actions</div>';
+            matchedActions.forEach(function(a) {
+                html += cmdItemHtml(a.url, a.icon, a.color, a.title, a.desc);
             });
+            html += '</div>';
         }
 
-        if (matchedPages.length) {
-            html += '<div class="cmd-group-label">Navigate</div>';
-            matchedPages.forEach(function(p) {
-                html += '<div class="cmd-item" data-url="' + esc(p.url) + '">' +
-                    '<i class="fas ' + esc(p.icon) + '"></i>' +
-                    '<span>' + esc(p.title) + '</span>' +
-                    '</div>';
+        if (matchedModules.length) {
+            html += '<div class="wpt-cmd-group">';
+            html += '<div class="wpt-cmd-group-label">Modules</div>';
+            matchedModules.slice(0, 8).forEach(function(m) {
+                var statusDesc = m.active ? 'Currently enabled' : 'Currently disabled';
+                var colorClass = m.active ? 'blue' : '';
+                html += cmdItemHtml(m.settingsUrl, m.icon, colorClass, m.title, statusDesc);
             });
+            html += '</div>';
+        }
+
+        if (matchedNav.length) {
+            html += '<div class="wpt-cmd-group">';
+            html += '<div class="wpt-cmd-group-label">Navigate</div>';
+            matchedNav.forEach(function(p) {
+                html += cmdItemHtml(p.url, p.icon, p.color, p.title, p.desc);
+            });
+            html += '</div>';
         }
 
         if (!html) {
-            html = '<div class="cmd-group-label">No results found</div>';
+            html = '<div class="wpt-cmd-group"><div class="wpt-cmd-group-label">No results found</div></div>';
         }
 
         cmdResults.innerHTML = html;
         selectedIdx = -1;
 
-        cmdResults.querySelectorAll('.cmd-item').forEach(function(item) {
+        cmdResults.querySelectorAll('.wpt-cmd-item').forEach(function(item) {
             item.addEventListener('click', function() {
                 var url = this.dataset.url;
                 if (url) window.location.href = url;
