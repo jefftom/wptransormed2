@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace WPTransformed\Modules\Compliance;
+namespace WPTransformed\Modules\Security;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
@@ -34,7 +34,7 @@ class Cookie_Consent extends Module_Base {
     }
 
     public function get_category(): string {
-        return 'compliance';
+        return 'security';
     }
 
     public function get_description(): string {

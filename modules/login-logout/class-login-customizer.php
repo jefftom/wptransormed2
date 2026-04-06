@@ -28,11 +28,11 @@ class Login_Customizer extends Module_Base {
     // ── Identity ──────────────────────────────────────────────
 
     public function get_id(): string {
-        return 'login-customizer';
+        return 'login-branding';
     }
 
     public function get_title(): string {
-        return __( 'Login Customizer', 'wptransformed' );
+        return __( 'Login Branding', 'wptransformed' );
     }
 
     public function get_category(): string {
@@ -40,7 +40,7 @@ class Login_Customizer extends Module_Base {
     }
 
     public function get_description(): string {
-        return __( 'Customize the WordPress login page with your own logo, colors, and styles.', 'wptransformed' );
+        return __( 'Brand your login page with custom logos, colors, styles, and site identity.', 'wptransformed' );
     }
 
     // ── Settings ──────────────────────────────────────────────

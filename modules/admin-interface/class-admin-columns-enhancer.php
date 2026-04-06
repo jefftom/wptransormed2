@@ -26,11 +26,11 @@ class Admin_Columns_Enhancer extends Module_Base {
     // -- Identity --
 
     public function get_id(): string {
-        return 'admin-columns-enhancer';
+        return 'admin-columns';
     }
 
     public function get_title(): string {
-        return __( 'Admin Columns Enhancer', 'wptransformed' );
+        return __( 'Admin Columns', 'wptransformed' );
     }
 
     public function get_category(): string {
@@ -38,7 +38,7 @@ class Admin_Columns_Enhancer extends Module_Base {
     }
 
     public function get_description(): string {
-        return __( 'Add ID, thumbnail, modified date, slug, and template columns to post list tables.', 'wptransformed' );
+        return __( 'Add ID, thumbnail, template, registration date, and last login columns to admin list tables.', 'wptransformed' );
     }
 
     // -- Settings --

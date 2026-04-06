@@ -64,11 +64,11 @@ class Clean_Admin_Bar extends Module_Base {
     // ── Identity ──────────────────────────────────────────────
 
     public function get_id(): string {
-        return 'clean-admin-bar';
+        return 'admin-bar';
     }
 
     public function get_title(): string {
-        return __( 'Admin Bar Manager', 'wptransformed' );
+        return __( 'Admin Bar', 'wptransformed' );
     }
 
     public function get_category(): string {
@@ -76,7 +76,7 @@ class Clean_Admin_Bar extends Module_Base {
     }
 
     public function get_description(): string {
-        return __( 'Manage admin bar visibility, add custom links, and create per-role toolbar profiles.', 'wptransformed' );
+        return __( 'Manage admin bar visibility, hide for specific roles, add custom links, and create per-role toolbar profiles.', 'wptransformed' );
     }
 
     // ── Settings ──────────────────────────────────────────────
