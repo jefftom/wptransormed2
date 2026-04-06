@@ -32,8 +32,8 @@ class Setup_Wizard extends Module_Base {
      */
     private const PROFILES = [
         'blog'       => [ 'content-duplication', 'dark-mode', 'heartbeat-control', 'disable-comments', 'lazy-load' ],
-        'business'   => [ 'content-duplication', 'dark-mode', 'login-customizer', 'cookie-consent', 'redirect-manager', 'email-smtp', 'maintenance-mode' ],
-        'ecommerce'  => [ 'content-duplication', 'dark-mode', 'cookie-consent', 'redirect-manager', 'email-smtp', 'lazy-load', 'image-upload-control', 'limit-login-attempts' ],
+        'business'   => [ 'content-duplication', 'dark-mode', 'login-branding', 'redirect-manager', 'email-smtp', 'maintenance-mode' ],
+        'ecommerce'  => [ 'content-duplication', 'dark-mode', 'redirect-manager', 'email-smtp', 'lazy-load', 'image-upload-control', 'login-security' ],
         'agency'     => [ 'content-duplication', 'dark-mode', 'command-palette', 'smart-menu-organizer', 'search-replace', 'database-cleanup', 'maintenance-mode', 'cron-manager', 'audit-log' ],
         'developer'  => [ 'command-palette', 'dark-mode', 'code-snippets', 'cron-manager', 'database-cleanup', 'search-replace', 'audit-log', 'user-role-editor' ],
     ];

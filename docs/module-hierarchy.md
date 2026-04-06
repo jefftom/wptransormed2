@@ -61,7 +61,7 @@ Each parent module renders as a card with an expandable sub-module panel.
 | 24 | Code Snippets | POPULAR | code-snippets, custom-admin-css, custom-frontend-code, custom-frontend-css, custom-body-class |
 | 25 | Debug Tools | PRO | plugin-profiler, error-log-viewer, system-summary |
 | 26 | Custom Post Types | PRO | custom-content-types |
-| 27 | Site Utilities | — | maintenance-mode, redirect-manager, redirect-404, 404-monitor, broken-link-checker, cookie-consent, email-smtp, email-log, disable-updates |
+| 27 | Site Utilities | — | maintenance-mode, redirect-manager, redirect-404, 404-monitor, broken-link-checker, email-smtp, email-log, disable-updates |
 | 28 | Developer Tools | — | search-replace, cron-manager, file-manager, webhook-manager, ads-txt-manager, robots-txt-manager, export-import-settings |
 
 ## ECOMMERCE (detected only) — 1 parent · 5 modules

@@ -78,7 +78,7 @@ class Module_Registry {
             'auto-clear-caches'           => 'modules/performance/class-auto-clear-caches.php',
             'image-srcset-control'        => 'modules/performance/class-image-srcset-control.php',
 
-            // ── Security (13 modules) ────────────────────────────
+            // ── Security (12 modules) ────────────────────────────
             'login-security'              => 'modules/security/class-login-security.php',
             'two-factor-auth'             => 'modules/security/class-two-factor-auth.php',
             'strong-passwords'            => 'modules/security/class-strong-passwords.php',
@@ -91,7 +91,6 @@ class Module_Registry {
             'password-protection'         => 'modules/security/class-password-protection.php',
             'multiple-user-roles'         => 'modules/security/class-multiple-user-roles.php',
             'temporary-user-access'       => 'modules/security/class-temporary-user-access.php',
-            'cookie-consent'              => 'modules/security/class-cookie-consent.php',
 
             // ── Login & Logout (3 modules) ───────────────────────
             'login-branding'              => 'modules/login-logout/class-login-customizer.php',

@@ -67,7 +67,6 @@ class Admin {
         'image-upload-control'       => 'fa-image',
         'code-snippets'              => 'fa-terminal',
         'custom-code'                => 'fa-paint-brush',
-        'cookie-consent'             => 'fa-cookie-bite',
         'login-branding'             => 'fa-fingerprint',
         'white-label'                => 'fa-tag',
         'command-palette'            => 'fa-search',
