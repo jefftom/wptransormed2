@@ -580,17 +580,30 @@ class Admin {
 
     /**
      * Inject section label separators into the admin menu.
+     *
      * Uses priority 999 so all menu items are already registered.
+     *
+     * IMPORTANT: WordPress core runs a "prevent adjacent separators" cleanup
+     * pass (see wp-admin/includes/menu.php around line 343) that silently
+     * removes any separator that immediately follows another separator. If we
+     * inject a section label into a range that contains no real menu items,
+     * it becomes "adjacent" to the previous section label and gets removed.
+     *
+     * This method therefore checks each section's content range for a real
+     * (non-separator) menu item BEFORE injecting the label. Sections with no
+     * content are skipped entirely — avoiding the adjacency trap and keeping
+     * the sidebar clean when modules are inactive or plugins aren't installed.
      */
     public function inject_section_labels(): void {
         global $menu;
 
-        // Remove default WordPress separators (replaced by section labels)
+        // Remove default WordPress separators (replaced by our section labels)
         unset( $menu[4] );   // separator1 (between Dashboard and Posts)
+        unset( $menu[59] );  // separator2 (between Comments and Appearance — our DESIGN label lives here)
         unset( $menu[99] );  // separator-last
 
-        // Move Plugins (65) and Users (70) into the CONFIGURE range
-        // so they appear after Settings (80) instead of between DESIGN and TOOLS.
+        // Move Plugins (65) and Users (70) into the CONFIGURE range so they
+        // appear after Settings (80) instead of between DESIGN and TOOLS.
         if ( isset( $menu[65] ) ) {
             $menu[81] = $menu[65];
             unset( $menu[65] );
@@ -600,34 +613,64 @@ class Admin {
             unset( $menu[70] );
         }
 
-        // Inject section label separators.
-        // Positions chosen so core WP items fall into correct groups:
+        // Section map: each entry has a label position and a content range
+        // (inclusive). The label is only injected if at least one real
+        // (non-separator) menu item exists in the range.
+        //
         //   CONTENT:   Dashboard(2), Posts(5), Media(10), Pages(20), Comments(25)
-        //   SECURITY:  WPT security pages (26-58)
-        //   DESIGN:    Appearance(60), detected page builders
-        //   TOOLS:     Tools(75)
-        //   CONFIGURE: Settings(80), Plugins(81), Users(82), WPTransformed
-        $labels = [
-            1  => 'content',
-            41 => 'security',
-            59 => 'design',
-            74 => 'tools',
-            79 => 'configure',
+        //   SECURITY:  WPT security pages (42-58)
+        //   DESIGN:    Appearance(60), detected page builders (61-73)
+        //   TOOLS:     Tools(75), WPT utilities (76-78)
+        //   CONFIGURE: Settings(80), Plugins(81), Users(82), WPTransformed (200+)
+        $sections = [
+            [ 'label' => 'content',   'pos' => 1,  'range' => [ 2,  40  ] ],
+            [ 'label' => 'security',  'pos' => 41, 'range' => [ 42, 58  ] ],
+            [ 'label' => 'design',    'pos' => 59, 'range' => [ 60, 73  ] ],
+            [ 'label' => 'tools',     'pos' => 74, 'range' => [ 75, 78  ] ],
+            [ 'label' => 'configure', 'pos' => 79, 'range' => [ 80, 999 ] ],
         ];
 
-        foreach ( $labels as $position => $label ) {
-            $menu[ $position ] = [
+        foreach ( $sections as $section ) {
+            [ $range_start, $range_end ] = $section['range'];
+
+            if ( ! $this->menu_range_has_items( $menu, $range_start, $range_end ) ) {
+                continue;
+            }
+
+            $menu[ $section['pos'] ] = [
                 '',                                          // [0] menu title
                 'read',                                      // [1] capability
-                'wpt-sep-' . $label,                         // [2] slug
+                'wpt-sep-' . $section['label'],              // [2] slug
                 '',                                          // [3] page title
                 'wp-menu-separator wpt-section-sep',         // [4] CSS classes
-                'wpt-sep-' . $label,                         // [5] ID
+                'wpt-sep-' . $section['label'],              // [5] ID
                 '',                                          // [6] icon
             ];
         }
 
         ksort( $menu );
+    }
+
+    /**
+     * Check whether a menu position range contains at least one real
+     * (non-separator) menu item. Used by inject_section_labels() to avoid
+     * emitting labels for empty sections that would collide with WP core's
+     * adjacent-separator cleanup.
+     *
+     * @param array $menu        Reference to the global $menu array.
+     * @param int   $range_start Inclusive start position.
+     * @param int   $range_end   Inclusive end position.
+     */
+    private function menu_range_has_items( array $menu, int $range_start, int $range_end ): bool {
+        for ( $i = $range_start; $i <= $range_end; $i++ ) {
+            if ( ! isset( $menu[ $i ] ) || ! isset( $menu[ $i ][4] ) ) {
+                continue;
+            }
+            if ( false === stripos( (string) $menu[ $i ][4], 'wp-menu-separator' ) ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

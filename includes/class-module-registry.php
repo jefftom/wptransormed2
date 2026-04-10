@@ -116,7 +116,7 @@ class Module_Registry {
             'cron-manager'                => 'modules/utilities/class-cron-manager.php',
             'search-replace'              => 'modules/utilities/class-search-replace.php',
             'broken-link-checker'         => 'modules/utilities/class-broken-link-checker.php',
-            '404-monitor'                 => 'modules/utilities/class-404-monitor.php',
+            '404-monitor'                 => 'modules/utilities/class-four-oh-four-monitor.php',
             'duplicate-widget'            => 'modules/utilities/class-duplicate-widget.php',
             'export-import-settings'      => 'modules/utilities/class-export-import-settings.php',
             'system-summary'              => 'modules/utilities/class-system-summary.php',
