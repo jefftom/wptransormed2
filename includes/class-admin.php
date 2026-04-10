@@ -108,6 +108,14 @@ class Admin {
 
         // Editor Dashboard — content workspace landing page
         new Editor_Dashboard();
+
+        // Session 4 app pages — dedicated full-page views for the parent
+        // cards that have an app_page slug in Module_Hierarchy. These
+        // register their own submenu pages under wpt-dashboard at priority
+        // 20 (after Admin::register_page at default priority 10 sets up
+        // the top-level menu).
+        new Database_Optimizer_App();
+        new Audit_Log_App();
     }
 
     public function register_page(): void {
