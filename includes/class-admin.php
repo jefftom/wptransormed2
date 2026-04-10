@@ -210,29 +210,16 @@ class Admin {
         $total        = count( $all_modules );
         $active_count = 0;
 
-        $categories = [
-            'content-management'  => [ 'label' => __( 'Content', 'wptransformed' ),     'icon' => 'fa-cube',       'color' => 'core' ],
-            'admin-interface'     => [ 'label' => __( 'Admin UI', 'wptransformed' ),     'icon' => 'fa-sliders-h',  'color' => 'core' ],
-            'performance'         => [ 'label' => __( 'Performance', 'wptransformed' ),  'icon' => 'fa-rocket',     'color' => 'perf' ],
-            'security'            => [ 'label' => __( 'Security', 'wptransformed' ),     'icon' => 'fa-shield-alt', 'color' => 'sec' ],
-            'login-logout'        => [ 'label' => __( 'Login', 'wptransformed' ),        'icon' => 'fa-sign-in-alt','color' => 'sec' ],
-            'utilities'           => [ 'label' => __( 'Utilities', 'wptransformed' ),    'icon' => 'fa-wrench',     'color' => 'dev' ],
-            'custom-code'         => [ 'label' => __( 'Developer', 'wptransformed' ),    'icon' => 'fa-code',       'color' => 'dev' ],
-            'disable-components'  => [ 'label' => __( 'Disable', 'wptransformed' ),      'icon' => 'fa-ban',        'color' => 'sec' ],
-        ];
-
-        // Group modules by category
-        $grouped = [];
         foreach ( $all_modules as $id => $module ) {
-            $cat = $module->get_category();
-            if ( ! isset( $grouped[ $cat ] ) ) {
-                $grouped[ $cat ] = [];
-            }
-            $grouped[ $cat ][ $id ] = $module;
             if ( $core->is_active( $id ) ) {
                 $active_count++;
             }
         }
+
+        // Session 3: load the canonical parent/sub-module hierarchy.
+        // See docs/module-hierarchy.md and includes/class-module-hierarchy.php.
+        $parent_categories = Module_Hierarchy::get_categories();
+        $visible_parents   = Module_Hierarchy::get_visible_parents();
 
         $active_pct = $total > 0 ? round( ( $active_count / $total ) * 100 ) : 0;
         $user       = wp_get_current_user();
@@ -301,86 +288,22 @@ class Admin {
                         <div class="header-controls">
                             <div class="pill-tabs">
                                 <button class="pill-tab active" data-category="all"><?php esc_html_e( 'All', 'wptransformed' ); ?></button>
-                                <?php foreach ( $categories as $slug => $cat_data ) : ?>
+                                <?php foreach ( $parent_categories as $slug => $cat_data ) : ?>
                                     <button class="pill-tab" data-category="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $cat_data['label'] ); ?></button>
                                 <?php endforeach; ?>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Category Sections with Module Grids -->
-                    <div id="wptModulesContainer">
-                    <?php foreach ( $grouped as $cat_slug => $cat_modules ) :
-                        $cat_data      = $categories[ $cat_slug ] ?? [ 'label' => ucfirst( $cat_slug ), 'icon' => 'fa-puzzle-piece', 'color' => 'core' ];
-                        $cat_active    = 0;
-                        foreach ( $cat_modules as $id => $module ) {
-                            if ( $core->is_active( $id ) ) $cat_active++;
+                    <!-- Parent Module Grid — 28 parents from docs/module-hierarchy.md -->
+                    <div id="wptModulesContainer" class="module-grid">
+                        <?php
+                        $card_index = 0;
+                        foreach ( $visible_parents as $parent ) {
+                            $this->render_parent_card( $parent, $core, $card_index );
+                            $card_index++;
                         }
-                    ?>
-                        <div class="category-section" data-category="<?php echo esc_attr( $cat_slug ); ?>">
-                            <div class="category-header">
-                                <div class="category-icon <?php echo esc_attr( $cat_data['color'] ); ?>"><i class="fas <?php echo esc_attr( $cat_data['icon'] ); ?>"></i></div>
-                                <div class="category-title"><?php echo esc_html( $cat_data['label'] ); ?></div>
-                                <div class="category-count"><?php echo esc_html( $cat_active . ' of ' . count( $cat_modules ) . ' active' ); ?></div>
-                            </div>
-                            <div class="module-grid">
-                                <?php
-                                $i = 0;
-                                foreach ( $cat_modules as $id => $module ) :
-                                    $is_active    = $core->is_active( $id );
-                                    $color        = self::get_category_color( $module->get_category() );
-                                    $icon         = self::get_module_icon( $id, $module->get_category() );
-                                    $settings_url = admin_url( 'admin.php?page=wptransformed&module=' . $id );
-                                    $has_settings = ! empty( $module->get_default_settings() );
-                                    $tier         = method_exists( $module, 'get_tier' ) ? $module->get_tier() : 'free';
-                                ?>
-                                    <div class="module-card <?php echo $is_active ? '' : 'disabled'; ?>"
-                                         data-module-id="<?php echo esc_attr( $id ); ?>"
-                                         data-category="<?php echo esc_attr( $cat_slug ); ?>"
-                                         data-settings-url="<?php echo esc_url( $settings_url ); ?>"
-                                         style="animation-delay: <?php echo esc_attr( ( $i * 0.04 ) . 's' ); ?>">
-
-                                        <div class="tip"><?php echo esc_html( $module->get_description() ); ?></div>
-
-                                        <div class="mod-main">
-                                            <div class="mod-top">
-                                                <div class="mod-icon <?php echo esc_attr( $color ); ?>">
-                                                    <i class="fas <?php echo esc_attr( $icon ); ?>"></i>
-                                                </div>
-                                                <label class="toggle">
-                                                    <input type="checkbox"
-                                                           class="wpt-module-toggle"
-                                                           data-module-id="<?php echo esc_attr( $id ); ?>"
-                                                           <?php checked( $is_active ); ?>>
-                                                    <span class="toggle-track"></span>
-                                                </label>
-                                            </div>
-                                            <div class="mod-name"><?php echo esc_html( $module->get_title() ); ?></div>
-                                            <div class="mod-desc"><?php echo esc_html( $module->get_description() ); ?></div>
-                                            <div class="mod-footer">
-                                                <span class="mod-meta"><i class="fas fa-puzzle-piece"></i> <?php esc_html_e( 'Module', 'wptransformed' ); ?></span>
-                                                <div class="mod-badges">
-                                                    <?php if ( $tier === 'pro' ) : ?>
-                                                        <span class="badge badge-pro">Pro</span>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <?php if ( $has_settings ) : ?>
-                                            <button class="mod-expand-btn" data-url="<?php echo esc_url( $settings_url ); ?>">
-                                                <span><?php esc_html_e( 'Configure Settings', 'wptransformed' ); ?></span>
-                                                <i class="fas fa-chevron-right"></i>
-                                            </button>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php
-                                    $i++;
-                                endforeach;
-                                ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
+                        ?>
                     </div>
 
                     <!-- Bottom Panels -->
@@ -406,6 +329,198 @@ class Admin {
                     </div>
 
             <?php $this->render_command_palette(); ?>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render a single parent module card with its expandable sub-module panel.
+     *
+     * Called by render_dashboard() for each entry in
+     * Module_Hierarchy::get_visible_parents(). Structure matches the
+     * reference mockup at assets/admin/reference/dashboard/wp-transformation-final.html
+     * (.module-card → .mod-main → .mod-top/.mod-name/.mod-desc/.mod-footer →
+     * .submodules-panel → .mod-expand-btn).
+     *
+     * Parent behavior rules:
+     * - APP parents (has app_page slug) show an "Open app page →" link and
+     *   do NOT render a sub-modules panel. The sub-modules are still
+     *   addressable via their individual settings URLs, just not from
+     *   inside the parent card.
+     * - Parent toggle reflects "any sub-module active" (checked) vs
+     *   "all sub-modules inactive" (unchecked). Toggling the parent
+     *   activates/deactivates ALL sub-modules atomically via the
+     *   wpt_toggle_parent AJAX endpoint (Stage 4 — renders the markup
+     *   ready for that endpoint).
+     * - Pro parents render a Pro badge and gate the parent toggle via
+     *   Core::is_pro_licensed() check in the AJAX handler.
+     * - Parents with zero built sub-modules never reach this method —
+     *   they're filtered out by Module_Hierarchy::get_visible_parents().
+     *
+     * @param array $parent     Parent entry from Module_Hierarchy::get_parents().
+     * @param Core  $core       Core instance (for is_active() lookups).
+     * @param int   $card_index Index in the visible grid (for animation delay).
+     */
+    private function render_parent_card( array $parent, Core $core, int $card_index ): void {
+        $parent_id    = $parent['id'];
+        $category     = $parent['category'];
+        $category_map = Module_Hierarchy::get_categories();
+        $cat_color    = $category_map[ $category ]['color'] ?? 'core';
+
+        // Filter sub-modules down to only those that exist in the registry.
+        $sub_module_ids = Module_Hierarchy::filter_existing_sub_modules( $parent['sub_modules'] ?? [] );
+        $sub_modules    = [];
+        $active_subs    = 0;
+        foreach ( $sub_module_ids as $id ) {
+            $module = $core->get_module( $id );
+            if ( ! $module ) {
+                continue; // Module registered but failed to load — skip.
+            }
+            $is_active      = $core->is_active( $id );
+            $sub_modules[] = [
+                'id'          => $id,
+                'module'      => $module,
+                'is_active'   => $is_active,
+                'title'       => $module->get_title(),
+                'description' => $module->get_description(),
+                'icon'        => self::get_module_icon( $id, $module->get_category() ),
+                'has_settings'=> ! empty( $module->get_default_settings() ),
+                'settings_url'=> admin_url( 'admin.php?page=wptransformed&module=' . $id ),
+            ];
+            if ( $is_active ) {
+                $active_subs++;
+            }
+        }
+
+        $total_subs     = count( $sub_modules );
+        $parent_active  = $active_subs > 0;
+        $badges         = $parent['badges'] ?? [];
+        $tier           = $parent['tier'] ?? 'free';
+        $app_page_slug  = $parent['app_page'] ?? null;
+        $has_app_page   = ! empty( $app_page_slug );
+        $app_page_url   = $has_app_page ? admin_url( 'admin.php?page=' . $app_page_slug ) : '';
+
+        $card_classes = [ 'module-card', 'parent-card' ];
+        if ( ! $parent_active ) {
+            $card_classes[] = 'disabled';
+        }
+        if ( $has_app_page ) {
+            $card_classes[] = 'has-app-page';
+        }
+        if ( $tier === 'pro' ) {
+            $card_classes[] = 'is-pro';
+        }
+
+        ?>
+        <div class="<?php echo esc_attr( implode( ' ', $card_classes ) ); ?>"
+             data-parent-id="<?php echo esc_attr( $parent_id ); ?>"
+             data-category="<?php echo esc_attr( $category ); ?>"
+             data-sub-count="<?php echo esc_attr( (string) $total_subs ); ?>"
+             data-active-sub-count="<?php echo esc_attr( (string) $active_subs ); ?>"
+             style="animation-delay: <?php echo esc_attr( ( $card_index * 0.04 ) . 's' ); ?>">
+
+            <div class="tip"><?php echo esc_html( $parent['description'] ); ?></div>
+
+            <div class="mod-main">
+                <div class="mod-top">
+                    <div class="mod-icon <?php echo esc_attr( $cat_color ); ?>">
+                        <i class="fas <?php echo esc_attr( $parent['icon'] ); ?>"></i>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox"
+                               class="wpt-parent-toggle"
+                               data-parent-id="<?php echo esc_attr( $parent_id ); ?>"
+                               <?php checked( $parent_active ); ?>
+                               <?php disabled( $tier === 'pro' && ! Core::is_pro_licensed() ); ?>>
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+                <div class="mod-name"><?php echo esc_html( $parent['label'] ); ?></div>
+                <div class="mod-desc"><?php echo esc_html( $parent['description'] ); ?></div>
+                <div class="mod-footer">
+                    <span class="mod-meta">
+                        <i class="fas fa-puzzle-piece"></i>
+                        <span class="wpt-sub-count-text">
+                            <?php
+                            /* translators: 1: number of active sub-modules, 2: total sub-modules */
+                            printf(
+                                esc_html__( '%1$d/%2$d sub-modules', 'wptransformed' ),
+                                (int) $active_subs,
+                                (int) $total_subs
+                            );
+                            ?>
+                        </span>
+                    </span>
+                    <div class="mod-badges">
+                        <?php foreach ( $badges as $badge ) :
+                            $badge_class = 'badge-' . sanitize_html_class( $badge );
+                            $badge_label = strtoupper( $badge );
+                        ?>
+                            <span class="badge <?php echo esc_attr( $badge_class ); ?>"><?php echo esc_html( $badge_label ); ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+
+            <?php if ( $has_app_page ) : ?>
+                <!-- APP parent: direct link to the dedicated app page -->
+                <a class="mod-expand-btn mod-app-link" href="<?php echo esc_url( $app_page_url ); ?>">
+                    <span><?php esc_html_e( 'Open app page', 'wptransformed' ); ?></span>
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+            <?php else : ?>
+                <!-- Regular parent: expandable sub-module panel -->
+                <div class="submodules-panel">
+                    <div class="submodules-inner">
+                        <div class="submodules-header">
+                            <h4><?php esc_html_e( 'Sub-modules', 'wptransformed' ); ?></h4>
+                            <span class="wpt-sub-count-text-expanded">
+                                <?php
+                                printf(
+                                    esc_html__( '%1$d of %2$d enabled', 'wptransformed' ),
+                                    (int) $active_subs,
+                                    (int) $total_subs
+                                );
+                                ?>
+                            </span>
+                        </div>
+
+                        <?php foreach ( $sub_modules as $sub ) : ?>
+                            <div class="submodule-item <?php echo $sub['is_active'] ? '' : 'disabled'; ?>"
+                                 data-sub-module-id="<?php echo esc_attr( $sub['id'] ); ?>">
+                                <div class="sub-icon">
+                                    <i class="fas <?php echo esc_attr( $sub['icon'] ); ?>"></i>
+                                </div>
+                                <div class="sub-info">
+                                    <h5><?php echo esc_html( $sub['title'] ); ?></h5>
+                                    <p><?php echo esc_html( $sub['description'] ); ?></p>
+                                </div>
+                                <?php if ( $sub['has_settings'] && $sub['is_active'] ) : ?>
+                                    <a class="sub-settings-link"
+                                       href="<?php echo esc_url( $sub['settings_url'] ); ?>"
+                                       title="<?php esc_attr_e( 'Configure settings', 'wptransformed' ); ?>"
+                                       aria-label="<?php esc_attr_e( 'Configure settings', 'wptransformed' ); ?>">
+                                        <i class="fas fa-cog"></i>
+                                    </a>
+                                <?php endif; ?>
+                                <label class="sub-toggle">
+                                    <input type="checkbox"
+                                           class="wpt-module-toggle wpt-sub-module-toggle"
+                                           data-module-id="<?php echo esc_attr( $sub['id'] ); ?>"
+                                           data-parent-id="<?php echo esc_attr( $parent_id ); ?>"
+                                           <?php checked( $sub['is_active'] ); ?>>
+                                    <span class="sub-toggle-track"></span>
+                                </label>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <button class="mod-expand-btn" type="button" aria-expanded="false" aria-controls="sub-<?php echo esc_attr( $parent_id ); ?>">
+                    <span><?php esc_html_e( 'Configure sub-modules', 'wptransformed' ); ?></span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            <?php endif; ?>
         </div>
         <?php
     }
