@@ -98,6 +98,7 @@ class Admin {
         add_action( 'admin_menu', [ $this, 'register_page' ] );
         add_action( 'admin_init', [ $this, 'handle_save' ] );
         add_action( 'wp_ajax_wpt_toggle_module', [ $this, 'ajax_toggle_module' ] );
+        add_action( 'wp_ajax_wpt_toggle_parent', [ $this, 'ajax_toggle_parent' ] );
 
         // Global admin reskin hooks (all admin pages)
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_global_assets' ] );
@@ -998,5 +999,134 @@ class Admin {
         } else {
             wp_send_json_error( 'Failed to update' );
         }
+    }
+
+    /**
+     * AJAX: batch toggle all sub-modules of a parent.
+     *
+     * Replaces the Stage 3 client-side cascade (which dispatched N
+     * wpt_toggle_module events for a parent with N sub-modules) with a
+     * single round-trip. Called by the parent toggle on the modules page.
+     *
+     * Request:
+     *   POST action=wpt_toggle_parent
+     *        parent_id={Module_Hierarchy parent ID, e.g. admin-bar-manager}
+     *        active=1|0
+     *        nonce={wpt_admin_nonce}
+     *
+     * Response on success:
+     *   { success: true, data: {
+     *       parent_id: "admin-bar-manager",
+     *       active: true,
+     *       sub_modules: [ {id, active, error?}, ... ],
+     *       total: 3,
+     *       succeeded: 3,
+     *       failed: 0
+     *     }}
+     *
+     * Semantics:
+     * - Only real (built) sub-modules are touched; aspirational v2 IDs in
+     *   the hierarchy are filtered out via Module_Hierarchy::filter_existing_sub_modules()
+     * - Per-sub failures are captured in the response payload but do NOT
+     *   abort the batch — the client uses the array to sync its UI and
+     *   revert any sub whose individual write failed
+     * - On deactivate, $module->deactivate() is called so cron/transients
+     *   get cleaned up (same lifecycle semantics as ajax_toggle_module)
+     * - Pro-gated parents: if any sub-module is Pro and the install isn't
+     *   Pro-licensed, the whole batch is rejected before any writes
+     */
+    public function ajax_toggle_parent(): void {
+        check_ajax_referer( 'wpt_admin_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( 'Unauthorized', 403 );
+        }
+
+        $parent_id = isset( $_POST['parent_id'] ) ? sanitize_key( $_POST['parent_id'] ) : '';
+        $active    = isset( $_POST['active'] ) && $_POST['active'] === '1';
+
+        if ( empty( $parent_id ) ) {
+            wp_send_json_error( 'Missing parent ID' );
+        }
+
+        // Locate the parent entry in the hierarchy.
+        $parent_entry = null;
+        foreach ( Module_Hierarchy::get_parents() as $p ) {
+            if ( ( $p['id'] ?? '' ) === $parent_id ) {
+                $parent_entry = $p;
+                break;
+            }
+        }
+
+        if ( ! $parent_entry ) {
+            wp_send_json_error( 'Unknown parent' );
+        }
+
+        // Filter down to sub-modules that actually exist in the registry.
+        $sub_ids = Module_Hierarchy::filter_existing_sub_modules( $parent_entry['sub_modules'] ?? [] );
+        if ( empty( $sub_ids ) ) {
+            wp_send_json_error( 'Parent has no built sub-modules' );
+        }
+
+        $core = Core::instance();
+
+        // Pre-flight: reject the batch if any sub would fail Pro gating.
+        // We check at the sub level rather than the parent tier because
+        // mixed-tier parents are possible (though uncommon).
+        foreach ( $sub_ids as $id ) {
+            $module = $core->get_module( $id );
+            if ( ! $module ) {
+                continue;
+            }
+            if ( $module->get_tier() === 'pro' && ! Core::is_pro_licensed() ) {
+                wp_send_json_error( 'Pro license required for one or more sub-modules' );
+            }
+        }
+
+        // Batch toggle. Per-sub results are collected so the client can
+        // revert any sub whose individual write failed, without the whole
+        // batch rolling back (which would leave partial state anyway).
+        $results   = [];
+        $succeeded = 0;
+        $failed    = 0;
+
+        foreach ( $sub_ids as $id ) {
+            $module = $core->get_module( $id );
+            if ( ! $module ) {
+                $results[] = [ 'id' => $id, 'active' => null, 'error' => 'module_not_loaded' ];
+                $failed++;
+                continue;
+            }
+
+            $ok = Settings::toggle_module( $id, $active );
+            if ( ! $ok ) {
+                $results[] = [ 'id' => $id, 'active' => null, 'error' => 'settings_write_failed' ];
+                $failed++;
+                continue;
+            }
+
+            // On deactivate, run the module's cleanup so cron/transients
+            // don't orphan. Same pattern as ajax_toggle_module.
+            if ( ! $active ) {
+                try {
+                    $module->deactivate();
+                } catch ( \Throwable $e ) {
+                    if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                        error_log( "WPTransformed: Module '{$id}' deactivate() failed: " . $e->getMessage() );
+                    }
+                }
+            }
+
+            $results[] = [ 'id' => $id, 'active' => $active ];
+            $succeeded++;
+        }
+
+        wp_send_json_success( [
+            'parent_id'   => $parent_id,
+            'active'      => $active,
+            'sub_modules' => $results,
+            'total'       => count( $sub_ids ),
+            'succeeded'   => $succeeded,
+            'failed'      => $failed,
+        ] );
     }
 }

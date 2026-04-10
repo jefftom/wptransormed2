@@ -95,11 +95,10 @@
 
     /* ──────────────────────────────────────
        PARENT TOGGLES
-       Stage 3: cascade via client-side dispatch of sub-toggle change
-       events, which re-use the existing wpt_toggle_module AJAX path.
-       This works but makes N HTTP calls for a parent with N sub-modules.
-       Stage 4 will add a wpt_toggle_parent batch endpoint that does the
-       whole operation in a single round-trip.
+       Single batch round-trip via wpt_toggle_parent AJAX endpoint.
+       The handler in class-admin.php (ajax_toggle_parent) walks the
+       parent's sub-modules via Module_Hierarchy and toggles each atomically.
+       Per-sub results are returned so we can revert individual failures.
     ────────────────────────────────────── */
     function initParentToggles() {
         document.querySelectorAll('.wpt-parent-toggle').forEach(function(parentToggle) {
@@ -109,30 +108,81 @@
                 var card = this.closest('.parent-card');
                 if (!card) return;
 
-                /* Disabled Pro toggle — revert and bail. */
+                /* Disabled Pro toggle — shouldn't fire, but revert if it does. */
                 if (this.disabled) {
                     this.checked = !this.checked;
                     return;
                 }
 
+                var parentId       = this.dataset.parentId;
                 var shouldActivate = this.checked;
-                var subToggles = card.querySelectorAll('.wpt-sub-module-toggle');
+                var inp            = this;
+                var subToggles     = card.querySelectorAll('.wpt-sub-module-toggle');
 
-                /* Flip each sub-toggle that doesn't already match the new
-                   state and dispatch a change event — that triggers the
-                   existing wpt_toggle_module AJAX handler installed by
-                   initModuleToggles. Each sub-toggle fires one request;
-                   Stage 4 will replace this with a single batch call. */
+                /* Optimistic UI: flip all sub-toggles immediately. */
+                var priorState = [];
                 subToggles.forEach(function(sub) {
-                    if (sub.checked !== shouldActivate) {
-                        sub.checked = shouldActivate;
-                        sub.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
+                    priorState.push({ el: sub, was: sub.checked });
+                    sub.checked = shouldActivate;
+                    var row = sub.closest('.submodule-item');
+                    if (row) row.classList.toggle('disabled', !shouldActivate);
                 });
-
-                /* After dispatching, sync the parent card state in case
-                   the sub-toggles fired synchronously already. */
                 syncParentCard(card);
+
+                var formData = new FormData();
+                formData.append('action', 'wpt_toggle_parent');
+                formData.append('parent_id', parentId);
+                formData.append('active', shouldActivate ? '1' : '0');
+                formData.append('nonce', wptAdmin.nonce);
+
+                fetch(wptAdmin.ajaxUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    body: formData
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data.success) {
+                        /* Whole batch rejected — revert everything. */
+                        priorState.forEach(function(s) {
+                            s.el.checked = s.was;
+                            var row = s.el.closest('.submodule-item');
+                            if (row) row.classList.toggle('disabled', !s.was);
+                        });
+                        inp.checked = priorState.some(function(s) { return s.was; });
+                        syncParentCard(card);
+                        return;
+                    }
+
+                    /* Per-sub failures: revert just those specific rows.
+                       data.data.sub_modules = [{id, active, error?}, ...] */
+                    var payload = data.data || {};
+                    var subResults = payload.sub_modules || [];
+                    subResults.forEach(function(sr) {
+                        if (!sr.error) return;
+                        var sub = card.querySelector('.wpt-sub-module-toggle[data-module-id="' + sr.id + '"]');
+                        if (!sub) return;
+                        /* Revert this sub to its original pre-batch state. */
+                        var prior = priorState.find(function(p) { return p.el === sub; });
+                        if (prior) {
+                            sub.checked = prior.was;
+                            var row = sub.closest('.submodule-item');
+                            if (row) row.classList.toggle('disabled', !prior.was);
+                        }
+                    });
+                    syncParentCard(card);
+                    updateBentoCount();
+                })
+                .catch(function() {
+                    /* Network error — full revert. */
+                    priorState.forEach(function(s) {
+                        s.el.checked = s.was;
+                        var row = s.el.closest('.submodule-item');
+                        if (row) row.classList.toggle('disabled', !s.was);
+                    });
+                    inp.checked = priorState.some(function(s) { return s.was; });
+                    syncParentCard(card);
+                });
             });
 
             var label = parentToggle.closest('.toggle');
