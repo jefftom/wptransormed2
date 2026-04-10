@@ -1,7 +1,7 @@
 # CLAUDE.md — WPTransformed
 
 ## What This Plugin Does
-Modular WordPress admin enhancement plugin. Replaces 15+ plugins with one. Currently building v1 with 125 modules.
+Modular WordPress admin enhancement plugin. Replaces 15+ plugins with one. Currently building v2 (141-module target across 28 parents, 7 categories). 85 modules currently shipped.
 
 ## Tech Stack (v1)
 - PHP 7.4+ (strict types)
@@ -55,8 +55,13 @@ For core framework code (loader, settings, admin page, base class), read:
 `docs/architecture.md` — sections 1.1 through 1.12
 
 ## Module Specifications
-Module build specs are archived in docs/archive/.
-All 125 modules are built. Current phase is UI restructure.
+Module build specs are archived in docs/archive/. Canonical template at docs/modules/_TEMPLATE.md; Menu Editor exemplar at docs/modules/admin-interface/menu-editor.md.
+
+85 modules currently shipped. v2 target: 141 modules (see docs/module-hierarchy.md). v3 roadmap adds ~59 modules across 8 new categories — Observability, Automation, Network, Content Intelligence, SEO Toolkit, Forms Pro, Media Intelligence, Editorial Collaboration (see docs/v3-roadmap.md).
+
+v2 expansion plan (approved, awaiting execution): `.claude/plans/fuzzy-singing-moth.md`. Adds 17 new gap-filler modules + foundational architecture (composite-PK schema migration, unified event store, job runner, REST layer, multisite adapter, settings history, Module_Base trait additions). Tracked in docs/IMPROVEMENTS.md §"v2 Architecture Upgrades". Stage 2 (foundation) begins after UI restructure Sessions 1–8 complete.
+
+Current phase is UI restructure.
 
 ## Build Rules
 1. Build ONE module at a time
@@ -79,8 +84,21 @@ Red (human only): business decisions, credentials, security
 ## Current Task
 <!-- Update this line before each Claude Code session -->
 Phase: UI RESTRUCTURE
-Task: Session 1 — Sidebar reskin, topbar, global styling
-Reference: docs/ui-restructure-spec.md Section 8
+
+Progress:
+- Session 1 (Sidebar reskin + topbar + global styling) — complete (afa2aae + fixes; static CSS audit 2026-04-10 confirmed zero drift vs reference)
+- Session 2 (Editor Dashboard with real data) — complete (7365020)
+- Session 6 (Command palette + plugin detection) — partial (cd44f4e reconciled with v3 reference mockup; plugin detection wiring may still be incomplete)
+
+Target: Session 3 — Module Grid
+Scope: 28-parent / sub-module grid restructure with pill tabs, search, tooltips, expandable sub-panels, APP PAGE links, AJAX toggles. setup-wizard excluded from grid.
+Reference files for Session 3:
+- assets/admin/reference/dashboard/wp-transformation-final.html (PRIMARY)
+- assets/admin/reference/dashboard/wp-transformation-content.html (category density)
+- assets/admin/reference/components/tooltip-reference.html (tooltip pattern only)
+- docs/module-hierarchy.md (28 parents × sub-modules)
+
+Reference: docs/ui-restructure-spec.md Section 8 (Session 3 prompt)
 
 
 
@@ -110,10 +128,12 @@ Tooltip pattern: components/tooltip-reference.html (extract tooltip only)
 The full UI restructure spec is at docs/ui-restructure-spec.md.
 It contains:
 - Sidebar structure (style-not-replace approach)
-- All 125 modules mapped to 28 parent modules across 7 categories
+- v2 module hierarchy (141 modules → 28 parents → 7 categories); canonical source is docs/module-hierarchy.md
 - App page references (which HTML mockup maps to which page)
 - Module grid layout and interaction spec
 - Command palette spec
 - Activation wizard and default module selections
 
 Read this spec before making any admin UI changes.
+
+v3 scope (Observability, Automation, Network, Content Intelligence, SEO Toolkit, Forms Pro, Media Intelligence, Editorial Collaboration) is held separately in docs/v3-roadmap.md and does not apply to the current UI restructure.
