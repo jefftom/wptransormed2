@@ -124,10 +124,14 @@ class Setup_Wizard extends Module_Base {
 
     /**
      * Register hidden admin page (not shown in menu).
+     *
+     * Uses an empty-string parent slug — the WP 6.7+ safe pattern for
+     * hidden admin pages. Passing null was the pre-6.7 idiom but now
+     * triggers deprecation warnings via plugin_basename(null).
      */
     public function register_page(): void {
         add_submenu_page(
-            null, // No parent — hidden page.
+            '', // Empty parent slug — hidden from the menu, accessible by URL.
             __( 'WPTransformed Setup', 'wptransformed' ),
             __( 'Setup Wizard', 'wptransformed' ),
             'manage_options',

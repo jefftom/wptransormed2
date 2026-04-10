@@ -46,10 +46,12 @@ class Search_Visibility_Status extends Module_Base {
     // -- Lifecycle --------------------------------------------------------
 
     public function init(): void {
-        if ( ! is_admin() && ! is_admin_bar_showing() ) {
-            return;
-        }
-
+        // NOTE: do NOT call is_admin_bar_showing() here. It transitively
+        // calls is_embed(), which is a conditional query tag that must not
+        // be called before the main query runs. Since init() runs on
+        // plugins_loaded — well before WP::parse_request() — that gate
+        // triggers a "called incorrectly" notice. Let the hook system
+        // handle the gating.
         add_action( 'admin_bar_menu', [ $this, 'add_warning_node' ], 100 );
         add_action( 'admin_notices', [ $this, 'show_warning_notice' ] );
         add_action( 'admin_head', [ $this, 'output_admin_bar_css' ] );
