@@ -52,20 +52,35 @@ class Module_Hierarchy {
     /**
      * Return the canonical 7 top-level categories in display order.
      *
-     * Each entry provides label (pill-tab text), color token (for
-     * category-icon / mod-icon background), and fa icon.
+     * Each entry provides:
+     *   - label : pill-tab text
+     *   - color : existing .mod-icon color class in admin.css
+     *             (blue|green|rose|violet|amber) — maps canonical spec
+     *             categories to the 5-color token palette already styled
+     *             in the design system. Sessions 1/2 defined these token
+     *             colors; Session 3 reuses them rather than adding new ones.
+     *   - icon  : fa icon class
+     *
+     * Color mapping rationale:
+     *   core        → blue   (primary brand color, shared admin surfaces)
+     *   content     → violet (content editing family)
+     *   security    → rose   (security warnings, matches --wpt-rose token)
+     *   performance → green  (accent/success, matches --wpt-accent token)
+     *   design      → violet (design/appearance family, shares content color)
+     *   developer   → amber  (developer tools, matches --wpt-amber token)
+     *   ecommerce   → green  (commerce/accent, shares performance color)
      *
      * @return array
      */
     public static function get_categories(): array {
         return [
-            self::CATEGORY_CORE        => [ 'label' => __( 'Core', 'wptransformed' ),        'color' => 'core',   'icon' => 'fa-sliders-h' ],
+            self::CATEGORY_CORE        => [ 'label' => __( 'Core', 'wptransformed' ),        'color' => 'blue',   'icon' => 'fa-sliders-h' ],
             self::CATEGORY_CONTENT     => [ 'label' => __( 'Content', 'wptransformed' ),     'color' => 'violet', 'icon' => 'fa-cube' ],
-            self::CATEGORY_SECURITY    => [ 'label' => __( 'Security', 'wptransformed' ),    'color' => 'sec',    'icon' => 'fa-shield-alt' ],
-            self::CATEGORY_PERFORMANCE => [ 'label' => __( 'Performance', 'wptransformed' ), 'color' => 'perf',   'icon' => 'fa-rocket' ],
-            self::CATEGORY_DESIGN      => [ 'label' => __( 'Design', 'wptransformed' ),      'color' => 'media',  'icon' => 'fa-palette' ],
-            self::CATEGORY_DEVELOPER   => [ 'label' => __( 'Developer', 'wptransformed' ),   'color' => 'dev',    'icon' => 'fa-code' ],
-            self::CATEGORY_ECOMMERCE   => [ 'label' => __( 'eCommerce', 'wptransformed' ),   'color' => 'perf',   'icon' => 'fa-shopping-cart' ],
+            self::CATEGORY_SECURITY    => [ 'label' => __( 'Security', 'wptransformed' ),    'color' => 'rose',   'icon' => 'fa-shield-alt' ],
+            self::CATEGORY_PERFORMANCE => [ 'label' => __( 'Performance', 'wptransformed' ), 'color' => 'green',  'icon' => 'fa-rocket' ],
+            self::CATEGORY_DESIGN      => [ 'label' => __( 'Design', 'wptransformed' ),      'color' => 'violet', 'icon' => 'fa-palette' ],
+            self::CATEGORY_DEVELOPER   => [ 'label' => __( 'Developer', 'wptransformed' ),   'color' => 'amber',  'icon' => 'fa-code' ],
+            self::CATEGORY_ECOMMERCE   => [ 'label' => __( 'eCommerce', 'wptransformed' ),   'color' => 'green',  'icon' => 'fa-shopping-cart' ],
         ];
     }
 

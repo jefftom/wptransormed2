@@ -6,11 +6,14 @@
  * sidebar injections, topbar) handled by admin-global.js.
  *
  * Handles:
- * 1. Module toggle (on/off) via AJAX
- * 2. Pill-tab category filtering (shows/hides category sections)
- * 3. Configure button → settings page
- * 4. Command palette (Ctrl+K) with search and keyboard nav
- * 5. Animated bento counters (data-count + data-suffix)
+ * 1. Sub-module toggles (AJAX via wpt_toggle_module)
+ * 2. Parent toggle → cascade activate/deactivate of all sub-modules
+ *    (Stage 3 cascades via sub-toggle events; Stage 4 will swap to a
+ *    batch wpt_toggle_parent endpoint)
+ * 3. Expand/collapse of parent cards (Session 3)
+ * 4. Pill-tab category filtering across parent cards
+ * 5. Command palette (Ctrl+K) with search and keyboard nav
+ * 6. Animated bento counters
  *
  * No jQuery dependency — vanilla JS.
  */
@@ -24,27 +27,34 @@
         if (!dashboard) return;
 
         initModuleToggles();
-        initConfigureButtons();
+        initParentToggles();
+        initParentCardInteractions();
         initPillTabs();
         initCommandPalette();
         setTimeout(animateCounters, 350);
     });
 
     /* ──────────────────────────────────────
-       MODULE TOGGLES (AJAX)
+       SUB-MODULE TOGGLES (AJAX via wpt_toggle_module)
+       Parent toggles are handled separately in initParentToggles.
     ────────────────────────────────────── */
     function initModuleToggles() {
         document.querySelectorAll('.wpt-module-toggle').forEach(function(toggle) {
+            /* Skip parent toggles — initParentToggles() handles those. */
+            if (toggle.classList.contains('wpt-parent-toggle')) return;
+
             toggle.addEventListener('change', function(e) {
                 e.stopPropagation();
-                var moduleId = this.dataset.moduleId;
-                var active = this.checked ? '1' : '0';
-                var card = this.closest('.module-card');
-                var inp = this;
 
-                if (card) {
-                    card.classList.toggle('disabled', !inp.checked);
-                }
+                var moduleId = this.dataset.moduleId;
+                var active   = this.checked ? '1' : '0';
+                var inp      = this;
+                var parentCard = this.closest('.parent-card');
+                var subItem = this.closest('.submodule-item');
+
+                /* Optimistic UI: reflect the new state immediately. */
+                if (subItem) subItem.classList.toggle('disabled', !inp.checked);
+                if (parentCard) syncParentCard(parentCard);
 
                 var formData = new FormData();
                 formData.append('action', 'wpt_toggle_module');
@@ -60,75 +70,157 @@
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (!data.success) {
+                        /* Revert optimistic UI on server error. */
                         inp.checked = !inp.checked;
-                        if (card) card.classList.toggle('disabled', !inp.checked);
+                        if (subItem) subItem.classList.toggle('disabled', !inp.checked);
+                        if (parentCard) syncParentCard(parentCard);
                     } else {
-                        updateCategoryCounts();
                         updateBentoCount();
                     }
                 })
                 .catch(function() {
                     inp.checked = !inp.checked;
-                    if (card) card.classList.toggle('disabled', !inp.checked);
+                    if (subItem) subItem.classList.toggle('disabled', !inp.checked);
+                    if (parentCard) syncParentCard(parentCard);
                 });
             });
 
-            /* Prevent label/toggle clicks from triggering card click */
-            var label = toggle.closest('.toggle');
+            /* Prevent label click from bubbling to the card. */
+            var label = toggle.closest('.toggle, .sub-toggle');
             if (label) {
                 label.addEventListener('click', function(e) { e.stopPropagation(); });
             }
         });
     }
 
-    function updateBentoCount() {
-        var activeCount = document.querySelectorAll('.wpt-module-toggle:checked').length;
-        var el = document.getElementById('wptActiveCount');
-        if (el) el.textContent = activeCount;
-    }
+    /* ──────────────────────────────────────
+       PARENT TOGGLES
+       Stage 3: cascade via client-side dispatch of sub-toggle change
+       events, which re-use the existing wpt_toggle_module AJAX path.
+       This works but makes N HTTP calls for a parent with N sub-modules.
+       Stage 4 will add a wpt_toggle_parent batch endpoint that does the
+       whole operation in a single round-trip.
+    ────────────────────────────────────── */
+    function initParentToggles() {
+        document.querySelectorAll('.wpt-parent-toggle').forEach(function(parentToggle) {
+            parentToggle.addEventListener('change', function(e) {
+                e.stopPropagation();
 
-    function updateCategoryCounts() {
-        var sections = document.querySelectorAll('.category-section');
-        sections.forEach(function(section) {
-            var total = section.querySelectorAll('.module-card').length;
-            var active = section.querySelectorAll('.wpt-module-toggle:checked').length;
-            var countEl = section.querySelector('.category-count');
-            if (countEl) {
-                countEl.textContent = active + ' of ' + total + ' active';
+                var card = this.closest('.parent-card');
+                if (!card) return;
+
+                /* Disabled Pro toggle — revert and bail. */
+                if (this.disabled) {
+                    this.checked = !this.checked;
+                    return;
+                }
+
+                var shouldActivate = this.checked;
+                var subToggles = card.querySelectorAll('.wpt-sub-module-toggle');
+
+                /* Flip each sub-toggle that doesn't already match the new
+                   state and dispatch a change event — that triggers the
+                   existing wpt_toggle_module AJAX handler installed by
+                   initModuleToggles. Each sub-toggle fires one request;
+                   Stage 4 will replace this with a single batch call. */
+                subToggles.forEach(function(sub) {
+                    if (sub.checked !== shouldActivate) {
+                        sub.checked = shouldActivate;
+                        sub.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+
+                /* After dispatching, sync the parent card state in case
+                   the sub-toggles fired synchronously already. */
+                syncParentCard(card);
+            });
+
+            var label = parentToggle.closest('.toggle');
+            if (label) {
+                label.addEventListener('click', function(e) { e.stopPropagation(); });
             }
         });
     }
 
     /* ──────────────────────────────────────
-       CONFIGURE BUTTONS → SETTINGS PAGE
+       PARENT CARD INTERACTIONS
+       - Expand/collapse the sub-modules panel on expand-button click
+       - Don't hijack mod-main clicks on parent cards (no card-level URL)
     ────────────────────────────────────── */
-    function initConfigureButtons() {
-        document.querySelectorAll('.mod-expand-btn').forEach(function(btn) {
+    function initParentCardInteractions() {
+        document.querySelectorAll('.parent-card .mod-expand-btn').forEach(function(btn) {
+            /* APP parents use an <a class="mod-app-link">; let native
+               navigation handle them. */
+            if (btn.classList.contains('mod-app-link')) return;
+
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                var url = this.dataset.url;
-                if (url) window.location.href = url;
-            });
-        });
 
-        /* Module card main area click → settings */
-        document.querySelectorAll('.mod-main').forEach(function(main) {
-            main.addEventListener('click', function(e) {
-                if (e.target.closest('.toggle')) return;
-                var card = this.closest('.module-card');
-                var url = card ? card.dataset.settingsUrl : null;
-                if (url) window.location.href = url;
+                var card = this.closest('.parent-card');
+                if (!card) return;
+
+                var isExpanded = card.classList.toggle('expanded');
+                this.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
             });
         });
     }
 
     /* ──────────────────────────────────────
-       PILL TAB FILTERING (category sections)
+       SYNC PARENT CARD STATE
+       Re-compute a parent card's UI state based on its sub-toggles.
+       Called after any sub-toggle change or AJAX success/failure.
+    ────────────────────────────────────── */
+    function syncParentCard(card) {
+        if (!card || !card.classList.contains('parent-card')) return;
+
+        var subToggles = card.querySelectorAll('.wpt-sub-module-toggle');
+        var totalSubs  = subToggles.length;
+        var activeSubs = card.querySelectorAll('.wpt-sub-module-toggle:checked').length;
+
+        /* Parent toggle reflects "any sub active", not a server write —
+           update .checked directly without firing change events. */
+        var parentToggle = card.querySelector('.wpt-parent-toggle');
+        if (parentToggle) {
+            parentToggle.checked = activeSubs > 0;
+        }
+
+        /* Card-level disabled: greys out the card when no subs are active. */
+        card.classList.toggle('disabled', activeSubs === 0);
+
+        /* Update the "X/Y sub-modules" text in the footer. */
+        var footerCount = card.querySelector('.wpt-sub-count-text');
+        if (footerCount) {
+            footerCount.textContent = activeSubs + '/' + totalSubs + ' sub-modules';
+        }
+
+        /* Update the "X of Y enabled" text inside the expanded panel. */
+        var panelCount = card.querySelector('.wpt-sub-count-text-expanded');
+        if (panelCount) {
+            panelCount.textContent = activeSubs + ' of ' + totalSubs + ' enabled';
+        }
+
+        /* Update data attrs so downstream code reading them stays in sync. */
+        card.dataset.activeSubCount = String(activeSubs);
+    }
+
+    function updateBentoCount() {
+        /* Bento "Active Modules" — counts only real sub-module toggles,
+           excludes .wpt-parent-toggle which are presentation-layer only. */
+        var activeCount = 0;
+        document.querySelectorAll('.wpt-module-toggle:checked').forEach(function(t) {
+            if (!t.classList.contains('wpt-parent-toggle')) activeCount++;
+        });
+        var el = document.getElementById('wptActiveCount');
+        if (el) el.textContent = activeCount;
+    }
+
+    /* ──────────────────────────────────────
+       PILL TAB FILTERING — parent cards by category
     ────────────────────────────────────── */
     function initPillTabs() {
-        var tabs = document.querySelectorAll('.pill-tab');
-        var sections = document.querySelectorAll('.category-section');
+        var tabs  = document.querySelectorAll('.pill-tab');
+        var cards = document.querySelectorAll('.parent-card');
 
         tabs.forEach(function(tab) {
             tab.addEventListener('click', function(e) {
@@ -138,11 +230,11 @@
                 tabs.forEach(function(t) { t.classList.remove('active'); });
                 this.classList.add('active');
 
-                sections.forEach(function(section) {
-                    if (cat === 'all' || section.dataset.category === cat) {
-                        section.style.display = '';
+                cards.forEach(function(card) {
+                    if (cat === 'all' || card.dataset.category === cat) {
+                        card.style.display = '';
                     } else {
-                        section.style.display = 'none';
+                        card.style.display = 'none';
                     }
                 });
             });

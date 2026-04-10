@@ -535,6 +535,239 @@
 }
 
 /* ══════════════════════════════════════════
+   SESSION 3 — PARENT CARD + EXPANDABLE SUB-MODULE PANEL
+   ──────────────────────────────────────────
+   Reference: assets/admin/reference/dashboard/wp-transformation-final.html
+   Spec: docs/ui-restructure-spec.md Section 8 Session 3
+   Data: includes/class-module-hierarchy.php
+══════════════════════════════════════════ */
+
+/* Parent card overflow — lets the expanded panel grow beyond the original
+   card bounds. Base .module-card has overflow: hidden which we keep for
+   the border-radius mask; the panel uses max-height to respect that. */
+.wpt-dashboard .parent-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.wpt-dashboard .parent-card .mod-main {
+    flex: 1;
+}
+
+/* Sub-modules panel — collapsed by default.
+   WordPress admin spec: max-height 0 → 2000px transition on .expanded.
+   2000px chosen over 500px to accommodate large parents (Content Tools,
+   Site Utilities) which have 10+ sub-modules; scroll happens inside
+   .submodules-inner if the content still overflows. */
+.wpt-dashboard .parent-card .submodules-panel {
+    max-height: 0;
+    overflow: hidden;
+    background: var(--surface-alt);
+    border-top: 1px solid transparent;
+    transition: max-height 0.4s cubic-bezier(0.22,1,0.36,1),
+                border-top-color 0.4s ease;
+}
+
+.wpt-dashboard .parent-card.expanded .submodules-panel {
+    max-height: 2000px;
+    border-top-color: var(--border);
+}
+
+.wpt-dashboard .parent-card .submodules-inner {
+    padding: 14px 16px 8px;
+}
+
+.wpt-dashboard .parent-card .submodules-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.wpt-dashboard .parent-card .submodules-header h4 {
+    margin: 0;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.wpt-dashboard .parent-card .submodules-header span {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* Sub-module row */
+.wpt-dashboard .submodule-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    margin-bottom: 5px;
+    border-radius: 9px;
+    background: var(--surface-solid);
+    border: 1px solid var(--border);
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.wpt-dashboard .submodule-item:last-child {
+    margin-bottom: 0;
+}
+
+.wpt-dashboard .submodule-item:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-strong);
+}
+
+.wpt-dashboard .submodule-item.disabled {
+    opacity: 0.55;
+}
+
+.wpt-dashboard .submodule-item .sub-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    font-size: 11px;
+    background: var(--surface-alt);
+    color: var(--text-muted);
+}
+
+.wpt-dashboard .submodule-item .sub-info {
+    flex: 1;
+    min-width: 0; /* allow text truncation without forcing row to grow */
+}
+
+.wpt-dashboard .submodule-item .sub-info h5 {
+    margin: 0 0 2px;
+    font-family: 'Outfit', -apple-system, sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+}
+
+.wpt-dashboard .submodule-item .sub-info p {
+    margin: 0;
+    font-size: 11px;
+    color: var(--text-desc);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Sub-module settings cog link */
+.wpt-dashboard .submodule-item .sub-settings-link {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    text-decoration: none;
+    background: transparent;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.wpt-dashboard .submodule-item .sub-settings-link:hover {
+    background: var(--primary-glow);
+    color: var(--primary);
+}
+
+/* Small sub-module toggle — 36x20 instead of 44x26 */
+.wpt-dashboard .sub-toggle {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.wpt-dashboard .sub-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.wpt-dashboard .sub-toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--toggle-bg);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.22,1,0.36,1);
+}
+
+.wpt-dashboard .sub-toggle-track::before {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.22,1,0.36,1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.wpt-dashboard .sub-toggle input:checked + .sub-toggle-track {
+    background: var(--primary);
+}
+
+.wpt-dashboard .sub-toggle input:checked + .sub-toggle-track::before {
+    transform: translateX(16px);
+}
+
+/* Expand button rotation when panel is open */
+.wpt-dashboard .parent-card.expanded .mod-expand-btn i {
+    transform: rotate(180deg);
+}
+
+/* APP parents: expand button renders as an <a> link instead of a button.
+   Matches the regular expand button visually but navigates to the app page. */
+.wpt-dashboard .parent-card .mod-app-link {
+    text-decoration: none;
+    color: var(--text-muted);
+}
+
+.wpt-dashboard .parent-card .mod-app-link:hover {
+    color: var(--primary);
+    background: var(--surface-alt);
+}
+
+.wpt-dashboard .parent-card .mod-app-link i {
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+
+.wpt-dashboard .parent-card .mod-app-link:hover i {
+    transform: translateX(3px);
+}
+
+/* APP badge — sky/teal variant.
+   Uses primary glow as a base; distinct enough from popular/new/pro to
+   read at a glance, while staying on-brand. */
+.wpt-dashboard .badge-app {
+    background: rgba(14,165,233,0.14);
+    color: #0ea5e9;
+}
+
+/* Pro-gated parent: disabled toggle is still visible but can't be clicked.
+   Shows a lock hint via cursor + opacity. */
+.wpt-dashboard .parent-card.is-pro .toggle input:disabled + .toggle-track {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* ══════════════════════════════════════════
    BOTTOM PANELS
 ══════════════════════════════════════════ */
 .wpt-dashboard .bottom-grid {
