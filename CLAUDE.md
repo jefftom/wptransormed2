@@ -86,19 +86,21 @@ Red (human only): business decisions, credentials, security
 Phase: UI RESTRUCTURE
 
 Progress:
-- Session 1 (Sidebar reskin + topbar + global styling) — complete (afa2aae + fixes; static CSS audit 2026-04-10 confirmed zero drift vs reference)
-- Session 2 (Editor Dashboard with real data) — complete (7365020)
+- Session 1 (Sidebar reskin + topbar + global styling) — complete (afa2aae + fixes; static CSS audit + live runtime verification on Laragon/wpt-dev confirmed zero drift vs reference)
+- Session 2 (Editor Dashboard with real data) — complete (7365020, verified live)
+- Session 3 (Module Grid — 28-parent hierarchy with expandable sub-panels) — complete (7b25021 + e94dad9 + 46a5965 + c8b4558). New includes/class-module-hierarchy.php is the canonical source of truth; render_parent_card() helper in class-admin.php renders cards with expand/collapse; wpt_toggle_parent AJAX batch endpoint handles parent activation atomically; pill-tabs filter across all 7 canonical categories; APP parents link to dedicated app pages (wired for Sessions 4-5 to build). Runtime-verified end-to-end on wpt-dev.
 - Session 6 (Command palette + plugin detection) — partial (cd44f4e reconciled with v3 reference mockup; plugin detection wiring may still be incomplete)
 
-Target: Session 3 — Module Grid
-Scope: 28-parent / sub-module grid restructure with pill tabs, search, tooltips, expandable sub-panels, APP PAGE links, AJAX toggles. setup-wizard excluded from grid.
-Reference files for Session 3:
-- assets/admin/reference/dashboard/wp-transformation-final.html (PRIMARY)
-- assets/admin/reference/dashboard/wp-transformation-content.html (category density)
-- assets/admin/reference/components/tooltip-reference.html (tooltip pattern only)
-- docs/module-hierarchy.md (28 parents × sub-modules)
+Target: Session 4 — Database Optimizer + Audit Log app pages
+Scope: Two dedicated APP pages referenced by Session 3 parent cards (wpt-database, wpt-audit-log). Database Optimizer app: bento stats (size, table count, cleanup candidates), cleanup task list, auto-cleanup scheduler sidebar, table-by-table size view. Audit Log app: bento stats (events today, failed logins, active users), filterable/searchable event table, pagination. Both pages need real-data backends, not dummy.
 
-Reference: docs/ui-restructure-spec.md Section 8 (Session 3 prompt)
+Reference files for Session 4:
+- assets/admin/reference/app-pages/database-optimizer-v3.html
+- assets/admin/reference/app-pages/audit-log-v3.html
+
+Reference: docs/ui-restructure-spec.md Section 8 (Session 4 prompt)
+
+Note: existing database-cleanup and audit-log modules are built but don't have the dedicated APP-page view yet. Session 4 adds the APP shells that wrap their existing functionality.
 
 
 
