@@ -583,11 +583,20 @@ class Admin {
      *
      * Uses priority 999 so all menu items are already registered.
      *
-     * IMPORTANT: WordPress core runs a "prevent adjacent separators" cleanup
-     * pass (see wp-admin/includes/menu.php around line 343) that silently
-     * removes any separator that immediately follows another separator. If we
-     * inject a section label into a range that contains no real menu items,
-     * it becomes "adjacent" to the previous section label and gets removed.
+     * This is the FALLBACK section injector. When the Smart Menu Organizer
+     * module is active, it runs later at priority 99999 and rebuilds `$menu`
+     * with its own canonical section layout (CONTENT/SECURITY/DESIGN/TOOLS/
+     * CONFIGURE — same labels as this method). To avoid the duplicate-header
+     * collision observed during the 2026-04-10 activation sweep, we defer
+     * entirely when Smart Menu Organizer is on: that module becomes the sole
+     * source of section organization and this method is a no-op.
+     *
+     * IMPORTANT (when not deferring): WordPress core runs a "prevent adjacent
+     * separators" cleanup pass (see wp-admin/includes/menu.php around line
+     * 343) that silently removes any separator that immediately follows
+     * another separator. If we inject a section label into a range that
+     * contains no real menu items, it becomes "adjacent" to the previous
+     * section label and gets removed.
      *
      * This method therefore checks each section's content range for a real
      * (non-separator) menu item BEFORE injecting the label. Sections with no
@@ -595,6 +604,13 @@ class Admin {
      * the sidebar clean when modules are inactive or plugins aren't installed.
      */
     public function inject_section_labels(): void {
+        // Defer to Smart Menu Organizer when it's active. It owns menu
+        // organization completely via organize_admin_menu() at priority
+        // 99999 and uses the same canonical section labels.
+        if ( Core::instance()->is_active( 'smart-menu-organizer' ) ) {
+            return;
+        }
+
         global $menu;
 
         // Remove default WordPress separators (replaced by our section labels)

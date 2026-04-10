@@ -59,6 +59,20 @@ class Smart_Menu_Organizer extends Module_Base {
     /**
      * Return default section definitions.
      *
+     * Aligned with the canonical CONTENT / SECURITY / DESIGN / TOOLS / CONFIGURE
+     * groups defined in docs/ui-restructure-spec.md Section 3 and used by
+     * Admin::inject_section_labels() as the fallback injector. Keeping both
+     * systems on the same labels avoids the duplicate-header collision that
+     * occurred when Smart Menu Organizer invented its own set.
+     *
+     * Items are WP core menu slugs. The plugin's own WPT admin pages are
+     * unassigned so they fall into "Other" by default — which we want,
+     * because they sit under the CONFIGURE range in the target layout.
+     *
+     * Security / Design sections start empty because WPT doesn't register
+     * any core menu items under them yet; they populate dynamically as
+     * security modules and detected page builders add menu items.
+     *
      * @return array
      */
     public function get_default_sections(): array {
@@ -67,22 +81,36 @@ class Smart_Menu_Organizer extends Module_Base {
                 'id'        => 'content',
                 'label'     => 'Content',
                 'icon'      => 'dashicons-edit',
-                'items'     => [ 'edit.php', 'upload.php', 'edit.php?post_type=page', 'edit-comments.php' ],
+                'items'     => [ 'index.php', 'edit.php', 'upload.php', 'edit.php?post_type=page', 'edit-comments.php' ],
                 'collapsed' => false,
             ],
             [
-                'id'        => 'build',
-                'label'     => 'Build',
+                'id'        => 'security',
+                'label'     => 'Security',
+                'icon'      => 'dashicons-shield',
+                'items'     => [],
+                'collapsed' => false,
+            ],
+            [
+                'id'        => 'design',
+                'label'     => 'Design',
                 'icon'      => 'dashicons-admin-appearance',
-                'items'     => [ 'themes.php', 'plugins.php', 'nav-menus.php', 'widgets.php' ],
+                'items'     => [ 'themes.php', 'nav-menus.php', 'widgets.php' ],
                 'collapsed' => false,
             ],
             [
-                'id'        => 'manage',
-                'label'     => 'Manage',
+                'id'        => 'tools',
+                'label'     => 'Tools',
+                'icon'      => 'dashicons-admin-tools',
+                'items'     => [ 'tools.php' ],
+                'collapsed' => false,
+            ],
+            [
+                'id'        => 'configure',
+                'label'     => 'Configure',
                 'icon'      => 'dashicons-admin-settings',
-                'items'     => [ 'users.php', 'tools.php', 'options-general.php' ],
-                'collapsed' => true,
+                'items'     => [ 'options-general.php', 'plugins.php', 'users.php' ],
+                'collapsed' => false,
             ],
         ];
     }
@@ -293,8 +321,15 @@ class Smart_Menu_Organizer extends Module_Base {
             if ( strpos( $slug, 'separator' ) === 0 ) {
                 continue;
             }
-            // Skip section headers we created.
+            // Skip our own section headers.
             if ( strpos( $slug, 'wpt-section-' ) === 0 ) {
+                continue;
+            }
+            // Skip Admin::inject_section_labels() separators. Normally that
+            // injector defers entirely when this module is active, but this
+            // filter is defensive — it prevents the labels from leaking into
+            // the Other bucket if the defer check ever fails.
+            if ( strpos( $slug, 'wpt-sep-' ) === 0 ) {
                 continue;
             }
             if ( ! isset( $assigned_slugs[ $slug ] ) ) {
