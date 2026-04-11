@@ -21,7 +21,7 @@ declare(strict_types=1);
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 // Plugin constants
-define( 'WPT_VERSION', '1.1.0-session5p2' );
+define( 'WPT_VERSION', '1.1.0-session5p2.1' );
 define( 'WPT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WPT_URL', plugin_dir_url( __FILE__ ) );
 define( 'WPT_FILE', __FILE__ );

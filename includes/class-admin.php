@@ -1088,31 +1088,35 @@ class Admin {
 
         $core = Core::instance();
 
-        // Pre-flight: reject the batch if any sub would fail Pro gating.
-        // We check at the sub level rather than the parent tier because
-        // mixed-tier parents are possible (though uncommon).
-        foreach ( $sub_ids as $id ) {
-            $module = $core->get_module( $id );
-            if ( ! $module ) {
-                continue;
-            }
-            if ( $module->get_tier() === 'pro' && ! Core::is_pro_licensed() ) {
-                wp_send_json_error( 'Pro license required for one or more sub-modules' );
-            }
-        }
-
         // Batch toggle. Per-sub results are collected so the client can
         // revert any sub whose individual write failed, without the whole
         // batch rolling back (which would leave partial state anyway).
-        $results   = [];
-        $succeeded = 0;
-        $failed    = 0;
+        //
+        // Pro-tier subs in a free-tier parent (e.g. client-dashboard inside
+        // dashboard-manager) are silently skipped when Core::is_pro_licensed()
+        // is false — reported back with error='pro_locked' so the client UI
+        // can leave those sub-toggles off without rolling back the whole
+        // parent. This lets free users activate the 5 free subs of a mixed-
+        // tier parent without being blocked by the 1 Pro sub. Pro users
+        // activate all subs atomically like before.
+        $results    = [];
+        $succeeded  = 0;
+        $failed     = 0;
+        $pro_locked = 0;
 
         foreach ( $sub_ids as $id ) {
             $module = $core->get_module( $id );
             if ( ! $module ) {
                 $results[] = [ 'id' => $id, 'active' => null, 'error' => 'module_not_loaded' ];
                 $failed++;
+                continue;
+            }
+
+            // Skip Pro-gated subs when unlicensed — the parent toggle treats
+            // them as "intentionally left unset" rather than a batch failure.
+            if ( $module->get_tier() === 'pro' && ! Core::is_pro_licensed() ) {
+                $results[] = [ 'id' => $id, 'active' => null, 'error' => 'pro_locked' ];
+                $pro_locked++;
                 continue;
             }
 
@@ -1146,6 +1150,7 @@ class Admin {
             'total'       => count( $sub_ids ),
             'succeeded'   => $succeeded,
             'failed'      => $failed,
+            'pro_locked'  => $pro_locked,
         ] );
     }
 }
