@@ -31,6 +31,7 @@
         initParentCardInteractions();
         initPillTabs();
         initCommandPalette();
+        initDbCleanupActions();
         setTimeout(animateCounters, 350);
     });
 
@@ -288,6 +289,113 @@
                     }
                 });
             });
+        });
+    }
+
+    /* ──────────────────────────────────────
+       DATABASE OPTIMIZER — Cleanup task runners
+       Calls the existing wpt_db_cleanup_run AJAX endpoint registered
+       by the Database_Cleanup module. Each Clean button targets one
+       cleanup category; the "Clean All" header button iterates over
+       enabled (non-zero count) rows.
+    ────────────────────────────────────── */
+    function initDbCleanupActions() {
+        var container = document.getElementById('wptDbOptimizer');
+        if (!container) return;
+
+        var config = typeof wptDbOptimizer !== 'undefined' ? wptDbOptimizer : null;
+        if (!config || !config.ajaxUrl || !config.nonce) return;
+
+        /* Per-row Clean buttons */
+        container.querySelectorAll('.wpt-cleanup-action').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (btn.disabled) return;
+
+                var row = btn.closest('.wpt-cleanup-item');
+                var category = btn.dataset.category;
+                if (!category || !row) return;
+
+                runCleanup(category, btn, row, config);
+            });
+        });
+
+        /* Clean All header button — iterate rows with count > 0 */
+        var cleanAllBtn = document.getElementById('wptDbCleanAll');
+        if (cleanAllBtn && !cleanAllBtn.disabled) {
+            cleanAllBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (!confirm('Run all cleanup tasks? This removes rows permanently.')) return;
+
+                cleanAllBtn.disabled = true;
+                cleanAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cleaning…';
+
+                runCleanup('all', cleanAllBtn, null, config)
+                    .then(function() {
+                        cleanAllBtn.innerHTML = '<i class="fas fa-check"></i> Done';
+                        setTimeout(function() { window.location.reload(); }, 800);
+                    })
+                    .catch(function() {
+                        cleanAllBtn.disabled = false;
+                        cleanAllBtn.innerHTML = '<i class="fas fa-broom"></i> Clean All';
+                    });
+            });
+        }
+    }
+
+    function runCleanup(category, btn, row, config) {
+        var originalLabel = btn ? btn.textContent : '';
+        if (btn && row) {
+            btn.disabled = true;
+            btn.textContent = '…';
+        }
+
+        var formData = new FormData();
+        formData.append('action', 'wpt_db_cleanup_run');
+        formData.append('category', category);
+        formData.append('nonce', config.nonce);
+
+        return fetch(config.ajaxUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: formData
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.success) {
+                throw new Error((data.data && data.data.message) || 'Cleanup failed');
+            }
+
+            /* Per-row: update count + size + disable button */
+            if (btn && row) {
+                var countEl = row.querySelector('.wpt-cleanup-count');
+                var sizeEl  = row.querySelector('.wpt-cleanup-size');
+                var remaining = (data.data && data.data.remaining) || 0;
+                if (countEl) countEl.textContent = String(remaining);
+                if (sizeEl)  sizeEl.textContent = remaining === 0 ? '0.0 B' : countEl.textContent;
+
+                if (remaining === 0) {
+                    row.classList.add('is-clean');
+                    btn.disabled = true;
+                    btn.textContent = 'Clean';
+                } else {
+                    /* More rows exist — restore button so user can click again */
+                    btn.disabled = false;
+                    btn.textContent = originalLabel || 'Clean';
+                }
+            }
+
+            return data;
+        })
+        .catch(function(err) {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = originalLabel || 'Clean';
+            }
+            /* eslint-disable-next-line no-console */
+            console.error('[WPT DB cleanup]', err);
+            alert('Cleanup failed: ' + err.message);
+            throw err;
         });
     }
 
