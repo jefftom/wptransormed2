@@ -32,6 +32,7 @@
         initPillTabs();
         initCommandPalette();
         initDbCleanupActions();
+        initLoginDesigner();
         setTimeout(animateCounters, 350);
     });
 
@@ -396,6 +397,256 @@
             console.error('[WPT DB cleanup]', err);
             alert('Cleanup failed: ' + err.message);
             throw err;
+        });
+    }
+
+    /* ──────────────────────────────────────
+       LOGIN DESIGNER — Session 5 Part 1
+       Tab switching, live preview updates, template picker,
+       color swatch ↔ hex input sync, device preview toggle.
+    ────────────────────────────────────── */
+    function initLoginDesigner() {
+        var root = document.getElementById('wptLoginDesigner');
+        if (!root) return;
+
+        initLdTabs(root);
+        initLdColorPickers(root);
+        initLdLivePreview(root);
+        initLdTemplates(root);
+        initLdDeviceButtons(root);
+        initLdResetButton(root);
+    }
+
+    function initLdTabs(root) {
+        var tabs = root.querySelectorAll('.wpt-ld-tab');
+        var panels = root.querySelectorAll('.wpt-ld-tab-panel');
+
+        tabs.forEach(function(tab) {
+            tab.addEventListener('click', function(e) {
+                e.preventDefault();
+                var target = this.dataset.tab;
+
+                tabs.forEach(function(t) {
+                    t.classList.remove('active');
+                    t.setAttribute('aria-selected', 'false');
+                });
+                this.classList.add('active');
+                this.setAttribute('aria-selected', 'true');
+
+                panels.forEach(function(p) {
+                    p.classList.toggle('active', p.dataset.tabPanel === target);
+                });
+            });
+        });
+    }
+
+    /* Sync the native <input type="color"> (inside the swatch) with the
+       hex text input next to it. Both directions: picking a color updates
+       the text, typing a hex updates the swatch + color picker. */
+    function initLdColorPickers(root) {
+        var swatches = root.querySelectorAll('.wpt-ld-color-swatch input[type="color"]');
+
+        swatches.forEach(function(picker) {
+            var textId = picker.dataset.colorTarget;
+            var textInput = textId ? document.querySelector(textId) : null;
+            if (!textInput) return;
+
+            /* Picker → text input */
+            picker.addEventListener('input', function() {
+                var val = this.value;
+                textInput.value = val;
+                var swatch = picker.closest('.wpt-ld-color-swatch');
+                if (swatch) swatch.style.backgroundColor = val;
+                /* Dispatch input event on the text input so the preview
+                   binding below picks up the change. */
+                textInput.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+
+            /* Text input → picker + swatch */
+            textInput.addEventListener('input', function() {
+                var val = this.value.trim();
+                if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+                    picker.value = val;
+                    var swatch = picker.closest('.wpt-ld-color-swatch');
+                    if (swatch) swatch.style.backgroundColor = val;
+                }
+            });
+        });
+    }
+
+    /* Wire every input with a data-preview-target to update the preview
+       DOM on input (for text/color/range) or change (for checkboxes).
+       Keeps the operation declarative: the PHP markup decides what the
+       input controls via data-preview-action. */
+    function initLdLivePreview(root) {
+        var inputs = root.querySelectorAll('[data-preview-target]');
+
+        inputs.forEach(function(input) {
+            var target = input.dataset.previewTarget;
+            var action = input.dataset.previewAction;
+            if (!target || !action) return;
+
+            var evtName = input.type === 'checkbox' ? 'change' : 'input';
+
+            input.addEventListener(evtName, function() {
+                applyLdPreview(root, input, target, action);
+            });
+        });
+
+        /* Border-radius slider has a separate value display element. */
+        var displayInputs = root.querySelectorAll('[data-display-target]');
+        displayInputs.forEach(function(input) {
+            var display = document.querySelector(input.dataset.displayTarget);
+            if (!display) return;
+            input.addEventListener('input', function() {
+                display.textContent = this.value + 'px';
+            });
+        });
+    }
+
+    function applyLdPreview(root, input, target, action) {
+        var els = root.querySelectorAll(target);
+        if (!els.length) return;
+
+        var value = input.type === 'checkbox' ? input.checked : input.value;
+
+        els.forEach(function(el) {
+            switch (action) {
+                case 'bg-color':
+                    if (typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) {
+                        el.style.backgroundColor = value;
+                    }
+                    break;
+                case 'color':
+                    if (typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) {
+                        el.style.color = value;
+                    }
+                    break;
+                case 'text-color':
+                    if (typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) {
+                        el.style.color = value;
+                        /* Cascade to nested labels inside the form */
+                        el.querySelectorAll('label, h3').forEach(function(child) {
+                            child.style.color = value;
+                        });
+                    }
+                    break;
+                case 'border-radius':
+                    el.style.borderRadius = parseInt(value, 10) + 'px';
+                    break;
+                case 'bg-image':
+                    if (typeof value === 'string' && value.length > 0) {
+                        el.style.backgroundImage = "url('" + value.replace(/'/g, "\\'") + "')";
+                        el.style.backgroundSize = 'cover';
+                        el.style.backgroundPosition = 'center';
+                    } else {
+                        el.style.backgroundImage = 'none';
+                    }
+                    break;
+                case 'logo-url':
+                    if (el.tagName === 'IMG') {
+                        if (typeof value === 'string' && value.length > 0) {
+                            el.src = value;
+                            el.hidden = false;
+                            /* Hide the placeholder icon when we have a real logo */
+                            var placeholder = root.querySelector('.wpt-ld-login-logo-placeholder');
+                            if (placeholder) placeholder.style.display = 'none';
+                        } else {
+                            el.hidden = true;
+                            el.src = '';
+                            var placeholder2 = root.querySelector('.wpt-ld-login-logo-placeholder');
+                            if (placeholder2) placeholder2.style.display = '';
+                        }
+                    }
+                    break;
+                case 'hide-back':
+                    el.hidden = !!value;
+                    break;
+            }
+        });
+    }
+
+    /* Template picker: clicking a preset applies its JSON settings to
+       every matching form input and fires their input events so the
+       live preview + color swatches update. */
+    function initLdTemplates(root) {
+        var presets = root.querySelectorAll('.wpt-ld-preset');
+
+        presets.forEach(function(preset) {
+            preset.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                presets.forEach(function(p) { p.classList.remove('active'); });
+                this.classList.add('active');
+
+                var json = this.dataset.templateJson;
+                if (!json) return;
+
+                var settings;
+                try {
+                    settings = JSON.parse(json);
+                } catch (err) {
+                    /* eslint-disable-next-line no-console */
+                    console.error('[WPT Login Designer] invalid template JSON', err);
+                    return;
+                }
+
+                Object.keys(settings).forEach(function(key) {
+                    var input = root.querySelector('[name="' + key + '"]');
+                    if (!input) return;
+
+                    var value = settings[key];
+                    if (input.type === 'checkbox') {
+                        input.checked = !!value;
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    } else {
+                        input.value = String(value);
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                });
+            });
+        });
+    }
+
+    /* Device toggle: swap max-width on the preview wrap. No real
+       browser emulation — just a visual indicator of how the form
+       will scale. */
+    function initLdDeviceButtons(root) {
+        var btns = root.querySelectorAll('.wpt-ld-device-btn');
+        var wrap = root.querySelector('.wpt-ld-preview-wrap');
+        if (!wrap) return;
+
+        btns.forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                btns.forEach(function(b) { b.classList.remove('active'); });
+                this.classList.add('active');
+                wrap.setAttribute('data-device', this.dataset.device);
+            });
+        });
+    }
+
+    /* Reset button: clears form via confirm + plain form.reset(),
+       then fires input events to sync the preview. Server-side
+       defaults are applied on the next save, so the user can still
+       abandon the reset by leaving the page without clicking Save. */
+    function initLdResetButton(root) {
+        var btn = document.getElementById('wptLoginDesignerReset');
+        if (!btn) return;
+
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (!confirm('Reset all fields to their current saved values? Unsaved changes will be lost.')) return;
+
+            var form = document.getElementById('wptLoginDesignerForm');
+            if (!form) return;
+            form.reset();
+
+            /* Fire input events so the preview re-syncs */
+            form.querySelectorAll('input, textarea, select').forEach(function(el) {
+                var evtName = el.type === 'checkbox' ? 'change' : 'input';
+                el.dispatchEvent(new Event(evtName, { bubbles: true }));
+            });
         });
     }
 

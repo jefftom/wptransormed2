@@ -116,6 +116,11 @@ class Admin {
         // the top-level menu).
         new Database_Optimizer_App();
         new Audit_Log_App();
+
+        // Session 5 Part 1 — Login Designer app page (wpt-login-designer).
+        // Wraps the existing Login_Customizer module with a split-pane
+        // live-preview UI.
+        new Login_Designer_App();
     }
 
     public function register_page(): void {

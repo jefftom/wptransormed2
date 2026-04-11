@@ -1687,6 +1687,791 @@
 }
 
 /* ══════════════════════════════════════════
+   SESSION 5 PART 1 — LOGIN DESIGNER APP PAGE
+   ──────────────────────────────────────────
+   Reference: assets/admin/reference/app-pages/login-customizer-v3.html
+   Split-pane: 360px settings panel on the left + flex 1 live preview
+   pane on the right with a gradient background and a static HTML
+   mockup of wp-login.php that responds to input changes via JS.
+══════════════════════════════════════════ */
+
+/* Override the wp-admin wrapper padding on this page so the split
+   pane can fill the viewport edge-to-edge. #wpbody-content has
+   1.75rem padding globally; we zero it out just for this app page. */
+body.wpt-admin #wpbody-content:has(> .wpt-login-designer) {
+    padding: 0 !important;
+}
+
+.wpt-dashboard.wpt-login-designer {
+    padding: 0;
+    animation: none;
+}
+
+.wpt-dashboard .wpt-login-designer-layout {
+    display: flex;
+    min-height: calc(100vh - var(--wpt-topbar-height, 58px));
+    background: var(--bg);
+}
+
+/* Saved notice renders above the split layout */
+.wpt-dashboard .wpt-app-notice-success {
+    background: var(--accent-glow);
+    border: 1px solid rgba(6,214,160,0.3);
+    margin: 1rem 1.75rem 0;
+    border-radius: 11px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.wpt-dashboard .wpt-app-notice-success > i {
+    font-size: 18px;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.wpt-dashboard .wpt-app-notice-success strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.wpt-dashboard .wpt-app-notice-success p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--text-desc);
+}
+
+.wpt-dashboard .wpt-app-notice-success .btn {
+    padding: 7px 14px;
+    border-radius: 8px;
+    background: var(--surface-solid);
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wpt-dashboard .wpt-app-notice-success .btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* ──────────────────────────────────────
+   LEFT PANE — Settings panel
+────────────────────────────────────── */
+
+.wpt-dashboard .wpt-ld-panel {
+    width: 360px;
+    flex-shrink: 0;
+    background: var(--surface-solid);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - var(--wpt-topbar-height, 58px));
+    position: sticky;
+    top: var(--wpt-topbar-height, 58px);
+}
+
+.wpt-dashboard .wpt-ld-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.wpt-dashboard .wpt-ld-panel-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.2px;
+}
+
+.wpt-dashboard .wpt-ld-panel-header .wpt-page-header-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.wpt-dashboard .wpt-ld-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    display: grid;
+    place-items: center;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.wpt-dashboard .wpt-ld-close:hover {
+    background: var(--surface-alt);
+    color: var(--text);
+}
+
+.wpt-dashboard .wpt-ld-tabs {
+    display: flex;
+    padding: 0 8px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.wpt-dashboard .wpt-ld-tab {
+    flex: 1;
+    padding: 12px 8px;
+    border: none;
+    background: transparent;
+    font-family: 'Outfit', sans-serif;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.wpt-dashboard .wpt-ld-tab:hover {
+    color: var(--text-secondary);
+}
+
+.wpt-dashboard .wpt-ld-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.wpt-dashboard .wpt-ld-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.wpt-dashboard .wpt-ld-panel-content::-webkit-scrollbar { width: 6px; }
+.wpt-dashboard .wpt-ld-panel-content::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 3px;
+}
+
+.wpt-dashboard .wpt-ld-tab-panel {
+    display: none;
+}
+
+.wpt-dashboard .wpt-ld-tab-panel.active {
+    display: block;
+}
+
+.wpt-dashboard .wpt-ld-section {
+    margin-bottom: 1.75rem;
+}
+
+.wpt-dashboard .wpt-ld-section:last-child {
+    margin-bottom: 0;
+}
+
+.wpt-dashboard .wpt-ld-section-header {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.wpt-dashboard .wpt-ld-form-group {
+    margin-bottom: 14px;
+}
+
+.wpt-dashboard .wpt-ld-form-group:last-child {
+    margin-bottom: 0;
+}
+
+.wpt-dashboard .wpt-ld-form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.wpt-dashboard .wpt-ld-form-grid-2 .wpt-ld-form-group {
+    margin-bottom: 0;
+}
+
+.wpt-dashboard .wpt-ld-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.wpt-dashboard .wpt-ld-value-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.wpt-dashboard .wpt-ld-input {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface-solid);
+    font-family: 'Outfit', sans-serif;
+    font-size: 12.5px;
+    color: var(--text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.wpt-dashboard .wpt-ld-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.wpt-dashboard .wpt-ld-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface-solid);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--text);
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 120px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.wpt-dashboard .wpt-ld-textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.wpt-dashboard .wpt-ld-hint {
+    display: block;
+    margin-top: 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+/* Color picker row */
+.wpt-dashboard .wpt-ld-color-picker {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.wpt-dashboard .wpt-ld-color-swatch {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+.wpt-dashboard .wpt-ld-color-swatch:hover {
+    transform: scale(1.05);
+    border-color: var(--primary);
+}
+
+.wpt-dashboard .wpt-ld-color-swatch input[type="color"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    border: none;
+    padding: 0;
+}
+
+.wpt-dashboard .wpt-ld-color-input {
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: lowercase;
+}
+
+/* Range slider */
+.wpt-dashboard .wpt-ld-range {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--surface-alt);
+    border-radius: 3px;
+    outline: none;
+    margin: 8px 0;
+}
+
+.wpt-dashboard .wpt-ld-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(37,99,235,0.4);
+    transition: transform 0.2s;
+}
+
+.wpt-dashboard .wpt-ld-range::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+}
+
+.wpt-dashboard .wpt-ld-range::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(37,99,235,0.4);
+}
+
+/* Toggle row — matches the existing .toggle switch but in a full-width row */
+.wpt-dashboard .wpt-ld-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 14px;
+    border-radius: 10px;
+    background: var(--surface-alt);
+    margin-bottom: 8px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+}
+
+.wpt-dashboard .wpt-ld-toggle-row:last-child {
+    margin-bottom: 0;
+}
+
+.wpt-dashboard .wpt-ld-toggle-row .toggle {
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.wpt-dashboard .wpt-ld-toggle-row .toggle-track::before {
+    width: 14px;
+    height: 14px;
+    left: 3px;
+    top: 3px;
+}
+
+.wpt-dashboard .wpt-ld-toggle-row .toggle input:checked + .toggle-track::before {
+    transform: translateX(16px);
+}
+
+/* Preset templates grid */
+.wpt-dashboard .wpt-ld-presets-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.wpt-dashboard .wpt-ld-preset {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.wpt-dashboard .wpt-ld-preset:hover {
+    border-color: var(--primary);
+    transform: scale(1.02);
+}
+
+.wpt-dashboard .wpt-ld-preset.active {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.wpt-dashboard .wpt-ld-preset-preview {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+}
+
+.wpt-dashboard .wpt-ld-mini-form {
+    width: 100%;
+    max-width: 60px;
+    background: rgba(255,255,255,0.95);
+    border-radius: 4px;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.wpt-dashboard .wpt-ld-mini-logo {
+    width: 18px;
+    height: 4px;
+    background: #0f172a;
+    border-radius: 1px;
+    margin: 0 auto 2px;
+}
+
+.wpt-dashboard .wpt-ld-mini-input {
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 1px;
+}
+
+.wpt-dashboard .wpt-ld-mini-btn {
+    height: 5px;
+    background: #2563eb;
+    border-radius: 1px;
+    margin-top: 1px;
+}
+
+.wpt-dashboard .wpt-ld-preset-name {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 3px 4px;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: 0.3px;
+}
+
+/* Panel footer */
+.wpt-dashboard .wpt-ld-panel-footer {
+    display: flex;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface-solid);
+    flex-shrink: 0;
+}
+
+.wpt-dashboard .wpt-ld-panel-footer .btn {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s cubic-bezier(0.22,1,0.36,1);
+    border: 1px solid transparent;
+}
+
+.wpt-dashboard .wpt-ld-panel-footer .btn-secondary {
+    background: var(--surface-alt);
+    border-color: var(--border);
+    color: var(--text-secondary);
+}
+
+.wpt-dashboard .wpt-ld-panel-footer .btn-secondary:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.wpt-dashboard .wpt-ld-panel-footer .btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+}
+
+.wpt-dashboard .wpt-ld-panel-footer .btn-primary:hover {
+    background: var(--primary-light);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+}
+
+/* ──────────────────────────────────────
+   RIGHT PANE — Live preview
+────────────────────────────────────── */
+
+.wpt-dashboard .wpt-ld-preview-area {
+    flex: 1;
+    position: relative;
+    background: linear-gradient(165deg, #0f2847 0%, #1a4180 45%, #2563eb 100%);
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px 40px;
+    min-height: calc(100vh - var(--wpt-topbar-height, 58px));
+    transition: background-color 0.3s ease;
+}
+
+.wpt-dashboard .wpt-ld-preview-toolbar {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.wpt-dashboard .wpt-ld-device-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+}
+
+.wpt-dashboard .wpt-ld-device-btn:hover {
+    color: rgba(255,255,255,0.9);
+}
+
+.wpt-dashboard .wpt-ld-device-btn.active {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+}
+
+.wpt-dashboard .wpt-ld-preview-url {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    color: rgba(255,255,255,0.85);
+    font-size: 11.5px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.wpt-dashboard .wpt-ld-preview-url i {
+    color: var(--accent);
+    font-size: 10px;
+}
+
+.wpt-dashboard .wpt-ld-preview-wrap {
+    width: 100%;
+    max-width: 400px;
+    transition: max-width 0.3s ease;
+}
+
+.wpt-dashboard .wpt-ld-preview-wrap[data-device="tablet"] {
+    max-width: 560px;
+}
+
+.wpt-dashboard .wpt-ld-preview-wrap[data-device="mobile"] {
+    max-width: 320px;
+}
+
+.wpt-dashboard .wpt-ld-login-preview {
+    animation: wpt-ldFadeIn 0.4s ease both;
+}
+
+@keyframes wpt-ldFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.wpt-dashboard .wpt-ld-login-logo {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.wpt-dashboard .wpt-ld-login-logo-placeholder {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: inline-grid;
+    place-items: center;
+    color: #fff;
+    font-size: 28px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.wpt-dashboard .wpt-ld-login-logo-img {
+    max-width: 100%;
+    height: auto;
+    display: inline-block;
+}
+
+.wpt-dashboard .wpt-ld-login-form {
+    background: #fff;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    transition: background-color 0.3s, border-radius 0.3s, color 0.3s;
+}
+
+.wpt-dashboard .wpt-ld-login-title {
+    margin: 0 0 20px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    color: #0f172a;
+}
+
+.wpt-dashboard .wpt-ld-login-field {
+    margin-bottom: 14px;
+}
+
+.wpt-dashboard .wpt-ld-login-field label {
+    display: block;
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: #475569;
+}
+
+.wpt-dashboard .wpt-ld-login-field input {
+    width: 100%;
+    padding: 11px 13px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    color: #0f172a;
+    background: #fff;
+    cursor: default;
+}
+
+.wpt-dashboard .wpt-ld-login-field input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.wpt-dashboard .wpt-ld-login-remember {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 16px 0;
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+}
+
+.wpt-dashboard .wpt-ld-login-remember label {
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wpt-dashboard .wpt-ld-login-remember a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.wpt-dashboard .wpt-ld-login-btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: 10px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: default;
+    transition: background-color 0.3s, color 0.3s;
+    margin-top: 6px;
+}
+
+.wpt-dashboard .wpt-ld-login-footer {
+    text-align: center;
+    margin-top: 22px;
+}
+
+.wpt-dashboard .wpt-ld-login-footer a {
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.wpt-dashboard .wpt-ld-login-footer a:hover {
+    color: rgba(255,255,255,0.95);
+}
+
+/* Responsive: collapse the split pane below 1150px. Panel becomes a
+   top stacked card + preview below. At 800px the panel and preview
+   both drop to full width. */
+@media (max-width: 1150px) {
+    .wpt-dashboard .wpt-login-designer-layout {
+        flex-direction: column;
+    }
+    .wpt-dashboard .wpt-ld-panel {
+        width: 100%;
+        height: auto;
+        max-height: 60vh;
+        position: static;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+    .wpt-dashboard .wpt-ld-preview-area {
+        min-height: 500px;
+        padding: 80px 20px 40px;
+    }
+}
+
+/* ══════════════════════════════════════════
    BOTTOM PANELS
 ══════════════════════════════════════════ */
 .wpt-dashboard .bottom-grid {
