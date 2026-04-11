@@ -104,6 +104,7 @@ class Admin {
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_global_assets' ] );
         add_action( 'admin_menu', [ $this, 'inject_section_labels' ], 999 );
         add_filter( 'admin_body_class', [ $this, 'add_body_classes' ] );
+        add_action( 'admin_head', [ $this, 'inject_topbar_space' ], 1 );
         add_action( 'wp_ajax_wpt_save_dark_mode', [ $this, 'ajax_save_dark_mode' ] );
 
         // Editor Dashboard — content workspace landing page
@@ -898,6 +899,17 @@ class Admin {
         }
 
         return $classes;
+    }
+
+    /**
+     * Inject inline topbar height reservation into <head> so the 58px
+     * topbar is respected from first paint, before admin-global.js gets
+     * a chance to add the .wpt-active class on DOMContentLoaded. This
+     * eliminates the FOUC where content briefly overlaps the topbar
+     * during initial load.
+     */
+    public function inject_topbar_space(): void {
+        echo '<style id="wpt-topbar-space">html.wp-toolbar{padding-top:58px !important;}</style>' . "\n";
     }
 
     /**
