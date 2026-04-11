@@ -90,25 +90,29 @@ Progress:
 - Session 2 (Editor Dashboard with real data) — complete (7365020, runtime-verified)
 - Session 3 (Module Grid — 28-parent hierarchy with expandable sub-panels) — complete (7b25021 + e94dad9 + 46a5965 + c8b4558). Module_Hierarchy data layer is the canonical source of truth; render_parent_card() helper renders cards with expand/collapse; wpt_toggle_parent AJAX batch endpoint handles parent activation atomically. Runtime-verified end-to-end.
 - Session 4 (Database Optimizer + Audit Log app pages) — complete (6a28a91 + b35d44e). includes/class-database-optimizer-app.php + includes/class-audit-log-app.php register submenu pages at wpt-database and wpt-audit-log. Full bento-stat UI + cleanup task list + filterable event table + server-side pagination. Clean button AJAX verified against real transients.
-- Session 5 Part 1 (Login Designer app page) — complete (18a25d0). New includes/class-login-designer-app.php at wpt-login-designer. Split-pane layout: 360px settings panel with 4 tabs (Design / Logo / Form / Advanced) + 3 built-in templates + 6 color pickers + range slider + toggle rows on the left; live HTML preview of wp-login.php on a gradient background on the right. Device toolbar (desktop/tablet/mobile max-width toggle) + URL display. Dedicated wpt_save_login_designer admin-post handler reuses Login_Customizer::sanitize_settings(). Live preview updates via declarative data-preview-target + data-preview-action attributes — every color/text/range/checkbox change reflects instantly without AJAX. Template click fires cascading input events so the full form syncs. Runtime-verified end-to-end: tab switching, template picker, color text/swatch sync, range slider, preview updates, inactive-module banner.
+- Session 5 Part 1 (Login Designer app page) — complete (18a25d0 + 10fbdaf fix). includes/class-login-designer-app.php at wpt-login-designer. Split-pane with 4 tabs, 3 templates, 6 color pickers, range slider, live HTML preview of wp-login.php. Dedicated wpt_save_login_designer admin-post handler reuses Login_Customizer::sanitize_settings. Full save → DB → wp-login.php CSS chain verified.
+- Session 5 Part 2 (Menu Editor app page) — complete (88508b0). includes/class-menu-editor-app.php at wpt-menu-editor. Three-panel drag-drop: 280px gradient sidebar preview + tree of WP menu items + properties form (label / icon picker / hide / separator). Wraps Admin_Menu_Editor's 5-field schema. HTML5 native drag-drop (no jQuery UI). Dedicated wpt_save_menu_editor handler. Save → DB → real WP admin sidebar updates verified live (Posts renamed to "Articles", Comments hidden). Per-role visibility + theme system + multi-config tabs are v3 work per docs/modules/admin-interface/menu-editor.md.
 - Session 6 (Command palette + plugin detection) — partial (cd44f4e reconciled with v3 reference mockup; plugin detection wiring may still be incomplete)
 
 Backup: `session-3-complete` git tag at 4a4bee9; DB dump at C:\dev\wpt-backups\wpt-dev-20260410-163612.sql (pre-Session-4 rollback point).
 
-Target: Session 5 Part 2 — Menu Editor app page
-Scope: Dedicated APP page referenced by the Session 3 Navigation & Menus parent card (wpt-menu-editor slug). The most complex of the 3 Session 5 app pages — needs a vanilla JS drag-drop tree (no jQuery UI sortable) and a three-panel layout.
+Target: Session 5 Part 3 — White Label app page
+Scope: Dedicated APP page referenced by the Session 3 Design category White Label parent card (wpt-white-label slug). Simpler than Menu Editor — closer to Login Designer's split-pane layout. PRO-gated (Core::is_pro_licensed).
 
-Three-panel layout per reference mockup:
-- Left panel: live sidebar preview showing how the current edit will look
-- Center panel: drag-drop menu tree (all registered WP admin menu items + WPT-added ones), reorder via dragging, collapse/expand sub-items
-- Right panel: item properties (title, icon, URL, visibility per role, open-in-new-tab, custom class)
+Layout: settings form on left + live preview sidebar on right. Wraps TWO modules:
+- `white-label`: admin_logo_url, login_logo_url, admin_footer_text, hide_wp_version, custom_admin_title (5 fields)
+- `custom-admin-footer`: left_text, right_text (2 fields)
 
-Backend: wraps the existing admin-menu-editor module. Settings schema is already defined (sort orders, hidden items, renamed items, custom icons, per-role visibility).
+Session 5 Part 3 should save to BOTH modules in one form POST because they have non-overlapping responsibilities.
+
+Pre-flight recon already done — see docs/session-5-wrapped-module-fields.md for field names, sanitization pipelines, and the dedicated per-page verification checklist. Preventive lesson from Part 1 still applies: use wpt_ prefixed form names to match sanitize_settings().
+
+Also fold in the one-line latent bug fix: White_Label::is_login_customizer_active() checks module id 'login-customizer' but registry uses 'login-branding'. Logged in IMPROVEMENTS.md 2026-04-11.
 
 Reference files:
-- assets/admin/reference/app-pages/menu-editor-v3.html
+- assets/admin/reference/app-pages/white-label-v3.html
 
-After Part 2: Session 5 Part 3 (White Label + PRO gate), then Sessions 7 (activation wizard) and 8 (QA/polish), plus finishing Session 6 plugin detection.
+After Part 3: Session 5 is complete. Then Sessions 7 (activation wizard), 8 (QA/polish), and finishing Session 6 plugin detection.
 
 
 
