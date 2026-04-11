@@ -225,7 +225,7 @@ class Login_Designer_App {
                                     <label class="wpt-ld-label" for="wpt-ld-bg-image"><?php esc_html_e( 'Background Image URL', 'wptransformed' ); ?></label>
                                     <input type="url"
                                            id="wpt-ld-bg-image"
-                                           name="bg_image"
+                                           name="wpt_bg_image"
                                            class="wpt-ld-input"
                                            value="<?php echo esc_attr( (string) $settings['bg_image'] ); ?>"
                                            placeholder="https://example.com/background.jpg"
@@ -246,7 +246,7 @@ class Login_Designer_App {
                                     <label class="wpt-ld-label" for="wpt-ld-logo-url"><?php esc_html_e( 'Logo URL', 'wptransformed' ); ?></label>
                                     <input type="url"
                                            id="wpt-ld-logo-url"
-                                           name="logo_url"
+                                           name="wpt_logo_url"
                                            class="wpt-ld-input"
                                            value="<?php echo esc_attr( (string) $settings['logo_url'] ); ?>"
                                            placeholder="https://example.com/logo.svg"
@@ -260,7 +260,7 @@ class Login_Designer_App {
                                         <label class="wpt-ld-label" for="wpt-ld-logo-width"><?php esc_html_e( 'Width (px)', 'wptransformed' ); ?></label>
                                         <input type="number"
                                                id="wpt-ld-logo-width"
-                                               name="logo_width"
+                                               name="wpt_logo_width"
                                                class="wpt-ld-input"
                                                value="<?php echo esc_attr( (string) $settings['logo_width'] ); ?>"
                                                min="1"
@@ -270,7 +270,7 @@ class Login_Designer_App {
                                         <label class="wpt-ld-label" for="wpt-ld-logo-height"><?php esc_html_e( 'Height (px)', 'wptransformed' ); ?></label>
                                         <input type="number"
                                                id="wpt-ld-logo-height"
-                                               name="logo_height"
+                                               name="wpt_logo_height"
                                                class="wpt-ld-input"
                                                value="<?php echo esc_attr( (string) $settings['logo_height'] ); ?>"
                                                min="1"
@@ -282,7 +282,7 @@ class Login_Designer_App {
                                     <label class="wpt-ld-label" for="wpt-ld-logo-link"><?php esc_html_e( 'Logo Link URL', 'wptransformed' ); ?></label>
                                     <input type="url"
                                            id="wpt-ld-logo-link"
-                                           name="logo_link"
+                                           name="wpt_logo_link"
                                            class="wpt-ld-input"
                                            value="<?php echo esc_attr( (string) $settings['logo_link'] ); ?>"
                                            placeholder="<?php echo esc_attr( home_url( '/' ) ); ?>">
@@ -309,7 +309,7 @@ class Login_Designer_App {
                                     </label>
                                     <input type="range"
                                            id="wpt-ld-form-radius"
-                                           name="form_border_radius"
+                                           name="wpt_form_border_radius"
                                            class="wpt-ld-range"
                                            value="<?php echo esc_attr( (string) $settings['form_border_radius'] ); ?>"
                                            min="0"
@@ -352,7 +352,7 @@ class Login_Designer_App {
                                     <span><?php esc_html_e( 'Hide "Back to Site" link', 'wptransformed' ); ?></span>
                                     <label class="toggle">
                                         <input type="checkbox"
-                                               name="hide_back_to_blog"
+                                               name="wpt_hide_back_to_blog"
                                                value="1"
                                                data-preview-target=".wpt-ld-login-footer"
                                                data-preview-action="hide-back"
@@ -365,7 +365,7 @@ class Login_Designer_App {
                                     <span><?php esc_html_e( 'Hide privacy policy link', 'wptransformed' ); ?></span>
                                     <label class="toggle">
                                         <input type="checkbox"
-                                               name="hide_privacy_policy"
+                                               name="wpt_hide_privacy_policy"
                                                value="1"
                                                <?php checked( ! empty( $settings['hide_privacy_policy'] ) ); ?>>
                                         <span class="toggle-track"></span>
@@ -383,7 +383,7 @@ class Login_Designer_App {
                                         <?php esc_html_e( 'Extra CSS injected on wp-login.php', 'wptransformed' ); ?>
                                     </label>
                                     <textarea id="wpt-ld-custom-css"
-                                              name="custom_css"
+                                              name="wpt_custom_css"
                                               class="wpt-ld-textarea"
                                               rows="8"
                                               placeholder="/* Your custom CSS */"><?php echo esc_textarea( (string) $settings['custom_css'] ); ?></textarea>
@@ -500,8 +500,12 @@ class Login_Designer_App {
 
     /**
      * Render a color picker row: swatch + hex text input.
-     * Both are wired to the same name; the JS keeps them in sync and
-     * updates the preview element named in data-preview-target.
+     *
+     * Field names use the `wpt_` prefix because Login_Customizer::sanitize_settings()
+     * reads `$raw['wpt_bg_color']` etc. — the existing convention from the
+     * module's own settings page. The app page posts to the same handler
+     * so it must match. See class docblock for the Session 5 Part 1
+     * field-name mismatch bug fix (2026-04-11).
      */
     private function color_picker( string $field, string $id, string $value ): void {
         $target_map = [
@@ -512,7 +516,8 @@ class Login_Designer_App {
             'text_color'        => [ 'target' => '.wpt-ld-login-form',      'action' => 'text-color' ],
             'link_color'        => [ 'target' => '.wpt-ld-login-form a',    'action' => 'color'    ],
         ];
-        $preview = $target_map[ $field ] ?? [ 'target' => '', 'action' => '' ];
+        $preview    = $target_map[ $field ] ?? [ 'target' => '', 'action' => '' ];
+        $field_name = 'wpt_' . $field;
         ?>
         <div class="wpt-ld-color-picker">
             <label class="wpt-ld-color-swatch" style="background-color: <?php echo esc_attr( $value ); ?>;">
@@ -523,7 +528,7 @@ class Login_Designer_App {
             </label>
             <input type="text"
                    id="<?php echo esc_attr( $id ); ?>"
-                   name="<?php echo esc_attr( $field ); ?>"
+                   name="<?php echo esc_attr( $field_name ); ?>"
                    class="wpt-ld-input wpt-ld-color-input"
                    value="<?php echo esc_attr( $value ); ?>"
                    pattern="^#[0-9a-fA-F]{6}$"

@@ -592,7 +592,11 @@
                 }
 
                 Object.keys(settings).forEach(function(key) {
-                    var input = root.querySelector('[name="' + key + '"]');
+                    /* Form fields use the wpt_ prefix because Login_Customizer::
+                       sanitize_settings() reads $raw['wpt_*']. Template JSON
+                       keys are the settings-array keys (unprefixed), so we
+                       add the prefix when looking up the input. */
+                    var input = root.querySelector('[name="wpt_' + key + '"]');
                     if (!input) return;
 
                     var value = settings[key];
