@@ -315,13 +315,75 @@ class Admin {
                         </div>
                     </div>
 
-                    <!-- Parent Module Grid — 28 parents from docs/module-hierarchy.md -->
-                    <div id="wptModulesContainer" class="module-grid">
+                    <!-- Parent Module Grid — 28 parents grouped by category.
+                         Each .category-section wraps a category header + a
+                         .module-grid of that category's visible parent cards.
+                         Sections render only when they contain at least one
+                         visible parent (empty categories like page-builder-cleanup
+                         are skipped). initPillTabs in admin.js filters entire
+                         .category-section elements on pill click. -->
+                    <div id="wptModulesContainer">
                         <?php
-                        $card_index = 0;
+                        // Group the flat $visible_parents list by category
+                        // slug for per-section rendering.
+                        $parents_by_category = [];
                         foreach ( $visible_parents as $parent ) {
-                            $this->render_parent_card( $parent, $core, $card_index );
-                            $card_index++;
+                            $cat = $parent['category'] ?? 'core';
+                            if ( ! isset( $parents_by_category[ $cat ] ) ) {
+                                $parents_by_category[ $cat ] = [];
+                            }
+                            $parents_by_category[ $cat ][] = $parent;
+                        }
+
+                        // Iterate the canonical 7 categories in display order
+                        // so sections always appear in the same sequence as
+                        // the pill tabs.
+                        $card_index = 0;
+                        foreach ( $parent_categories as $cat_slug => $cat_data ) {
+                            if ( empty( $parents_by_category[ $cat_slug ] ) ) {
+                                continue;
+                            }
+
+                            $section_parents = $parents_by_category[ $cat_slug ];
+                            $section_active  = 0;
+                            foreach ( $section_parents as $p ) {
+                                $sub_ids = Module_Hierarchy::filter_existing_sub_modules( $p['sub_modules'] ?? [] );
+                                foreach ( $sub_ids as $sub_id ) {
+                                    if ( $core->is_active( $sub_id ) ) {
+                                        $section_active++;
+                                        break;
+                                    }
+                                }
+                            }
+                            $section_total = count( $section_parents );
+                            ?>
+                            <div class="category-section" data-category="<?php echo esc_attr( $cat_slug ); ?>">
+                                <div class="category-header">
+                                    <div class="category-icon <?php echo esc_attr( $cat_data['color'] ); ?>">
+                                        <i class="fas <?php echo esc_attr( $cat_data['icon'] ); ?>"></i>
+                                    </div>
+                                    <div class="category-title"><?php echo esc_html( $cat_data['label'] ); ?></div>
+                                    <div class="category-count">
+                                        <?php
+                                        printf(
+                                            /* translators: 1: parents with ≥1 active sub, 2: total parents in section */
+                                            esc_html__( '%1$d of %2$d active', 'wptransformed' ),
+                                            (int) $section_active,
+                                            (int) $section_total
+                                        );
+                                        ?>
+                                    </div>
+                                </div>
+                                <div class="module-grid">
+                                    <?php
+                                    foreach ( $section_parents as $parent ) {
+                                        $this->render_parent_card( $parent, $core, $card_index );
+                                        $card_index++;
+                                    }
+                                    ?>
+                                </div>
+                            </div>
+                            <?php
                         }
                         ?>
                     </div>

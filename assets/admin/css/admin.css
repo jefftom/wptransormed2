@@ -329,11 +329,19 @@
     font-size: 14px;
 }
 
+/* Legacy color names (kept for compatibility with any old markup) */
 .wpt-dashboard .category-icon.core { background: var(--primary-glow); color: var(--primary); }
 .wpt-dashboard .category-icon.perf { background: var(--accent-glow); color: var(--accent); }
 .wpt-dashboard .category-icon.sec { background: var(--rose-glow); color: var(--rose); }
 .wpt-dashboard .category-icon.media { background: var(--violet-glow); color: var(--violet); }
 .wpt-dashboard .category-icon.dev { background: var(--amber-glow); color: var(--amber); }
+
+/* Canonical token names matching Module_Hierarchy::get_categories() */
+.wpt-dashboard .category-icon.blue   { background: var(--primary-glow); color: var(--primary); }
+.wpt-dashboard .category-icon.green  { background: var(--accent-glow);  color: var(--accent);  }
+.wpt-dashboard .category-icon.rose   { background: var(--rose-glow);    color: var(--rose);    }
+.wpt-dashboard .category-icon.violet { background: var(--violet-glow);  color: var(--violet);  }
+.wpt-dashboard .category-icon.amber  { background: var(--amber-glow);   color: var(--amber);   }
 
 .wpt-dashboard .category-title { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
 .wpt-dashboard .category-count { font-size: 12px; color: var(--text-muted); margin-left: auto; }

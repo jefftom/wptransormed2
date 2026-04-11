@@ -255,6 +255,25 @@
 
         /* Update data attrs so downstream code reading them stays in sync. */
         card.dataset.activeSubCount = String(activeSubs);
+
+        /* Keep the category-section header count live as parents toggle. */
+        syncCategoryCount(card.closest('.category-section'));
+    }
+
+    /* Recompute "X of Y active" for a .category-section header by counting
+       parent cards whose data-active-sub-count is > 0. Called from
+       syncParentCard() so section counts stay live as users edit. */
+    function syncCategoryCount(section) {
+        if (!section) return;
+        var countEl = section.querySelector('.category-count');
+        if (!countEl) return;
+        var cards = section.querySelectorAll('.parent-card');
+        var total = cards.length;
+        var active = 0;
+        cards.forEach(function(c) {
+            if (parseInt(c.dataset.activeSubCount || '0', 10) > 0) active++;
+        });
+        countEl.textContent = active + ' of ' + total + ' active';
     }
 
     function updateBentoCount() {
@@ -269,11 +288,14 @@
     }
 
     /* ──────────────────────────────────────
-       PILL TAB FILTERING — parent cards by category
+       PILL TAB FILTERING — category sections
+       Filters whole .category-section wrappers on pill click. When
+       "All" is active every section shows; picking a specific category
+       shows only that section (header + grid + cards together).
     ────────────────────────────────────── */
     function initPillTabs() {
-        var tabs  = document.querySelectorAll('.pill-tab');
-        var cards = document.querySelectorAll('.parent-card');
+        var tabs     = document.querySelectorAll('.pill-tab');
+        var sections = document.querySelectorAll('#wptModulesContainer .category-section');
 
         tabs.forEach(function(tab) {
             tab.addEventListener('click', function(e) {
@@ -283,11 +305,11 @@
                 tabs.forEach(function(t) { t.classList.remove('active'); });
                 this.classList.add('active');
 
-                cards.forEach(function(card) {
-                    if (cat === 'all' || card.dataset.category === cat) {
-                        card.style.display = '';
+                sections.forEach(function(section) {
+                    if (cat === 'all' || section.dataset.category === cat) {
+                        section.style.display = '';
                     } else {
-                        card.style.display = 'none';
+                        section.style.display = 'none';
                     }
                 });
             });
