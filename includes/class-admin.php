@@ -121,6 +121,12 @@ class Admin {
         // Wraps the existing Login_Customizer module with a split-pane
         // live-preview UI.
         new Login_Designer_App();
+
+        // Session 5 Part 2 — Menu Editor app page (wpt-menu-editor).
+        // Three-panel drag-drop editor wrapping the existing
+        // Admin_Menu_Editor module's 5-field schema. Per-role visibility
+        // and theme system deferred to v3 (see docs/modules/admin-interface/menu-editor.md).
+        new Menu_Editor_App();
     }
 
     public function register_page(): void {

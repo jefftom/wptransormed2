@@ -33,6 +33,7 @@
         initCommandPalette();
         initDbCleanupActions();
         initLoginDesigner();
+        initMenuEditor();
         setTimeout(animateCounters, 350);
     });
 
@@ -652,6 +653,431 @@
                 el.dispatchEvent(new Event(evtName, { bubbles: true }));
             });
         });
+    }
+
+    /* ──────────────────────────────────────
+       MENU EDITOR — Session 5 Part 2
+       Tree hydration, HTML5 drag-drop reorder, selection,
+       property editing, live preview sync, and form
+       serialization on save.
+    ────────────────────────────────────── */
+    function initMenuEditor() {
+        var root = document.getElementById('wptMenuEditor');
+        if (!root) return;
+
+        var dataEl = document.getElementById('wptMenuEditorData');
+        if (!dataEl) return;
+
+        var data;
+        try {
+            data = JSON.parse(dataEl.textContent);
+        } catch (e) {
+            /* eslint-disable-next-line no-console */
+            console.error('[WPT Menu Editor] invalid init data', e);
+            return;
+        }
+
+        var state = {
+            items: (data.items || []).map(function(it) {
+                return {
+                    slug: it.slug,
+                    label: it.label,
+                    originalLabel: it.original_label,
+                    icon: it.icon,
+                    originalIcon: it.original_icon,
+                    hidden: !!it.hidden,
+                    separator: !!it.separator,
+                    renamed: !!it.renamed,
+                    iconOverridden: !!it.icon_overridden
+                };
+            }),
+            selectedSlug: null,
+            iconPalette: data.iconPalette || []
+        };
+
+        var els = {
+            tree: document.getElementById('wptMeTree'),
+            preview: document.getElementById('wptMePreviewMenu'),
+            treeCount: document.getElementById('wptMeTreeCount'),
+            props: document.getElementById('wptMeProps'),
+            propsBody: document.getElementById('wptMePropsBody'),
+            propsEmpty: document.getElementById('wptMePropsEmpty'),
+            propsTitle: document.getElementById('wptMePropsTitle'),
+            propsSubtitle: document.getElementById('wptMePropsSubtitle'),
+            inputLabel: document.getElementById('wptMeEditLabel'),
+            inputSlug: document.getElementById('wptMeEditSlug'),
+            inputIconManual: document.getElementById('wptMeEditIcon'),
+            inputHidden: document.getElementById('wptMeEditHidden'),
+            inputSeparator: document.getElementById('wptMeEditSeparator'),
+            iconPicker: document.getElementById('wptMeIconPicker'),
+            revertBtn: document.getElementById('wptMeRevertItem'),
+            resetBtn: document.getElementById('wptMeReset'),
+            form: document.getElementById('wptMenuEditorForm'),
+            hiddenMenuOrder: document.getElementById('wptMeMenuOrder'),
+            hiddenHiddenItems: document.getElementById('wptMeHiddenItems'),
+            hiddenRenamedJson: document.getElementById('wptMeRenamedJson'),
+            hiddenIconsJson: document.getElementById('wptMeIconsJson'),
+            hiddenSeparators: document.getElementById('wptMeSeparators')
+        };
+
+        renderTree(state, els);
+        renderPreview(state, els);
+        bindTreeInteractions(state, els);
+        bindPropsInteractions(state, els);
+        bindResetButton(state, els);
+        bindFormSubmit(state, els);
+    }
+
+    function findItem(state, slug) {
+        for (var i = 0; i < state.items.length; i++) {
+            if (state.items[i].slug === slug) return state.items[i];
+        }
+        return null;
+    }
+
+    /* Render the center-panel tree of menu item cards. */
+    function renderTree(state, els) {
+        var tree = els.tree;
+        tree.innerHTML = '';
+
+        state.items.forEach(function(item) {
+            var row = document.createElement('div');
+            row.className = 'wpt-me-item';
+            if (state.selectedSlug === item.slug) row.classList.add('is-selected');
+            if (item.hidden) row.classList.add('is-hidden');
+            row.setAttribute('data-slug', item.slug);
+            row.setAttribute('draggable', 'true');
+            row.setAttribute('role', 'option');
+
+            row.innerHTML =
+                '<i class="fas fa-grip-vertical wpt-me-item-drag" aria-hidden="true"></i>' +
+                '<div class="wpt-me-item-icon"><span class="dashicons ' + escAttr(item.icon || 'dashicons-admin-generic') + '" aria-hidden="true"></span></div>' +
+                '<div class="wpt-me-item-info">' +
+                    '<div class="wpt-me-item-label">' +
+                        esc(item.label) +
+                        (item.renamed ? ' <span class="wpt-me-item-badge">renamed</span>' : '') +
+                    '</div>' +
+                    '<div class="wpt-me-item-slug">' + esc(item.slug) + '</div>' +
+                '</div>' +
+                '<label class="wpt-me-item-toggle" aria-label="Hide ' + escAttr(item.label) + '">' +
+                    '<span class="toggle">' +
+                        '<input type="checkbox" class="wpt-me-item-visible" ' + (item.hidden ? '' : 'checked') + '>' +
+                        '<span class="toggle-track"></span>' +
+                    '</span>' +
+                '</label>';
+
+            tree.appendChild(row);
+
+            if (item.separator) {
+                var sep = document.createElement('div');
+                sep.className = 'wpt-me-separator-marker';
+                tree.appendChild(sep);
+            }
+        });
+
+        if (els.treeCount) {
+            var n = state.items.length;
+            els.treeCount.textContent = n + ' ' + (n === 1 ? 'item' : 'items');
+        }
+    }
+
+    /* Render the left-panel live sidebar preview. */
+    function renderPreview(state, els) {
+        var nav = els.preview;
+        nav.innerHTML = '';
+
+        state.items.forEach(function(item) {
+            if (item.hidden) return; // hidden items don't render in preview
+
+            var row = document.createElement('div');
+            row.className = 'wpt-me-preview-item';
+            if (state.selectedSlug === item.slug) row.classList.add('is-selected');
+            row.setAttribute('data-slug', item.slug);
+            row.innerHTML =
+                '<span class="dashicons ' + escAttr(item.icon || 'dashicons-admin-generic') + '" aria-hidden="true"></span>' +
+                '<span>' + esc(item.label) + '</span>';
+            nav.appendChild(row);
+
+            if (item.separator) {
+                var sep = document.createElement('div');
+                sep.className = 'wpt-me-preview-separator';
+                nav.appendChild(sep);
+            }
+        });
+    }
+
+    /* Wire tree-level interactions: selection + hide toggle + drag-drop. */
+    function bindTreeInteractions(state, els) {
+        var tree = els.tree;
+
+        /* Click → select */
+        tree.addEventListener('click', function(e) {
+            if (e.target.closest('.toggle')) return; // let the hide toggle handle itself
+            if (e.target.closest('.wpt-me-item-drag')) return;
+            var row = e.target.closest('.wpt-me-item');
+            if (!row) return;
+            selectItem(state, els, row.getAttribute('data-slug'));
+        });
+
+        /* Hide/show toggle */
+        tree.addEventListener('change', function(e) {
+            if (!e.target.classList.contains('wpt-me-item-visible')) return;
+            var row = e.target.closest('.wpt-me-item');
+            if (!row) return;
+            var slug = row.getAttribute('data-slug');
+            var item = findItem(state, slug);
+            if (!item) return;
+            item.hidden = !e.target.checked; // checkbox is "visible"
+            renderTree(state, els);
+            renderPreview(state, els);
+            if (state.selectedSlug === slug) {
+                els.inputHidden.checked = item.hidden;
+            }
+        });
+
+        /* HTML5 drag-drop reorder */
+        var draggingSlug = null;
+
+        tree.addEventListener('dragstart', function(e) {
+            var row = e.target.closest('.wpt-me-item');
+            if (!row) return;
+            draggingSlug = row.getAttribute('data-slug');
+            row.classList.add('is-dragging');
+            try {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', draggingSlug);
+            } catch (_e) {}
+        });
+
+        tree.addEventListener('dragend', function(e) {
+            var row = e.target.closest('.wpt-me-item');
+            if (row) row.classList.remove('is-dragging');
+            tree.querySelectorAll('.is-drop-target').forEach(function(el) {
+                el.classList.remove('is-drop-target');
+            });
+            draggingSlug = null;
+        });
+
+        tree.addEventListener('dragover', function(e) {
+            if (!draggingSlug) return;
+            e.preventDefault();
+            var row = e.target.closest('.wpt-me-item');
+            tree.querySelectorAll('.is-drop-target').forEach(function(el) {
+                el.classList.remove('is-drop-target');
+            });
+            if (row && row.getAttribute('data-slug') !== draggingSlug) {
+                row.classList.add('is-drop-target');
+            }
+        });
+
+        tree.addEventListener('drop', function(e) {
+            if (!draggingSlug) return;
+            e.preventDefault();
+            var targetRow = e.target.closest('.wpt-me-item');
+            if (!targetRow) return;
+            var targetSlug = targetRow.getAttribute('data-slug');
+            if (targetSlug === draggingSlug) return;
+
+            var fromIdx = state.items.findIndex(function(it) { return it.slug === draggingSlug; });
+            var toIdx   = state.items.findIndex(function(it) { return it.slug === targetSlug; });
+            if (fromIdx < 0 || toIdx < 0) return;
+
+            var moved = state.items.splice(fromIdx, 1)[0];
+            state.items.splice(toIdx, 0, moved);
+
+            renderTree(state, els);
+            renderPreview(state, els);
+        });
+    }
+
+    /* Load a tree item into the right-panel form + highlight it. */
+    function selectItem(state, els, slug) {
+        var item = findItem(state, slug);
+        if (!item) return;
+
+        state.selectedSlug = slug;
+
+        // Update tree + preview selection styling
+        els.tree.querySelectorAll('.wpt-me-item').forEach(function(row) {
+            row.classList.toggle('is-selected', row.getAttribute('data-slug') === slug);
+        });
+        els.preview.querySelectorAll('.wpt-me-preview-item').forEach(function(row) {
+            row.classList.toggle('is-selected', row.getAttribute('data-slug') === slug);
+        });
+
+        // Fill form
+        els.propsBody.hidden = false;
+        els.propsEmpty.hidden = true;
+        els.propsTitle.textContent = 'Edit: ' + item.label;
+        els.propsSubtitle.textContent = 'Slug: ' + item.slug;
+        els.inputLabel.value = item.renamed ? item.label : '';
+        els.inputLabel.placeholder = item.originalLabel || item.label;
+        els.inputSlug.value = item.slug;
+        els.inputIconManual.value = item.iconOverridden ? item.icon : '';
+        els.inputIconManual.placeholder = item.originalIcon || 'dashicons-admin-generic';
+        els.inputHidden.checked = item.hidden;
+        els.inputSeparator.checked = item.separator;
+
+        // Highlight the chosen icon in the palette
+        els.iconPicker.querySelectorAll('.wpt-me-icon-option').forEach(function(btn) {
+            btn.classList.toggle('is-selected', btn.getAttribute('data-icon') === item.icon);
+        });
+    }
+
+    /* Wire the right-panel property inputs to update state live. */
+    function bindPropsInteractions(state, els) {
+        function currentItem() {
+            return state.selectedSlug ? findItem(state, state.selectedSlug) : null;
+        }
+
+        els.inputLabel.addEventListener('input', function() {
+            var item = currentItem();
+            if (!item) return;
+            var val = this.value.trim();
+            if (val === '' || val === item.originalLabel) {
+                item.label = item.originalLabel;
+                item.renamed = false;
+            } else {
+                item.label = val;
+                item.renamed = true;
+            }
+            renderTree(state, els);
+            renderPreview(state, els);
+            // Restore selection state after re-render
+            selectItem(state, els, item.slug);
+        });
+
+        els.inputIconManual.addEventListener('input', function() {
+            var item = currentItem();
+            if (!item) return;
+            var val = this.value.trim();
+            if (val === '' || val === item.originalIcon) {
+                item.icon = item.originalIcon;
+                item.iconOverridden = false;
+            } else if (/^dashicons-[a-z0-9-]+$/.test(val)) {
+                item.icon = val;
+                item.iconOverridden = true;
+            } else {
+                return; // invalid pattern — don't touch state
+            }
+            renderTree(state, els);
+            renderPreview(state, els);
+            selectItem(state, els, item.slug);
+        });
+
+        els.inputHidden.addEventListener('change', function() {
+            var item = currentItem();
+            if (!item) return;
+            item.hidden = this.checked;
+            renderTree(state, els);
+            renderPreview(state, els);
+            selectItem(state, els, item.slug);
+        });
+
+        els.inputSeparator.addEventListener('change', function() {
+            var item = currentItem();
+            if (!item) return;
+            item.separator = this.checked;
+            renderTree(state, els);
+            renderPreview(state, els);
+            selectItem(state, els, item.slug);
+        });
+
+        /* Icon palette clicks */
+        els.iconPicker.addEventListener('click', function(e) {
+            var btn = e.target.closest('.wpt-me-icon-option');
+            if (!btn) return;
+            e.preventDefault();
+            var item = currentItem();
+            if (!item) return;
+
+            var icon = btn.getAttribute('data-icon');
+            item.icon = icon;
+            item.iconOverridden = icon !== item.originalIcon;
+
+            // Fire input event on the manual text input so it syncs
+            els.inputIconManual.value = item.iconOverridden ? icon : '';
+            renderTree(state, els);
+            renderPreview(state, els);
+            selectItem(state, els, item.slug);
+        });
+
+        /* Revert: clear all customizations for the selected item */
+        els.revertBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            var item = currentItem();
+            if (!item) return;
+            if (!confirm('Revert all changes to this menu item?')) return;
+
+            item.label = item.originalLabel;
+            item.icon = item.originalIcon;
+            item.hidden = false;
+            item.separator = false;
+            item.renamed = false;
+            item.iconOverridden = false;
+
+            renderTree(state, els);
+            renderPreview(state, els);
+            selectItem(state, els, item.slug);
+        });
+    }
+
+    /* Reset everything — confirm, clear all customizations, keep natural order. */
+    function bindResetButton(state, els) {
+        if (!els.resetBtn) return;
+        els.resetBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (!confirm('Reset all menu customizations? Unsaved changes will be lost.')) return;
+
+            state.items.forEach(function(item) {
+                item.label = item.originalLabel;
+                item.icon = item.originalIcon;
+                item.hidden = false;
+                item.separator = false;
+                item.renamed = false;
+                item.iconOverridden = false;
+            });
+            /* Note: we don't reset order here because we can't recover the
+               original server-side order from client state. The user can
+               drag items back or refresh the page to re-pull server state. */
+
+            renderTree(state, els);
+            renderPreview(state, els);
+            if (state.selectedSlug) {
+                selectItem(state, els, state.selectedSlug);
+            }
+        });
+    }
+
+    /* Before submit: serialize state into the hidden inputs. */
+    function bindFormSubmit(state, els) {
+        if (!els.form) return;
+        els.form.addEventListener('submit', function() {
+            var order = [];
+            var hiddenItems = [];
+            var renamed = {};
+            var icons = {};
+            var separators = [];
+
+            state.items.forEach(function(item) {
+                order.push(item.slug);
+                if (item.hidden) hiddenItems.push(item.slug);
+                if (item.renamed) renamed[item.slug] = item.label;
+                if (item.iconOverridden) icons[item.slug] = item.icon;
+                if (item.separator) separators.push(item.slug);
+            });
+
+            els.hiddenMenuOrder.value    = order.join(',');
+            els.hiddenHiddenItems.value  = hiddenItems.join(',');
+            els.hiddenRenamedJson.value  = JSON.stringify(renamed);
+            els.hiddenIconsJson.value    = JSON.stringify(icons);
+            els.hiddenSeparators.value   = separators.join(',');
+        });
+    }
+
+    function escAttr(s) {
+        if (s == null) return '';
+        return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     /* ──────────────────────────────────────

@@ -2472,6 +2472,711 @@ body.wpt-admin #wpbody-content:has(> .wpt-login-designer) {
 }
 
 /* ══════════════════════════════════════════
+   SESSION 5 PART 2 — MENU EDITOR APP PAGE
+   ──────────────────────────────────────────
+   Reference: assets/admin/reference/app-pages/menu-editor-v3.html
+   Three-panel: 280px live sidebar preview | flex 1 tree editor | 320px properties
+   Wraps includes/class-menu-editor-app.php
+══════════════════════════════════════════ */
+
+/* Edge-to-edge: zero #wpbody-content padding on this page. */
+body.wpt-admin #wpbody-content:has(> .wpt-menu-editor) {
+    padding: 0 !important;
+}
+
+.wpt-dashboard.wpt-menu-editor {
+    padding: 0;
+    animation: none;
+}
+
+.wpt-dashboard .wpt-me-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - var(--wpt-topbar-height, 58px));
+    background: var(--bg);
+}
+
+/* ────────────────────────────
+   HEADER
+──────────────────────────── */
+
+.wpt-dashboard .wpt-me-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-solid);
+    position: sticky;
+    top: var(--wpt-topbar-height, 58px);
+    z-index: 30;
+    flex-shrink: 0;
+}
+
+.wpt-dashboard .wpt-me-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.wpt-dashboard .wpt-me-back {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: var(--surface-alt);
+    color: var(--text-muted);
+    display: grid;
+    place-items: center;
+    text-decoration: none;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.wpt-dashboard .wpt-me-back:hover {
+    background: var(--primary-glow);
+    color: var(--primary);
+    transform: translateX(-2px);
+}
+
+.wpt-dashboard .wpt-me-title h1 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 2px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--text);
+    padding: 0;
+    line-height: 1.3;
+}
+
+.wpt-dashboard .wpt-me-title h1 .wpt-page-header-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.wpt-dashboard .wpt-me-title p {
+    margin: 0;
+    padding-left: 44px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.wpt-dashboard .wpt-me-header-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.wpt-dashboard .wpt-me-header-right .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border-radius: 9px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.22,1,0.36,1);
+    border: 1px solid transparent;
+}
+
+.wpt-dashboard .wpt-me-header-right .btn-secondary {
+    background: var(--surface-alt);
+    border-color: var(--border-strong);
+    color: var(--text-secondary);
+}
+
+.wpt-dashboard .wpt-me-header-right .btn-secondary:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.wpt-dashboard .wpt-me-header-right .btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+}
+
+.wpt-dashboard .wpt-me-header-right .btn-primary:hover {
+    background: var(--primary-light);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+}
+
+/* Saved notice adjustment — inherits from wpt-app-notice-success block */
+.wpt-dashboard.wpt-menu-editor .wpt-app-notice-success,
+.wpt-dashboard.wpt-menu-editor .wpt-app-notice-warning {
+    margin: 14px 24px 0;
+}
+
+/* ────────────────────────────
+   MAIN 3-COLUMN GRID
+──────────────────────────── */
+
+.wpt-dashboard .wpt-me-main {
+    display: grid;
+    grid-template-columns: 280px 1fr 320px;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+}
+
+/* ────────────────────────────
+   LEFT: Live sidebar preview
+──────────────────────────── */
+
+.wpt-dashboard .wpt-me-preview {
+    background: linear-gradient(165deg, #0f2847 0%, #1a4180 45%, #2563eb 100%);
+    padding: 18px 12px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    position: sticky;
+    top: calc(var(--wpt-topbar-height, 58px) + 66px);
+    height: calc(100vh - var(--wpt-topbar-height, 58px) - 66px);
+    align-self: flex-start;
+}
+
+body.wpt-admin.wpt-dark .wpt-dashboard .wpt-me-preview {
+    background: linear-gradient(165deg, #071020 0%, #0d1f42 45%, #1e3a8a 100%);
+}
+
+.wpt-dashboard .wpt-me-preview-header {
+    padding: 4px 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 10px;
+}
+
+.wpt-dashboard .wpt-me-preview-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-family: 'Outfit', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.1px;
+    color: rgba(255,255,255,0.5);
+}
+
+.wpt-dashboard .wpt-me-preview-header i {
+    font-size: 10px;
+    color: rgba(255,255,255,0.45);
+}
+
+.wpt-dashboard .wpt-me-preview-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.wpt-dashboard .wpt-me-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 11px;
+    border-radius: 8px;
+    color: rgba(255,255,255,0.65);
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: default;
+    user-select: none;
+    position: relative;
+}
+
+.wpt-dashboard .wpt-me-preview-item .dashicons,
+.wpt-dashboard .wpt-me-preview-item .fas,
+.wpt-dashboard .wpt-me-preview-item .far {
+    font-size: 15px;
+    width: 18px;
+    text-align: center;
+    color: rgba(255,255,255,0.55);
+}
+
+.wpt-dashboard .wpt-me-preview-item.is-selected {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+}
+
+.wpt-dashboard .wpt-me-preview-item.is-selected::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--accent);
+}
+
+.wpt-dashboard .wpt-me-preview-item.is-selected .dashicons,
+.wpt-dashboard .wpt-me-preview-item.is-selected .fas {
+    color: #fff;
+}
+
+.wpt-dashboard .wpt-me-preview-item.is-hidden {
+    display: none;
+}
+
+.wpt-dashboard .wpt-me-preview-separator {
+    height: 1px;
+    background: rgba(255,255,255,0.12);
+    margin: 6px 11px;
+}
+
+/* ────────────────────────────
+   CENTER: Tree editor
+──────────────────────────── */
+
+.wpt-dashboard .wpt-me-tree-panel {
+    background: var(--bg);
+    padding: 20px 24px;
+    overflow-y: auto;
+    min-width: 0;
+}
+
+.wpt-dashboard .wpt-me-tree-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.wpt-dashboard .wpt-me-tree-header h3 {
+    margin: 0;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.wpt-dashboard .wpt-me-tree-count {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    padding: 3px 9px;
+    background: var(--surface-alt);
+    border-radius: 6px;
+}
+
+.wpt-dashboard .wpt-me-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wpt-dashboard .wpt-me-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface-solid);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    transition: all 0.2s cubic-bezier(0.22,1,0.36,1);
+    cursor: pointer;
+    position: relative;
+}
+
+.wpt-dashboard .wpt-me-item:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+
+.wpt-dashboard .wpt-me-item.is-selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+    background: var(--surface-solid);
+}
+
+.wpt-dashboard .wpt-me-item.is-hidden {
+    opacity: 0.55;
+}
+
+.wpt-dashboard .wpt-me-item.is-hidden .wpt-me-item-label {
+    text-decoration: line-through;
+}
+
+.wpt-dashboard .wpt-me-item.is-dragging {
+    opacity: 0.4;
+    transform: scale(0.98);
+}
+
+.wpt-dashboard .wpt-me-item.is-drop-target::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -5px;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 2px;
+    box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+.wpt-dashboard .wpt-me-item-drag {
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: grab;
+    flex-shrink: 0;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.2s;
+}
+
+.wpt-dashboard .wpt-me-item-drag:hover {
+    color: var(--primary);
+}
+
+.wpt-dashboard .wpt-me-item-drag:active {
+    cursor: grabbing;
+}
+
+.wpt-dashboard .wpt-me-item-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--primary-glow);
+    color: var(--primary);
+    display: grid;
+    place-items: center;
+    font-size: 17px;
+    flex-shrink: 0;
+}
+
+.wpt-dashboard .wpt-me-item-icon .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.wpt-dashboard .wpt-me-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.wpt-dashboard .wpt-me-item-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wpt-dashboard .wpt-me-item-badge {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--amber-glow);
+    color: var(--amber);
+}
+
+.wpt-dashboard .wpt-me-item-slug {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-muted);
+}
+
+.wpt-dashboard .wpt-me-item-toggle {
+    flex-shrink: 0;
+}
+
+.wpt-dashboard .wpt-me-item-toggle .toggle {
+    width: 40px;
+    height: 22px;
+}
+
+.wpt-dashboard .wpt-me-item-toggle .toggle-track::before {
+    width: 16px;
+    height: 16px;
+    left: 3px;
+    top: 3px;
+}
+
+.wpt-dashboard .wpt-me-item-toggle .toggle input:checked + .toggle-track::before {
+    transform: translateX(18px);
+}
+
+/* Separator marker — dashed horizontal line between items */
+.wpt-dashboard .wpt-me-separator-marker {
+    height: 0;
+    border-top: 2px dashed var(--primary);
+    margin: 4px 20px;
+    position: relative;
+}
+
+.wpt-dashboard .wpt-me-separator-marker::after {
+    content: 'SEPARATOR';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg);
+    color: var(--primary);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 0 8px;
+}
+
+/* ────────────────────────────
+   RIGHT: Properties panel
+──────────────────────────── */
+
+.wpt-dashboard .wpt-me-props {
+    background: var(--surface-solid);
+    border-left: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    position: sticky;
+    top: calc(var(--wpt-topbar-height, 58px) + 66px);
+    height: calc(100vh - var(--wpt-topbar-height, 58px) - 66px);
+}
+
+.wpt-dashboard .wpt-me-props-header {
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.wpt-dashboard .wpt-me-props-header h3 {
+    margin: 0 0 4px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.wpt-dashboard .wpt-me-props-header p {
+    margin: 0;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.wpt-dashboard .wpt-me-props-empty {
+    text-align: center;
+    padding: 2rem 0;
+    color: var(--text-muted);
+}
+
+.wpt-dashboard .wpt-me-props-empty i {
+    font-size: 28px;
+    margin-bottom: 10px;
+    display: block;
+    opacity: 0.6;
+}
+
+.wpt-dashboard .wpt-me-props-empty p {
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0 10px;
+}
+
+.wpt-dashboard .wpt-me-form-group {
+    margin-bottom: 16px;
+}
+
+.wpt-dashboard .wpt-me-form-group:last-child {
+    margin-bottom: 0;
+}
+
+.wpt-dashboard .wpt-me-label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.wpt-dashboard .wpt-me-input {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface-solid);
+    font-family: 'Outfit', sans-serif;
+    font-size: 12.5px;
+    color: var(--text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.wpt-dashboard .wpt-me-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.wpt-dashboard .wpt-me-input[readonly] {
+    background: var(--surface-alt);
+    color: var(--text-muted);
+    cursor: default;
+}
+
+.wpt-dashboard .wpt-me-hint {
+    display: block;
+    margin-top: 5px;
+    font-size: 10.5px;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+/* Icon picker grid */
+.wpt-dashboard .wpt-me-icon-picker {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 6px;
+    background: var(--surface-alt);
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+}
+
+.wpt-dashboard .wpt-me-icon-picker::-webkit-scrollbar { width: 5px; }
+.wpt-dashboard .wpt-me-icon-picker::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 3px;
+}
+
+.wpt-dashboard .wpt-me-icon-option {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: all 0.18s;
+    padding: 0;
+}
+
+.wpt-dashboard .wpt-me-icon-option .dashicons {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+}
+
+.wpt-dashboard .wpt-me-icon-option:hover {
+    background: var(--surface-solid);
+    color: var(--primary);
+    border-color: var(--border);
+}
+
+.wpt-dashboard .wpt-me-icon-option.is-selected {
+    background: var(--primary-glow);
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.wpt-dashboard .wpt-me-icon-manual {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+}
+
+/* Toggle row inside the props panel */
+.wpt-dashboard .wpt-me-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 13px;
+    border-radius: 9px;
+    background: var(--surface-alt);
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.wpt-dashboard .wpt-me-toggle-row:hover {
+    background: var(--surface-hover);
+}
+
+.wpt-dashboard .wpt-me-toggle-row .toggle {
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.wpt-dashboard .wpt-me-toggle-row .toggle-track::before {
+    width: 14px;
+    height: 14px;
+    left: 3px;
+    top: 3px;
+}
+
+.wpt-dashboard .wpt-me-toggle-row .toggle input:checked + .toggle-track::before {
+    transform: translateX(16px);
+}
+
+.wpt-dashboard .wpt-me-props-revert {
+    width: 100%;
+    margin-top: 18px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.wpt-dashboard .wpt-me-props-revert:hover {
+    border-color: var(--rose);
+    color: var(--rose);
+}
+
+/* Responsive: collapse the three-column grid below 1150px. */
+@media (max-width: 1150px) {
+    .wpt-dashboard .wpt-me-main {
+        grid-template-columns: 1fr;
+    }
+    .wpt-dashboard .wpt-me-preview,
+    .wpt-dashboard .wpt-me-props {
+        position: static;
+        height: auto;
+        max-height: 60vh;
+        border-right: none;
+        border-left: none;
+        border-bottom: 1px solid var(--border);
+    }
+}
+
+/* ══════════════════════════════════════════
    BOTTOM PANELS
 ══════════════════════════════════════════ */
 .wpt-dashboard .bottom-grid {
