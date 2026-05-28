@@ -244,7 +244,6 @@ class Module_Hierarchy {
                     'external-links-new-tab',
                     'external-permalinks',
                     'disable-comments',
-                    'forms', // form-builder in docs
                 ],
             ],
 
@@ -554,7 +553,6 @@ class Module_Hierarchy {
                 'sub_modules' => [
                     'code-snippets',
                     'custom-admin-css',     // v2 — not built yet
-                    'custom-code',          // custom-frontend-code in docs
                     'custom-frontend-css',  // v2 — not built yet
                     'custom-body-class',    // v2 — not built yet
                 ],

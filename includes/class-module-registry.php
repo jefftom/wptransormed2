@@ -97,9 +97,8 @@ class Module_Registry {
             'login-logout-menu'           => 'modules/login-logout/class-login-logout-menu.php',
             'redirect-after-login'        => 'modules/login-logout/class-redirect-after-login.php',
 
-            // ── Custom Code (2 modules) ──────────────────────────
+            // ── Custom Code (1 module) ───────────────────────────
             'code-snippets'               => 'modules/custom-code/class-code-snippets.php',
-            'custom-code'                 => 'modules/custom-code/class-custom-code.php',
 
             // ── Disable Components (3 modules) ───────────────────
             'disable-frontend'            => 'modules/disable-components/class-disable-frontend.php',
@@ -121,7 +120,6 @@ class Module_Registry {
             'export-import-settings'      => 'modules/utilities/class-export-import-settings.php',
             'system-summary'              => 'modules/utilities/class-system-summary.php',
             'error-log-viewer'            => 'modules/utilities/class-error-log-viewer.php',
-            'forms'                       => 'modules/utilities/class-forms.php',
 
         ];
     }
