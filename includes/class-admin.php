@@ -100,11 +100,17 @@ class Admin {
         add_action( 'wp_ajax_wpt_toggle_module', [ $this, 'ajax_toggle_module' ] );
         add_action( 'wp_ajax_wpt_toggle_parent', [ $this, 'ajax_toggle_parent' ] );
 
-        // Global admin reskin hooks (all admin pages)
-        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_global_assets' ] );
-        add_action( 'admin_menu', [ $this, 'inject_section_labels' ], 999 );
-        add_filter( 'admin_body_class', [ $this, 'add_body_classes' ] );
-        add_action( 'admin_head', [ $this, 'inject_topbar_space' ], 1 );
+        // Global admin reskin hooks (all admin pages).
+        // Admin Chrome Safety Contract: Safe Mode must bypass ALL chrome —
+        // no global CSS/JS, no section labels, no body classes, no topbar
+        // space reservation — so the native admin can recover the site
+        // even when the chrome itself is the problem.
+        if ( ! Safe_Mode::is_active() ) {
+            add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_global_assets' ] );
+            add_action( 'admin_menu', [ $this, 'inject_section_labels' ], 999 );
+            add_filter( 'admin_body_class', [ $this, 'add_body_classes' ] );
+            add_action( 'admin_head', [ $this, 'inject_topbar_space' ], 1 );
+        }
         add_action( 'wp_ajax_wpt_save_dark_mode', [ $this, 'ajax_save_dark_mode' ] );
 
         // Editor Dashboard — content workspace landing page

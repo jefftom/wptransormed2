@@ -21,21 +21,35 @@ class Safe_Mode {
      *
      * Safe mode URL: /wp-admin/?wpt_safe_mode={token}
      *
+     * Activation requires BOTH the valid token AND a logged-in
+     * administrator-capable user (decision 2026-06-09): manage_wpt is the
+     * primary gate; manage_options is the emergency fallback for installs
+     * where WPT capabilities were never granted (spec §11).
+     *
      * In safe mode:
      * - No modules are loaded at all
-     * - Settings page still renders (so you can toggle modules off)
-     * - A prominent banner warns that safe mode is active
+     * - No admin chrome loads (global CSS/JS, section labels, body
+     *   classes, topbar space) — native WordPress admin renders
+     * - A plain banner notice warns that safe mode is active
      */
     public static function is_active(): bool {
+        // Param check first: keeps the common path cheap and avoids
+        // forcing early user determination on every admin request.
         if ( ! is_admin() ) return false;
-        if ( ! is_user_logged_in() ) return false;
         if ( ! isset( $_GET['wpt_safe_mode'] ) ) return false;
 
-        $provided = sanitize_text_field( $_GET['wpt_safe_mode'] );
+        $provided = sanitize_text_field( wp_unslash( $_GET['wpt_safe_mode'] ) );
         $stored   = get_option( self::TOKEN_OPTION, '' );
 
         // Token must exist and match
         if ( empty( $stored ) || ! hash_equals( $stored, $provided ) ) {
+            return false;
+        }
+
+        // A bare token is not sufficient.
+        if ( ! is_user_logged_in() ) return false;
+        if ( ! current_user_can( Permission_Manager::CAP_MANAGE )
+            && ! current_user_can( 'manage_options' ) ) {
             return false;
         }
 
@@ -70,10 +84,10 @@ class Safe_Mode {
     public static function render_banner(): void {
         add_action( 'admin_notices', function() {
             ?>
-            <div class="notice notice-warning" style="border-left-color: #d63638; background: #fef1f1;">
+            <div class="notice notice-warning">
                 <p>
                     <strong><?php esc_html_e( 'WPTransformed Safe Mode Active', 'wptransformed' ); ?></strong><br>
-                    <?php esc_html_e( 'All modules are disabled. Go to Settings → WPTransformed to disable any problematic modules, then remove ?wpt_safe_mode from the URL to exit safe mode.', 'wptransformed' ); ?>
+                    <?php esc_html_e( 'All WPTransformed modules and admin styling are disabled for this request, so the native WordPress admin can be used for recovery. Safe Mode applies only to URLs containing the ?wpt_safe_mode token — remove it to exit.', 'wptransformed' ); ?>
                 </p>
             </div>
             <?php
