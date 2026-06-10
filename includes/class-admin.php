@@ -1092,10 +1092,6 @@ class Admin {
             wp_send_json_error( 'Missing module ID' );
         }
 
-        if ( ! Permission_Manager::user_can_manage_module( $module_id ) ) {
-            wp_send_json_error( 'Unauthorized', 403 );
-        }
-
         // Validate against definitions — inactive modules have no
         // instance under zero-load.
         $core = Core::instance();
@@ -1109,8 +1105,22 @@ class Admin {
         // and writing the raw alias would recreate a legacy settings row.
         $module_id = $def['id'];
 
+        // Per-module gating AFTER canonicalization, so the
+        // wpt_user_can_manage_module filter always receives the
+        // canonical id — parity with the wpt/v1 toggle route. (Unknown
+        // ids therefore reject before the filter runs.)
+        if ( ! Permission_Manager::user_can_manage_module( $module_id ) ) {
+            wp_send_json_error( 'Unauthorized', 403 );
+        }
+
         if ( 'pro' === ( $def['tier'] ?? 'core' ) && ! Core::is_pro_licensed() ) {
             wp_send_json_error( 'Pro license required' );
+        }
+
+        // Non-implemented definitions (stub) are inert: ENABLE rejects,
+        // DISABLE stays allowed so stale active rows can be cleaned up.
+        if ( $active && 'implemented' !== ( $def['status'] ?? 'implemented' ) ) {
+            wp_send_json_error( 'Module not yet implemented' );
         }
 
         // Shared toggle path (Core::set_module_active): persists the
@@ -1226,6 +1236,16 @@ class Admin {
             if ( 'pro' === ( $sub_def['tier'] ?? 'core' ) && ! Core::is_pro_licensed() ) {
                 $results[] = [ 'id' => $id, 'active' => null, 'error' => 'pro_locked' ];
                 $pro_locked++;
+                continue;
+            }
+
+            // Non-implemented sub-modules (stub) are inert: skip on
+            // ENABLE with a per-sub error — the batch continues, same
+            // as other per-sub failures. DISABLE passes through so
+            // stale active rows can be cleaned up.
+            if ( $active && 'implemented' !== ( $sub_def['status'] ?? 'implemented' ) ) {
+                $results[] = [ 'id' => $id, 'active' => null, 'error' => 'not implemented' ];
+                $failed++;
                 continue;
             }
 

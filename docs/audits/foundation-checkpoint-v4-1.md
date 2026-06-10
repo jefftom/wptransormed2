@@ -68,7 +68,7 @@ Lazy admin-operation loads (`load_module`) include at most one extra file per ex
 
 *Updated 2026-06-10 (REST skeleton commit).* The first three lifecycle hooks now exist, in the shared storage layer so every surface fires them identically (admin-ajax single/parent toggles, `wpt/v1` REST toggle, setup wizard, app-page saves, import):
 
-- `wpt_module_enabled` / `wpt_module_disabled` — fired by `Settings::toggle_module()` after a successful persist, canonical module id only, never before persistence.
+- `wpt_module_enabled` / `wpt_module_disabled` — fired by `Settings::toggle_module()` after a successful persist, canonical module id only, never before persistence. *Amended by toggle hardening (§16.1): fires only on actual state transitions — no-op re-assertions are suppressed (no write, no hook).*
 - `wpt_module_settings_saved` — fired by `Settings::save()` after a successful persist, canonical module id + persisted settings.
 
 Still missing: `wpt_module_quarantined`, `wpt_safe_mode_triggered`, `wpt_settings_exported` / `wpt_settings_imported`, `wpt_loaded`. Filters unchanged: `wpt_registered_modules`, `wpt_command_palette_actions`, `wpt_known_plugin_sections`, `wpt_user_can_manage_module`. Recovery Center / Conflict Detector / Audit Log now have the module enable/disable/settings events to subscribe to.
@@ -133,7 +133,7 @@ Both pending (decision 5; reframe step 13): the status dashboard and Module Libr
 
 - Success: `WP_REST_Response` carrying the data payload directly with the HTTP status. No `{success: true}` envelope.
 - Error: `WP_Error` with a stable `wpt_*` code, human-readable message, and `data.status` — WP core renders the standard `{code, message, data: {status}}` shape.
-- Stable codes so far: `wpt_forbidden` (401 logged-out / 403 capless), `wpt_invalid_module` (404), `wpt_pro_locked` (403), `wpt_toggle_failed` (500).
+- Stable codes so far: `wpt_forbidden` (401 logged-out / 403 capless), `wpt_invalid_module` (404), `wpt_pro_locked` (403), `wpt_module_stub` (400, toggle hardening §16.1), `wpt_toggle_failed` (500).
 
 **Routes:**
 
@@ -149,3 +149,24 @@ Both pending (decision 5; reframe step 13): the status dashboard and Module Libr
 - Pro-locked module metadata is returned (`pro_locked: true`), Pro files/classes never load; Pro toggle rejects `wpt_pro_locked` before any write.
 - Internal wiring fields (`file`, `class`, `capability`, `has_cleanup`) are never exposed in payloads.
 - Toggle persistence + deactivate lifecycle is `Core::set_module_active()`, shared with both admin-ajax toggle handlers — lifecycle hooks cannot drift between surfaces (see §7).
+
+### 16.1 Toggle hardening (2026-06-10, post-skeleton audit)
+
+**Ratified as decided (as-built):**
+
+- `Core\Rest_Controller` in `includes/class-rest-controller.php` is the permanent name/location for the REST foundation.
+- `Core::set_module_active( string $id, bool $active ): bool` keeps its as-built signature; validation and canonicalization stay caller-side at the boundary handlers (the F1 pattern). The v2-spec'd `(input_id, active, source): array|WP_Error` signature is rejected.
+- The toggle `active` argument stays validated by the route args schema, so missing/invalid-body errors use the WP-native `rest_missing_callback_param` / `rest_invalid_param` shapes — the third sanctioned response origin alongside handler errors and permission errors.
+
+**New permanent contracts:**
+
+- **No-op suppression** (`Settings::toggle_module`): re-asserting the current persisted state writes nothing and fires no lifecycle hook; absent rows read as inactive, so a row-less disable creates no row. `Settings::is_module_active()` is the single source of pre-toggle state (the loader's active id list is a boot snapshot; never use it for this).
+- **Toggle response shape (four fields, PERMANENT):** `{ "id": <canonical>, "active": <bool>, "previous_active": <bool>, "changed": <bool> }`. A no-op returns HTTP 200 with `changed: false`. Admin-ajax responses gained nothing — their contracts are frozen.
+- **Stub gating (status asymmetry):** non-implemented definitions are inert. ENABLE rejects: REST `wpt_module_stub` ("This module is not yet implemented.", 400); ajax single-toggle `'Module not yet implemented'`; parent batch skips with per-sub error `'not implemented'` (batch continues, existing per-sub failure semantics); setup wizard filters `$modules_to_enable` to `status === 'implemented'` before its batch loop. DISABLE stays allowed so previously-persisted inert active rows clean up. Unknown ids keep the 404/'Unknown module' behavior; pro keeps `wpt_pro_locked`, checked before status. Gating lives at the validation boundaries — `Settings`/`Core::set_module_active` stay policy-free apart from no-op suppression.
+- **ajax_toggle_module check order:** nonce → empty → definition lookup ('Unknown module') → canonicalize → per-module filter ('Unauthorized', 403) → pro gate → status gate → toggle. Accepted consequence: `wpt_user_can_manage_module` now always receives the canonical id (parity with REST), and a filter-denied user probing an unknown id sees 'Unknown module' instead of reaching the filter.
+
+**Decided deferrals / gaps:**
+
+- `$context` parameter on lifecycle hooks: deferred until the audit-log module actually consumes them. Decided deferral, not an oversight.
+- Settings-save no-op semantics undecided: `Settings::save()` still fires `wpt_module_settings_saved` on every successful persist, including identical-settings writes.
+- `wp_ajax_wpt_toggle_parent` applies **no per-module filter** — the batch path requires `manage_wpt_modules` outright; `wpt_user_can_manage_module` applies to single-module toggles only. Recorded as a known gap, unchanged by this pass.

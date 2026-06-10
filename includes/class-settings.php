@@ -69,6 +69,19 @@ class Settings {
     }
 
     /**
+     * Whether a module's PERSISTED state is active. Primes the cache;
+     * absent rows read as inactive.
+     *
+     * The single source of pre-toggle state for toggle surfaces — the
+     * loader's active id list is a boot-time snapshot and goes stale
+     * after mid-request writes.
+     */
+    public static function is_module_active( string $module_id ): bool {
+        self::load();
+        return (bool) ( self::$cache[ $module_id ]['is_active'] ?? false );
+    }
+
+    /**
      * Save settings for a module. Uses REPLACE INTO (upsert).
      */
     public static function save( string $module_id, array $settings ): bool {
@@ -123,6 +136,14 @@ class Settings {
         // Prime the cache — a cold-cache toggle would otherwise wipe saved settings.
         self::load();
 
+        // No-op suppression: re-asserting the current state writes
+        // nothing and fires no lifecycle hook. Absent rows read as
+        // inactive, so disabling a row-less module is also a no-op
+        // (and creates no row).
+        if ( self::is_module_active( $module_id ) === $active ) {
+            return true;
+        }
+
         global $wpdb;
         $table = $wpdb->prefix . 'wpt_settings';
 
@@ -151,8 +172,9 @@ class Settings {
              * surface (admin-ajax single/parent, wpt/v1 REST, setup
              * wizard) fires it identically. Callers canonicalize ids
              * ahead of the write, so subscribers always receive the
-             * canonical module id. Fires on every successful persist,
-             * including writes that re-assert the current state.
+             * canonical module id. Fires only on actual state
+             * transitions — no-op re-assertions return early above,
+             * without a write and without this hook.
              *
              * @param string $module_id Canonical module id.
              */

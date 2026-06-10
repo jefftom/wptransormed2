@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * - Error: WP_Error with a stable wpt_* code, a human-readable message,
  *   and data.status — WP core renders the standard REST error shape.
  * Stable error codes so far: wpt_forbidden, wpt_invalid_module,
- * wpt_pro_locked, wpt_toggle_failed.
+ * wpt_pro_locked, wpt_module_stub, wpt_toggle_failed.
  *
  * Read routes render from validated definitions only — never module
  * instances — so no module implementation file loads from a read
@@ -286,13 +286,30 @@ class Rest_Controller {
         }
 
         $active = (bool) $request['active'];
+
+        // Non-implemented definitions (stub today; fails closed for any
+        // future status) are inert: ENABLE rejects, DISABLE stays
+        // allowed so previously-persisted active rows can be cleaned up.
+        if ( $active && 'implemented' !== $def['status'] ) {
+            return $this->error( 'wpt_module_stub', __( 'This module is not yet implemented.', 'wptransformed' ), 400 );
+        }
+
+        // Pre-toggle state for the response contract — read from the
+        // same source the no-op suppression in Settings::toggle_module
+        // keys off (the loader's active list is a boot snapshot).
+        $previous_active = Settings::is_module_active( $module_id );
+
         if ( ! Core::instance()->set_module_active( $module_id, $active ) ) {
             return $this->error( 'wpt_toggle_failed', __( 'Failed to update module state.', 'wptransformed' ), 500 );
         }
 
+        // PERMANENT response contract: a no-op re-assertion is HTTP 200
+        // with changed=false (and no lifecycle hook fired).
         return $this->respond( [
-            'id'     => $module_id,
-            'active' => $active,
+            'id'              => $module_id,
+            'active'          => $active,
+            'previous_active' => $previous_active,
+            'changed'         => $previous_active !== $active,
         ] );
     }
 

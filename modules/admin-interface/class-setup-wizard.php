@@ -800,6 +800,18 @@ class Setup_Wizard extends Module_Base {
             $modules_to_enable = array_diff( $modules_to_enable, [ 'setup-wizard' ] );
         }
 
+        // Only implemented modules are enableable — non-implemented
+        // (stub) definitions are inert and rejected at every toggle
+        // boundary (REST, ajax, wizard); Settings stays policy-free.
+        // Applies to both branches above (unknown ids drop here too).
+        $definitions       = Module_Registry::get_definitions();
+        $modules_to_enable = array_values( array_filter(
+            $modules_to_enable,
+            static function ( $id ) use ( $definitions ) {
+                return 'implemented' === ( $definitions[ $id ]['status'] ?? '' );
+            }
+        ) );
+
         // Batch-enable selected modules.
         foreach ( $modules_to_enable as $mod_id ) {
             Settings::toggle_module( $mod_id, true );

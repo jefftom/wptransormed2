@@ -5,8 +5,9 @@ declare(strict_types=1);
  * Standalone wpt/v1 REST skeleton harness — plain PHP CLI, no PHPUnit.
  *
  * Boots the REAL Core + Rest_Controller over minimal WP REST stubs
- * (post-migration database: canonical ids only, every module inactive)
- * and asserts:
+ * (post-migration database: canonical ids only, every module inactive
+ * except a stale ACTIVE row on the stub login-protection — the
+ * stub-disable cleanup case) and asserts:
  *
  *   - route table: the 5 wpt/v1 routes register with callbacks AND
  *     permission callbacks (no public unauthenticated routes)
@@ -17,13 +18,20 @@ declare(strict_types=1);
  *   - legacy alias resolves to the canonical id in the payload;
  *     invalid ids return wpt_invalid_module 404 on read and toggle
  *   - ZERO module implementation files load anywhere in the run
- *     (every module is inactive — any modules/ include is a failure)
+ *     (the only active row is a stub the loader refuses — any
+ *     modules/ include is a failure)
  *   - Pro metadata returns with pro_locked, Pro class never loads;
  *     Pro toggle returns wpt_pro_locked 403 without a write
  *   - toggle: alias-addressed writes land on the canonical row (no
  *     legacy row recreated), settings survive the round-trip,
  *     wpt_module_enabled/disabled fire with canonical ids only AFTER
  *     persistence succeeds (failed write -> wpt_toggle_failed, no hook)
+ *   - the four-field toggle response contract: {id, active,
+ *     previous_active, changed}
+ *   - no-op suppression: re-asserting the current state is HTTP 200
+ *     with changed=false, NO database write, NO lifecycle hook
+ *   - stub gating: ENABLE rejects wpt_module_stub 400 (canonical id or
+ *     legacy alias), DISABLE is allowed so stale active rows clean up
  *   - the per-module wpt_user_can_manage_module filter receives the
  *     CANONICAL id and can deny the toggle
  *
@@ -115,9 +123,11 @@ class WP_REST_Server {
     const DELETABLE = 'DELETE';
 }
 
-// ── Fake wpdb seeded POST-migration: canonical ids, all inactive ─
-// With zero active modules, ANY modules/ file include during this run
-// is a zero-load violation.
+// ── Fake wpdb seeded POST-migration: canonical ids only ──────────
+// Every module inactive EXCEPT a stale active row on the stub
+// login-protection (e.g. persisted before stub gating existed). The
+// loader refuses stubs, so ANY modules/ file include in this run is
+// still a zero-load violation.
 class WPT_Rest_Harness_Wpdb {
     public $prefix = 'wp_';
     public $rows   = [];
@@ -125,6 +135,7 @@ class WPT_Rest_Harness_Wpdb {
     public function __construct() {
         $this->rows[] = [ 'module_id' => 'admin-bar-manager', 'is_active' => '0', 'settings' => json_encode( [ 'probe' => 'kept' ] ) ];
         $this->rows[] = [ 'module_id' => 'database-optimizer', 'is_active' => '0', 'settings' => json_encode( [ 'keep' => 'me' ] ) ];
+        $this->rows[] = [ 'module_id' => 'login-protection', 'is_active' => '1', 'settings' => json_encode( [ 'stale' => 'row' ] ) ];
     }
     public function get_results( $sql, $output = null ) { return $this->rows; }
     public function row( string $id ): ?array {
@@ -153,6 +164,7 @@ require WPT_PATH . 'includes/class-rest-controller.php';
 use WPTransformed\Core\Core;
 use WPTransformed\Core\Permission_Manager;
 use WPTransformed\Core\Rest_Controller;
+use WPTransformed\Core\Settings;
 
 $fail = 0;
 function check( bool $ok, string $label ): void {
@@ -262,9 +274,9 @@ $status    = $resp->get_data();
 check(
     $resp->get_status() === 200
     && WPT_VERSION === $status['version']
-    && $status['modules'] === [ 'total' => count( $defs ), 'active' => 0, 'pro_locked' => $pro_total ]
+    && $status['modules'] === [ 'total' => count( $defs ), 'active' => 1, 'pro_locked' => $pro_total ]
     && false === $status['safe_mode'],
-    'GET /system/status reports version + module counts + request-scoped safe_mode'
+    'GET /system/status reports version + module counts (1 active = the stale stub row) + request-scoped safe_mode'
 );
 
 // ── Toggle route ──────────────────────────────────────────────
@@ -272,18 +284,33 @@ $GLOBALS['__did_actions'] = [];
 $resp = $ctrl->toggle_module( req( [ 'id' => 'database-cleanup', 'active' => true ] ) );
 $row  = $GLOBALS['wpdb']->row( 'database-optimizer' );
 check(
-    $resp instanceof WP_REST_Response && [ 'id' => 'database-optimizer', 'active' => true ] === $resp->get_data()
+    $resp instanceof WP_REST_Response
+    && [ 'id' => 'database-optimizer', 'active' => true, 'previous_active' => false, 'changed' => true ] === $resp->get_data()
     && '1' === ( $row['is_active'] ?? null )
     && null === $GLOBALS['wpdb']->row( 'database-cleanup' ),
-    'toggle via legacy alias activates the canonical row; no legacy row recreated'
+    'toggle via legacy alias activates the canonical row with the four-field response; no legacy row recreated'
 );
 check( [ [ 'wpt_module_enabled', [ 'database-optimizer' ] ] ] === $GLOBALS['__did_actions'], 'wpt_module_enabled fires once with the canonical id' );
+
+// No-op suppression: re-asserting the current state is HTTP 200 with
+// changed=false, no database write, no lifecycle hook.
+$GLOBALS['__did_actions'] = [];
+$rows_before = json_encode( $GLOBALS['wpdb']->rows );
+$resp = $ctrl->toggle_module( req( [ 'id' => 'database-cleanup', 'active' => true ] ) );
+check(
+    $resp instanceof WP_REST_Response && 200 === $resp->get_status()
+    && [ 'id' => 'database-optimizer', 'active' => true, 'previous_active' => true, 'changed' => false ] === $resp->get_data()
+    && json_encode( $GLOBALS['wpdb']->rows ) === $rows_before
+    && [] === $GLOBALS['__did_actions'],
+    'no-op re-enable returns 200 changed=false with NO write and NO hook'
+);
 
 $GLOBALS['__did_actions'] = [];
 $resp = $ctrl->toggle_module( req( [ 'id' => 'database-cleanup', 'active' => false ] ) );
 $row  = $GLOBALS['wpdb']->row( 'database-optimizer' );
 check(
-    '0' === ( $row['is_active'] ?? null )
+    [ 'id' => 'database-optimizer', 'active' => false, 'previous_active' => true, 'changed' => true ] === $resp->get_data()
+    && '0' === ( $row['is_active'] ?? null )
     && [ 'keep' => 'me' ] === json_decode( $row['settings'], true )
     && [ [ 'wpt_module_disabled', [ 'database-optimizer' ] ] ] === $GLOBALS['__did_actions'],
     'toggle round-trip preserves settings and fires wpt_module_disabled with the canonical id'
@@ -307,6 +334,42 @@ check(
     is_wpt_error( $ctrl->toggle_module( req( [ 'id' => 'database-optimizer', 'active' => true ] ) ), 'wpt_toggle_failed', 500 )
     && [] === $GLOBALS['__did_actions'],
     'failed persistence returns wpt_toggle_failed 500 and fires NO lifecycle hook'
+);
+
+// ── Stub gating ───────────────────────────────────────────────
+// login-protection is a stub seeded with a stale ACTIVE row: enabling
+// rejects (canonical id or alias), disabling is allowed for cleanup.
+$GLOBALS['__did_actions'] = [];
+$stale = $GLOBALS['wpdb']->row( 'login-protection' );
+check(
+    is_wpt_error( $ctrl->toggle_module( req( [ 'id' => 'login-protection', 'active' => true ] ) ), 'wpt_module_stub', 400 )
+    && is_wpt_error( $ctrl->toggle_module( req( [ 'id' => 'login-security', 'active' => true ] ) ), 'wpt_module_stub', 400 )
+    && json_encode( $GLOBALS['wpdb']->row( 'login-protection' ) ) === json_encode( $stale )
+    && [] === $GLOBALS['__did_actions'],
+    'stub ENABLE rejects wpt_module_stub 400 via canonical id AND legacy alias, with no write and no hook'
+);
+
+check( true === Settings::is_module_active( 'login-protection' ), 'Settings::is_module_active reads the stale active row' );
+$GLOBALS['__did_actions'] = [];
+$resp = $ctrl->toggle_module( req( [ 'id' => 'login-protection', 'active' => false ] ) );
+check(
+    $resp instanceof WP_REST_Response
+    && [ 'id' => 'login-protection', 'active' => false, 'previous_active' => true, 'changed' => true ] === $resp->get_data()
+    && '0' === ( $GLOBALS['wpdb']->row( 'login-protection' )['is_active'] ?? null )
+    && [ [ 'wpt_module_disabled', [ 'login-protection' ] ] ] === $GLOBALS['__did_actions']
+    && false === Settings::is_module_active( 'login-protection' ),
+    'stub DISABLE is allowed: stale active row cleaned up, wpt_module_disabled fires with canonical id'
+);
+
+$GLOBALS['__did_actions'] = [];
+$resp = $ctrl->toggle_module( req( [ 'id' => 'login-protection', 'active' => false ] ) );
+check(
+    $resp instanceof WP_REST_Response && false === $resp->get_data()['changed'] && [] === $GLOBALS['__did_actions'],
+    'second stub DISABLE is a suppressed no-op (changed=false, no hook)'
+);
+check(
+    is_wpt_error( $ctrl->toggle_module( req( [ 'id' => 'login-protection', 'active' => true ] ) ), 'wpt_module_stub', 400 ),
+    'stub ENABLE still rejects after cleanup (enable/disable asymmetry)'
 );
 
 // Per-module gating: the wpt_user_can_manage_module filter receives the
