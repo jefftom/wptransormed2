@@ -104,6 +104,13 @@ add_action( 'plugins_loaded', function() {
         \WPTransformed\Core\Core::instance()->boot();
     }
 
+    // wpt/v1 REST surface — the canonical API for new server I/O
+    // (reframe step 9). Registration is request-type agnostic:
+    // rest_api_init only fires on REST dispatches, which Safe Mode (a
+    // tokened wp-admin gate) never applies to. Existing admin-ajax
+    // endpoints keep working and migrate screen-by-screen (reframe §7).
+    \WPTransformed\Core\Rest_Controller::init();
+
     // Admin settings page loads ALWAYS (even in safe mode)
     if ( is_admin() ) {
         require_once WPT_PATH . 'includes/class-admin.php';

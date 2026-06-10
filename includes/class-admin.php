@@ -1113,23 +1113,11 @@ class Admin {
             wp_send_json_error( 'Pro license required' );
         }
 
-        $result = Settings::toggle_module( $module_id, $active );
-
-        if ( $result ) {
-            if ( ! $active ) {
-                // The instance exists only while the module was loaded
-                // this request (it was active) — run lifecycle cleanup.
-                $module = $core->get_module( $module_id );
-                if ( $module ) {
-                    try {
-                        $module->deactivate();
-                    } catch ( \Throwable $e ) {
-                        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                            error_log( "WPTransformed: Module '{$module_id}' deactivate() failed: " . $e->getMessage() );
-                        }
-                    }
-                }
-            }
+        // Shared toggle path (Core::set_module_active): persists the
+        // state, fires wpt_module_enabled/disabled, and runs the
+        // deactivate() cleanup — identical lifecycle to the wpt/v1
+        // toggle route.
+        if ( $core->set_module_active( $module_id, $active ) ) {
             wp_send_json_success( [ 'active' => $active ] );
         } else {
             wp_send_json_error( 'Failed to update' );
@@ -1241,26 +1229,13 @@ class Admin {
                 continue;
             }
 
-            $ok = Settings::toggle_module( $id, $active );
-            if ( ! $ok ) {
+            // Shared toggle path — persists state, fires lifecycle
+            // hooks, and runs deactivate() cleanup (same as the single
+            // toggle and the wpt/v1 toggle route).
+            if ( ! $core->set_module_active( $id, $active ) ) {
                 $results[] = [ 'id' => $id, 'active' => null, 'error' => 'settings_write_failed' ];
                 $failed++;
                 continue;
-            }
-
-            // On deactivate, run the module's cleanup so cron/transients
-            // don't orphan. Same pattern as ajax_toggle_module.
-            if ( ! $active ) {
-                $module = $core->get_module( $id );
-                if ( $module ) {
-                    try {
-                        $module->deactivate();
-                    } catch ( \Throwable $e ) {
-                        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                            error_log( "WPTransformed: Module '{$id}' deactivate() failed: " . $e->getMessage() );
-                        }
-                    }
-                }
             }
 
             $results[] = [ 'id' => $id, 'active' => $active ];

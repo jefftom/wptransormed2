@@ -97,6 +97,20 @@ class Settings {
                 'is_active' => $is_active,
                 'settings'  => $settings,
             ];
+
+            /**
+             * Fires after a module's settings are persisted — never
+             * before. Lives in the shared storage method so every save
+             * surface (admin form, app pages, import, future REST
+             * settings routes) fires it identically. Callers
+             * canonicalize ids ahead of the write, so subscribers
+             * always receive the canonical module id.
+             *
+             * @param string $module_id Canonical module id.
+             * @param array  $settings  The persisted (sanitized) settings.
+             */
+            do_action( 'wpt_module_settings_saved', $module_id, $settings );
+
             return true;
         }
         return false;
@@ -130,6 +144,20 @@ class Settings {
                 'is_active' => $active,
                 'settings'  => $settings,
             ];
+
+            /**
+             * Fires after a module's active state is persisted — never
+             * before. Lives in the shared storage method so every toggle
+             * surface (admin-ajax single/parent, wpt/v1 REST, setup
+             * wizard) fires it identically. Callers canonicalize ids
+             * ahead of the write, so subscribers always receive the
+             * canonical module id. Fires on every successful persist,
+             * including writes that re-assert the current state.
+             *
+             * @param string $module_id Canonical module id.
+             */
+            do_action( $active ? 'wpt_module_enabled' : 'wpt_module_disabled', $module_id );
+
             return true;
         }
         return false;

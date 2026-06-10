@@ -352,6 +352,39 @@ class Core {
         return in_array( $id, $this->active_ids, true );
     }
 
+    /**
+     * Persist a module's active state and run instance lifecycle — the
+     * single toggle path shared by admin-ajax and the wpt/v1 REST route,
+     * so the wpt_module_enabled/disabled hooks (fired by
+     * Settings::toggle_module after a successful write) can never drift
+     * between surfaces.
+     *
+     * The caller validates and canonicalizes $id against definitions
+     * first; this method only persists and cleans up.
+     */
+    public function set_module_active( string $id, bool $active ): bool {
+        if ( ! Settings::toggle_module( $id, $active ) ) {
+            return false;
+        }
+
+        if ( ! $active ) {
+            // The instance exists only while the module was loaded this
+            // request (it was active) — run lifecycle cleanup.
+            $module = $this->get_module( $id );
+            if ( $module ) {
+                try {
+                    $module->deactivate();
+                } catch ( \Throwable $e ) {
+                    if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                        error_log( "WPTransformed: Module '{$id}' deactivate() failed: " . $e->getMessage() );
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
     /** Placeholder for Pro license check. Always false in v1. */
     public static function is_pro_licensed(): bool {
         // TODO: Freemius integration in v2

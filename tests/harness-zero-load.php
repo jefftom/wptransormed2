@@ -77,6 +77,8 @@ function apply_filters( $tag, $value, ...$args ) {
     return $value;
 }
 function add_action( $tag, $cb, $p = 10, $n = 1 ) { $GLOBALS['__actions'][ $tag ][] = $cb; return true; }
+$GLOBALS['__did_actions'] = [];
+function do_action( $tag, ...$args ) { $GLOBALS['__did_actions'][] = [ $tag, $args ]; }
 function remove_action( $tag, $cb, $p = 10 ) { return true; }
 function remove_filter( $tag, $cb, $p = 10 ) { return true; }
 function did_action( $tag ) { return 0; }
@@ -261,10 +263,16 @@ check( null !== $core->get_definition( 'email-smtp' ), 'legacy id resolves to a 
 $via_alias = $core->load_module( 'email-smtp' );
 check( null !== $via_alias && 'email-delivery' === $via_alias->get_id(), 'load_module via legacy alias returns the canonical module (old-export import path)' );
 
-// Canonical toggle round-trip preserves settings.
+// Canonical toggle round-trip preserves settings + fires lifecycle
+// hooks (shared storage layer — same firing for admin-ajax and REST).
+$GLOBALS['__did_actions'] = [];
 Settings::toggle_module( 'admin-bar-manager', false );
 check( Settings::get( 'admin-bar-manager' ) === [ 'probe' => 'admin-bar' ], 'canonical toggle round-trip preserves settings' );
 Settings::toggle_module( 'admin-bar-manager', true );
+check(
+    [ [ 'wpt_module_disabled', [ 'admin-bar-manager' ] ], [ 'wpt_module_enabled', [ 'admin-bar-manager' ] ] ] === $GLOBALS['__did_actions'],
+    'toggle persistence fires wpt_module_disabled/enabled with the canonical id'
+);
 
 // Lazy admin-operation loading still hook-free.
 $actions_before = array_sum( array_map( 'count', $GLOBALS['__actions'] ) );

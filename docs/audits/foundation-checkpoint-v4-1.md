@@ -62,10 +62,16 @@ Lazy admin-operation loads (`load_module`) include at most one extra file per ex
 - **88 `wp_ajax_*` registrations** (85 in feature modules + 3 core: `wpt_toggle_module`, `wpt_toggle_parent`, `wpt_save_dark_mode`) and **2 `admin_post_*`** (menu-editor, login-designer saves).
 - All are nonce + capability checked; dangerous endpoints carry `run_wpt_dangerous_tools`.
 - Per reframe §7: REST is canonical for NEW work; this surface migrates screen-by-screen, no new major admin-ajax endpoints.
+- *Update 2026-06-10:* the `wpt/v1` REST skeleton exists (§16). Admin-ajax request/response contracts are unchanged; the two core toggle handlers now persist through the shared `Core::set_module_active()` path, so REST and admin-ajax fire identical lifecycle hooks.
 
 ## 7. Lifecycle Hook Gaps
 
-**Zero `do_action( 'wpt_*' )` calls exist.** Missing: `wpt_module_enabled` / `wpt_module_disabled` / `wpt_module_quarantined`, `wpt_module_settings_saved`, `wpt_safe_mode_triggered`, `wpt_settings_exported` / `wpt_settings_imported`, `wpt_loaded`. Only 3 `wpt_*` filters exist (`wpt_registered_modules` with the new definition payload, `wpt_command_palette_actions`, `wpt_known_plugin_sections`) plus `wpt_user_can_manage_module`. Recovery Center / Conflict Detector / Audit Log integration still have nothing to subscribe to — good candidate to land alongside the REST skeleton's enable/disable routes.
+*Updated 2026-06-10 (REST skeleton commit).* The first three lifecycle hooks now exist, in the shared storage layer so every surface fires them identically (admin-ajax single/parent toggles, `wpt/v1` REST toggle, setup wizard, app-page saves, import):
+
+- `wpt_module_enabled` / `wpt_module_disabled` — fired by `Settings::toggle_module()` after a successful persist, canonical module id only, never before persistence.
+- `wpt_module_settings_saved` — fired by `Settings::save()` after a successful persist, canonical module id + persisted settings.
+
+Still missing: `wpt_module_quarantined`, `wpt_safe_mode_triggered`, `wpt_settings_exported` / `wpt_settings_imported`, `wpt_loaded`. Filters unchanged: `wpt_registered_modules`, `wpt_command_palette_actions`, `wpt_known_plugin_sections`, `wpt_user_can_manage_module`. Recovery Center / Conflict Detector / Audit Log now have the module enable/disable/settings events to subscribe to.
 
 ## 8. Safe Mode / Recovery Center Gaps
 
@@ -112,9 +118,34 @@ Both pending (decision 5; reframe step 13): the status dashboard and Module Libr
 
 ## 15. Recommended Next Build Order
 
-1. **Live verification pass on wpt-dev** (start Laragon: real boot exercises caps + slug migrations; click through Modules page, toggles, app pages, Safe Mode URL) — cheap, de-risks everything above.
-2. **REST skeleton** (reframe step 9): `wpt/v1` namespace, shared response/error format, `Permission_Manager` callbacks, the §8 early routes — and land the lifecycle hooks (`wpt_module_enabled/disabled`, `wpt_module_settings_saved`) inside the enable/disable/settings routes.
+1. **Live verification pass on wpt-dev** — DONE 2026-06-10 (`docs/audits/live-verification-2026-06-10.md`, PASS with findings F1–F4; F1 fixed in `257ea19`).
+2. **REST skeleton** (reframe step 9) — DONE 2026-06-10, see §16: `wpt/v1` namespace, shared response/error contract, `Permission_Manager` callbacks, first routes, and the first lifecycle hooks (`wpt_module_enabled/disabled`, `wpt_module_settings_saved`) in the shared toggle/save paths.
 3. **Product-proof vertical slice** (step 10).
 4. **Conflict Detector** (step 11) — definitions now provide the metadata it reasons over.
 5. **Import/export rebuild + uninstall retention matrix** (step 12) — fixes risk #2.
 6. **Surface remediation** (step 13): dashboard/modules split, fake metrics, self-hosted assets, `wpt_theme_mode` migration, mobile chrome fix.
+
+## 16. wpt/v1 REST Skeleton (landed 2026-06-10)
+
+**Status: LANDED.** `includes/class-rest-controller.php` (`Core\Rest_Controller`), registered on `rest_api_init` from the main plugin file for every request type (Safe Mode is a tokened wp-admin gate and never applies to REST dispatches). Unit harness: `tests/harness-rest.php`. Live-verified on wpt-dev: full HTTP 200/403/401 matrix as admin / capless editor / unauthenticated, plus internal-dispatch battery with hook listeners and include accounting.
+
+**Envelope contract (permanent — every future AJAX→REST migration uses the shared helpers; nothing returns raw arrays):**
+
+- Success: `WP_REST_Response` carrying the data payload directly with the HTTP status. No `{success: true}` envelope.
+- Error: `WP_Error` with a stable `wpt_*` code, human-readable message, and `data.status` — WP core renders the standard `{code, message, data: {status}}` shape.
+- Stable codes so far: `wpt_forbidden` (401 logged-out / 403 capless), `wpt_invalid_module` (404), `wpt_pro_locked` (403), `wpt_toggle_failed` (500).
+
+**Routes:**
+
+| Route | Method | Capability | Behavior |
+|---|---|---|---|
+| `/wpt/v1/system/status` | GET | `manage_wpt` | version, module counts (total/active/pro-locked), request-scoped safe-mode flag |
+| `/wpt/v1/modules` | GET | `manage_wpt_modules` | definition-backed metadata + active state for all 83; zero module-file loads |
+| `/wpt/v1/modules/{id}` | GET | `manage_wpt_modules` | accepts canonical id or legacy alias; payload always carries the canonical id |
+| `/wpt/v1/capabilities` | GET | `manage_wpt` | current user's `wpt_*` capability booleans; no role/user enumeration |
+| `/wpt/v1/modules/{id}/toggle` | POST | `manage_wpt_modules` + `wpt_user_can_manage_module` filter (canonical id) | same validation order as admin-ajax; persists via shared `Core::set_module_active()` |
+
+- No public unauthenticated routes; every route has a real permission callback through `Permission_Manager` capabilities.
+- Pro-locked module metadata is returned (`pro_locked: true`), Pro files/classes never load; Pro toggle rejects `wpt_pro_locked` before any write.
+- Internal wiring fields (`file`, `class`, `capability`, `has_cleanup`) are never exposed in payloads.
+- Toggle persistence + deactivate lifecycle is `Core::set_module_active()`, shared with both admin-ajax toggle handlers — lifecycle hooks cannot drift between surfaces (see §7).
