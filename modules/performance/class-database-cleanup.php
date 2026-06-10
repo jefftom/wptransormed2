@@ -114,7 +114,7 @@ class Database_Cleanup extends Module_Base {
     public function ajax_scan(): void {
         check_ajax_referer( 'wpt_db_cleanup_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_wpt_database' ) ) {
             wp_send_json_error( [ 'message' => 'Unauthorized.' ], 403 );
         }
 
@@ -149,7 +149,10 @@ class Database_Cleanup extends Module_Base {
     public function ajax_run(): void {
         check_ajax_referer( 'wpt_db_cleanup_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
+        // TODO(safety-check-modal): destructive database actions must be
+        // wrapped by the shared Safety Check Modal when it lands (build
+        // authority §15); these capability gates are the interim guard.
+        if ( ! current_user_can( 'manage_wpt_database' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => 'Unauthorized.' ], 403 );
         }
 
