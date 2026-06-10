@@ -1,6 +1,6 @@
 # WPTransformed — Verified Facts Sheet
 
-Source of truth for build prompts and reviews. v1.1 — independently extracted from the committed codebase (1148452, REST Skeleton v1), updated for toggle hardening (8176100). Provenance rule: facts here are read from implementation behavior unless marked **[doc-derived]**; docblocks are NOT ground truth (v1.0 carried one docblock-derived error on batch pro semantics, caught against behavior and corrected below). Refresh when foundations change; until then, prompts cite this sheet instead of asking or guessing. If a session report and this sheet disagree, re-verify against code — this sheet is the tiebreaker only because of its extraction method, not its age.
+Source of truth for build prompts and reviews. v1.2 — independently extracted from the committed codebase (1148452, REST Skeleton v1), updated for toggle hardening (8176100) and slice 10a settings routes (this commit). Provenance rule: facts here are read from implementation behavior unless marked **[doc-derived]**; docblocks are NOT ground truth (v1.0 carried one docblock-derived error on batch pro semantics, caught against behavior and corrected below). Refresh when foundations change; until then, prompts cite this sheet instead of asking or guessing. If a session report and this sheet disagree, re-verify against code — this sheet is the tiebreaker only because of its extraction method, not its age.
 
 ## Plugin identity
 - Version constant: `WPT_VERSION = '1.1.0-session5p2.3'` (wptransformed.php)
@@ -58,7 +58,15 @@ manage_wpt, manage_wpt_modules, manage_wpt_settings, manage_wpt_client_safe, man
 - Stable REST error codes now: wpt_forbidden, wpt_invalid_module, wpt_pro_locked, wpt_toggle_failed, wpt_module_stub.
 - Checkpoint §16.1 records ratifications (Rest_Controller naming, set_module_active signature, args-schema validation origin), these contracts, and decided deferrals ($context hook param until audit-log consumes hooks; settings-save no-op semantics undecided).
 - Harness: tests/harness-rest.php at 28 assertions post-hardening.
-- ✓ CLOSED (this commit — fix(core): suppress no-op settings saves): the stale ajax_toggle_parent DOCBLOCK now describes the implemented per-sub pro_locked skip (batch continues) plus the stub per-sub skip; the whole-batch pre-write rejection claim is gone.
+- ✓ CLOSED (f40b9b4 — fix(core): suppress no-op settings saves): the stale ajax_toggle_parent DOCBLOCK now describes the implemented per-sub pro_locked skip (batch continues) plus the stub per-sub skip; the whole-batch pre-write rejection claim is gone.
+
+## Slice 10a settings-route contracts (this commit; decision doc: docs/audits/slice-10a-decisions.md)
+- validate/sanitize dual contract: `Module_Base::validate_settings( array ): array` — STORAGE shape in and out (whitelist to default keys, scalar type coercion, array-mismatch/missing-key/unsupported-default-type → default value; floor not ceiling — dangerous modules MUST override). sanitize_settings stays raw-form→storage for form paths, untouched. REST POST never calls sanitize_settings. First override: Database_Cleanup (strict CATEGORIES booleans, keep_recent_revisions absint clamp 0–100, optimize_tables bool, exactly 3 output keys).
+- Routes: GET + POST /wpt/v1/modules/{id}/settings — permission manage_wpt_settings ONLY (decided parity with Admin::handle_save; NO per-module filter, NO def['capability'] — revisit at 10c). Pinned id regex/args pattern; alias-addressed responses carry canonicalized_from, payload id always canonical.
+- Gate ladder (both methods, toggle order): unknown → wpt_invalid_module 404 · pro → wpt_pro_locked 403 (no file load) · stub → wpt_module_stub 400 (no file load) · load_module null → wpt_module_unavailable 500 "Module could not be loaded.".
+- GET 200: { id, settings: get_settings() defaults-merged, defaults: get_default_settings() }. POST body { settings: object } required via args schema (WP-native rejection shapes); FULL REPLACE — row becomes exactly validate_settings(body.settings); 200 { id, settings: get_settings() after save, changed }; identical save = storage no-op, changed false; save failure → wpt_settings_save_failed 500.
+- Zero-load amendment (PERMANENT): settings routes are the sanctioned single-module lazy-load exception via Core::load_module (never init()); /modules and /modules/{id} stay strictly no-load.
+- Stable REST error codes now: wpt_forbidden, wpt_invalid_module, wpt_pro_locked, wpt_module_stub, wpt_module_unavailable, wpt_toggle_failed, wpt_settings_save_failed.
 
 ## Toggle architecture
 - Shared method (as built): `Core::set_module_active( string $id, bool $active ): bool` — caller validates + canonicalizes first; method persists via Settings::toggle_module and runs $module->deactivate() cleanup on disable. NOT the v2-spec'd (input_id, active, source): array|WP_Error signature.

@@ -37,6 +37,18 @@ declare(strict_types=1);
  *     wpt_module_settings_saved hook; changed saves and first saves
  *     (no cache entry) write and fire; encoding-changing differences
  *     (e.g. key order) count as real changes
+ *   - validate_settings (slice 10a): Module_Base floor (whitelist,
+ *     type coercion, array-mismatch + missing-key + unsupported-type
+ *     fallbacks) and the Database_Cleanup override (strict categories,
+ *     clamp, bool casts)
+ *   - settings routes (slice 10a): full gate ladder on GET+POST
+ *     (unknown 404 / pro 403 / stub 400 / missing-file 500) with zero
+ *     includes and zero hooks on every rejection; alias requests carry
+ *     canonicalized_from, canonical requests do not; GET lazy-loads
+ *     exactly the target module file (the sanctioned zero-load
+ *     exception); POST is FULL REPLACE via validate_settings with
+ *     changed true/false semantics and wpt_settings_save_failed on a
+ *     failed write — zero hook on every non-change path
  *   - the per-module wpt_user_can_manage_module filter receives the
  *     CANONICAL id and can deny the toggle
  *
@@ -63,6 +75,9 @@ function sanitize_key( $k ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolo
 function sanitize_text_field( $s ) { return is_string( $s ) ? trim( $s ) : ''; }
 function wp_unslash( $v ) { return $v; }
 function wp_json_encode( $d, $f = 0 ) { return json_encode( $d, $f ); }
+function wp_parse_args( $args, $defaults = [] ) { return array_merge( (array) $defaults, (array) $args ); }
+function absint( $n ) { return abs( (int) $n ); }
+function is_wp_error( $thing ) { return $thing instanceof WP_Error; }
 function get_option( $k, $d = false ) { return $GLOBALS['__opts'][ $k ] ?? $d; }
 function update_option( $k, $v, $a = null ) { $GLOBALS['__opts'][ $k ] = $v; return true; }
 function delete_option( $k ) { unset( $GLOBALS['__opts'][ $k ] ); return true; }
@@ -171,6 +186,25 @@ use WPTransformed\Core\Permission_Manager;
 use WPTransformed\Core\Rest_Controller;
 use WPTransformed\Core\Settings;
 
+/** Fixture for the Module_Base::validate_settings floor assertions. */
+class WPT_Harness_Settings_Module extends \WPTransformed\Modules\Module_Base {
+    public function get_id(): string { return 'harness-settings-module'; }
+    public function get_title(): string { return 'Harness Settings Module'; }
+    public function get_category(): string { return 'utilities'; }
+    public function get_description(): string { return 'validate_settings fixture'; }
+    public function init(): void {}
+    public function get_default_settings(): array {
+        return [
+            'flag'        => false,
+            'count'       => 2,
+            'ratio'       => 1.5,
+            'name'        => 'x',
+            'list'        => [ 'a' ],
+            'unsupported' => null,
+        ];
+    }
+}
+
 $fail = 0;
 function check( bool $ok, string $label ): void {
     global $fail;
@@ -193,6 +227,19 @@ function is_wpt_error( $v, string $code, int $status ): bool {
         && ( $v->get_error_data()['status'] ?? null ) === $status;
 }
 
+// Missing-file fixture: an implemented definition whose file does not
+// exist on disk — drives the wpt_module_unavailable 500 gate.
+add_filter( 'wpt_registered_modules', function ( $defs ) {
+    $defs['harness-ghost'] = [
+        'file'        => 'modules/utilities/class-harness-ghost.php',
+        'class'       => 'WPTransformed\\Modules\\Utilities\\Harness_Ghost',
+        'title'       => 'Ghost',
+        'category'    => 'utilities',
+        'description' => 'Missing-file fixture for wpt_module_unavailable.',
+    ];
+    return $defs;
+} );
+
 // Boot the real Core — the plugins_loaded equivalent of a REST dispatch.
 $core = Core::instance();
 $core->boot();
@@ -204,28 +251,37 @@ $ctrl->register_routes();
 // ── Route table ───────────────────────────────────────────────
 $registered = [];
 foreach ( $GLOBALS['__routes'] as $r ) {
-    $registered[ $r['route'] ] = $r;
+    $registered[ $r['route'] . '|' . ( $r['args']['methods'] ?? '?' ) ] = $r;
 }
 $expected_routes = [
-    '/system/status'                       => WP_REST_Server::READABLE,
-    '/modules'                             => WP_REST_Server::READABLE,
-    '/modules/(?P<id>[a-z0-9-]+)'          => WP_REST_Server::READABLE,
-    '/capabilities'                        => WP_REST_Server::READABLE,
-    '/modules/(?P<id>[a-z0-9-]+)/toggle'   => WP_REST_Server::CREATABLE,
+    '/system/status|' . WP_REST_Server::READABLE,
+    '/modules|' . WP_REST_Server::READABLE,
+    '/modules/(?P<id>[a-z0-9-]+)|' . WP_REST_Server::READABLE,
+    '/capabilities|' . WP_REST_Server::READABLE,
+    '/modules/(?P<id>[a-z0-9-]+)/toggle|' . WP_REST_Server::CREATABLE,
+    '/modules/(?P<id>[a-z0-9-]+)/settings|' . WP_REST_Server::READABLE,
+    '/modules/(?P<id>[a-z0-9-]+)/settings|' . WP_REST_Server::CREATABLE,
 ];
 $route_problems = [];
-foreach ( $expected_routes as $route => $method ) {
-    $r = $registered[ $route ] ?? null;
-    if ( ! $r ) { $route_problems[] = "{$route}: not registered"; continue; }
-    if ( 'wpt/v1' !== $r['ns'] ) { $route_problems[] = "{$route}: wrong namespace"; }
-    if ( ( $r['args']['methods'] ?? '' ) !== $method ) { $route_problems[] = "{$route}: wrong method"; }
-    if ( ! is_callable( $r['args']['callback'] ?? null ) ) { $route_problems[] = "{$route}: no callback"; }
-    if ( ! is_callable( $r['args']['permission_callback'] ?? null ) ) { $route_problems[] = "{$route}: no permission callback"; }
+foreach ( $expected_routes as $key ) {
+    $r = $registered[ $key ] ?? null;
+    if ( ! $r ) { $route_problems[] = "{$key}: not registered"; continue; }
+    if ( 'wpt/v1' !== $r['ns'] ) { $route_problems[] = "{$key}: wrong namespace"; }
+    if ( ! is_callable( $r['args']['callback'] ?? null ) ) { $route_problems[] = "{$key}: no callback"; }
+    if ( ! is_callable( $r['args']['permission_callback'] ?? null ) ) { $route_problems[] = "{$key}: no permission callback"; }
 }
-check( count( $GLOBALS['__routes'] ) === 5 && $route_problems === [], 'all 5 wpt/v1 routes registered with callbacks + permission callbacks' . ( $route_problems ? ' [' . implode( '; ', $route_problems ) . ']' : '' ) );
+check( count( $GLOBALS['__routes'] ) === 7 && $route_problems === [], 'all 7 wpt/v1 routes registered with callbacks + permission callbacks' . ( $route_problems ? ' [' . implode( '; ', $route_problems ) . ']' : '' ) );
 check( 'wpt/v1' === Rest_Controller::REST_NAMESPACE, 'namespace constant is wpt/v1' );
-$toggle_args = $registered['/modules/(?P<id>[a-z0-9-]+)/toggle']['args']['args'] ?? [];
+$toggle_args = $registered[ '/modules/(?P<id>[a-z0-9-]+)/toggle|' . WP_REST_Server::CREATABLE ]['args']['args'] ?? [];
 check( ( $toggle_args['active']['required'] ?? false ) === true && ( $toggle_args['active']['type'] ?? '' ) === 'boolean', 'toggle route requires boolean active param' );
+$sget  = $registered[ '/modules/(?P<id>[a-z0-9-]+)/settings|' . WP_REST_Server::READABLE ]['args']['args'] ?? [];
+$spost = $registered[ '/modules/(?P<id>[a-z0-9-]+)/settings|' . WP_REST_Server::CREATABLE ]['args']['args'] ?? [];
+check(
+    ( $spost['settings']['required'] ?? false ) === true && ( $spost['settings']['type'] ?? '' ) === 'object'
+    && ( $sget['id'] ?? null ) === ( $toggle_args['id'] ?? false )
+    && ( $spost['id'] ?? null ) === ( $toggle_args['id'] ?? false ),
+    'settings POST requires an object settings param; settings id args identical to the pinned toggle id arg (route regex + pattern + sanitizer)'
+);
 
 // ── Permission matrix ─────────────────────────────────────────
 as_admin();
@@ -256,7 +312,7 @@ foreach ( $list as $m ) {
     if ( ! isset( $defs[ $m['id'] ] ) ) { $payload_problems[] = "non-canonical id {$m['id']}"; }
     if ( array_key_exists( 'file', $m ) || array_key_exists( 'class', $m ) ) { $payload_problems[] = "internal field exposed on {$m['id']}"; }
 }
-check( $resp->get_status() === 200 && count( $list ) === count( $defs ) && count( $defs ) === 83 && $payload_problems === [], 'GET /modules returns all 83 definitions, canonical ids only, no internal fields' . ( $payload_problems ? ' [' . implode( '; ', array_slice( $payload_problems, 0, 3 ) ) . ']' : '' ) );
+check( $resp->get_status() === 200 && count( $list ) === count( $defs ) && count( $defs ) === 84 && $payload_problems === [], 'GET /modules returns all 84 definitions (83 registry + 1 ghost fixture), canonical ids only, no internal fields' . ( $payload_problems ? ' [' . implode( '; ', array_slice( $payload_problems, 0, 3 ) ) . ']' : '' ) );
 
 $resp = $ctrl->get_module( req( [ 'id' => 'database-cleanup' ] ) );
 check( $resp instanceof WP_REST_Response && 'database-optimizer' === $resp->get_data()['id'] && in_array( 'database-cleanup', $resp->get_data()['legacy_ids'], true ), 'GET /modules/{legacy alias} returns the canonical id' );
@@ -418,6 +474,133 @@ check(
     'first save with no cache entry is never a no-op: row created, hook fires'
 );
 
+// ── validate_settings: Module_Base floor ──────────────────────
+$hm = new WPT_Harness_Settings_Module();
+$v  = $hm->validate_settings( [ 'rogue' => 1, 'flag' => '1', 'count' => '7', 'ratio' => '2.5', 'name' => 99, 'unsupported' => 'evil' ] );
+check(
+    ! array_key_exists( 'rogue', $v )
+    && true === $v['flag'] && 7 === $v['count'] && 2.5 === $v['ratio'] && '99' === $v['name']
+    && [ 'a' ] === $v['list']
+    && null === $v['unsupported']
+    && array_keys( $hm->get_default_settings() ) === array_keys( $v ),
+    'base validate_settings: unknown keys dropped, scalars coerced to default types, unsupported default type falls back, output keys = default keys exactly'
+);
+$v = $hm->validate_settings( [ 'list' => 'not-an-array', 'count' => [ 1, 2 ] ] );
+check( [ 'a' ] === $v['list'] && 2 === $v['count'], 'base validate_settings: array/non-array mismatches (both directions) fall back to the default value' );
+check( $hm->get_default_settings() === $hm->validate_settings( [] ), 'base validate_settings: missing keys fall back to defaults (empty input returns exactly the defaults)' );
+
+// ── Settings routes: gate ladder (zero includes, zero hooks) ──
+$GLOBALS['__did_actions'] = [];
+check(
+    is_wpt_error( $ctrl->get_module_settings( req( [ 'id' => 'not-a-module' ] ) ), 'wpt_invalid_module', 404 )
+    && is_wpt_error( $ctrl->save_module_settings( req( [ 'id' => 'not-a-module', 'settings' => [] ] ) ), 'wpt_invalid_module', 404 ),
+    'settings GET+POST: unknown id returns wpt_invalid_module 404'
+);
+check(
+    is_wpt_error( $ctrl->get_module_settings( req( [ 'id' => 'white-label' ] ) ), 'wpt_pro_locked', 403 )
+    && is_wpt_error( $ctrl->save_module_settings( req( [ 'id' => 'white-label', 'settings' => [] ] ) ), 'wpt_pro_locked', 403 )
+    && ! class_exists( 'WPTransformed\\Modules\\AdminInterface\\White_Label', false ),
+    'settings GET+POST: unlicensed Pro rejects wpt_pro_locked 403; Pro class never loads'
+);
+check(
+    is_wpt_error( $ctrl->get_module_settings( req( [ 'id' => 'login-protection' ] ) ), 'wpt_module_stub', 400 )
+    && is_wpt_error( $ctrl->save_module_settings( req( [ 'id' => 'login-security', 'settings' => [] ] ) ), 'wpt_module_stub', 400 ),
+    'settings GET+POST: stub rejects wpt_module_stub 400 via canonical id AND legacy alias'
+);
+check(
+    is_wpt_error( $ctrl->get_module_settings( req( [ 'id' => 'harness-ghost' ] ) ), 'wpt_module_unavailable', 500 )
+    && is_wpt_error( $ctrl->save_module_settings( req( [ 'id' => 'harness-ghost', 'settings' => [] ] ) ), 'wpt_module_unavailable', 500 ),
+    'settings GET+POST: implemented definition with a missing file returns wpt_module_unavailable 500'
+);
+check( [] === module_files_included() && [] === $GLOBALS['__did_actions'], 'every settings gate-ladder rejection: ZERO module files included, ZERO hooks fired' );
+
+as_editor();
+$GLOBALS['__did_actions'] = [];
+check(
+    is_wpt_error( $ctrl->can_manage_settings( req() ), 'wpt_forbidden', 403 ) && [] === $GLOBALS['__did_actions'],
+    'settings permission failure (capless editor): wpt_forbidden 403, zero hooks'
+);
+as_nobody();
+check( is_wpt_error( $ctrl->can_manage_settings( req() ), 'wpt_forbidden', 401 ), 'settings permission: logged-out caller gets 401' );
+as_admin();
+
+// ── Settings routes: GET (sanctioned single-module lazy load) ──
+$resp     = $ctrl->get_module_settings( req( [ 'id' => 'database-cleanup' ] ) );
+$included = module_files_included();
+check(
+    $resp instanceof WP_REST_Response && 200 === $resp->get_status()
+    && 'database-optimizer' === $resp->get_data()['id']
+    && 'database-cleanup' === ( $resp->get_data()['canonicalized_from'] ?? null )
+    && 1 === count( $included )
+    && 'class-database-cleanup.php' === basename( $included[0] ),
+    'GET settings via alias: canonical id + canonicalized_from; include delta exactly 1 = class-database-cleanup.php'
+);
+$dbo = Core::instance()->get_module( 'database-optimizer' );
+check(
+    null !== $dbo
+    && $resp->get_data()['defaults'] === $dbo->get_default_settings()
+    && 0 === $resp->get_data()['settings']['keep_recent_revisions']
+    && 'me' === ( $resp->get_data()['settings']['keep'] ?? null ),
+    'GET settings payload: defaults = get_default_settings(); settings = defaults-merged stored row (stale stored keys surface in reads)'
+);
+$resp = $ctrl->get_module_settings( req( [ 'id' => 'database-optimizer' ] ) );
+check(
+    ! array_key_exists( 'canonicalized_from', $resp->get_data() ) && 1 === count( module_files_included() ),
+    'canonical GET settings: no canonicalized_from member, no additional file includes'
+);
+
+// ── DBO validate_settings override ────────────────────────────
+$cats = array_keys( $dbo->get_default_settings()['items_to_clean'] );
+$post_body = [
+    'items_to_clean'        => [ 'revisions' => false, 'bogus' => true ],
+    'keep_recent_revisions' => '250',
+    'optimize_tables'       => '1',
+    'rogue'                 => 'dropped',
+];
+$expected_validated = $dbo->validate_settings( $post_body );
+check(
+    [ 'items_to_clean', 'keep_recent_revisions', 'optimize_tables' ] === array_keys( $expected_validated )
+    && $cats === array_keys( $expected_validated['items_to_clean'] )
+    && ! array_key_exists( 'bogus', $expected_validated['items_to_clean'] )
+    && false === $expected_validated['items_to_clean']['revisions']
+    && 100 === $expected_validated['keep_recent_revisions']
+    && true === $expected_validated['optimize_tables'],
+    'DBO validate_settings: strict categories (all present, non-listed dropped), keep clamped 250→100, optimize cast bool, output exactly 3 keys'
+);
+check( $dbo->get_default_settings() === $dbo->validate_settings( [] ), 'DBO validate_settings: empty input returns exactly the defaults' );
+
+// ── Settings routes: POST (full replace + changed semantics) ──
+$GLOBALS['__did_actions'] = [];
+$resp = $ctrl->save_module_settings( req( [ 'id' => 'database-cleanup', 'settings' => $post_body ] ) );
+$row  = $GLOBALS['wpdb']->row( 'database-optimizer' );
+check(
+    $resp instanceof WP_REST_Response && 200 === $resp->get_status()
+    && true === $resp->get_data()['changed']
+    && 'database-optimizer' === $resp->get_data()['id']
+    && 'database-cleanup' === ( $resp->get_data()['canonicalized_from'] ?? null )
+    && json_decode( $row['settings'], true ) === $expected_validated
+    && [ [ 'wpt_module_settings_saved', [ 'database-optimizer', $expected_validated ] ] ] === $GLOBALS['__did_actions'],
+    'POST settings via alias: FULL REPLACE (row becomes exactly validate_settings(body); stale stored key gone), changed=true, hook fires once with canonical id + validated array'
+);
+
+$GLOBALS['__did_actions'] = [];
+$resp = $ctrl->save_module_settings( req( [ 'id' => 'database-optimizer', 'settings' => $post_body ] ) );
+check(
+    false === $resp->get_data()['changed']
+    && ! array_key_exists( 'canonicalized_from', $resp->get_data() )
+    && [] === $GLOBALS['__did_actions'],
+    'identical re-POST: changed=false, ZERO hooks (storage-layer no-op); canonical request carries no canonicalized_from'
+);
+
+$GLOBALS['__did_actions'] = [];
+$GLOBALS['wpdb']->fail_next_write = true;
+check(
+    is_wpt_error( $ctrl->save_module_settings( req( [ 'id' => 'database-optimizer', 'settings' => [ 'keep_recent_revisions' => 9 ] ] ) ), 'wpt_settings_save_failed', 500 )
+    && [] === $GLOBALS['__did_actions']
+    && 100 === json_decode( $GLOBALS['wpdb']->row( 'database-optimizer' )['settings'], true )['keep_recent_revisions'],
+    'save failure: wpt_settings_save_failed 500, ZERO hooks, row unchanged'
+);
+
 // Per-module gating: the wpt_user_can_manage_module filter receives the
 // CANONICAL id (even when the route is addressed by alias) and can deny.
 $GLOBALS['__filter_saw'] = null;
@@ -432,8 +615,13 @@ check(
 );
 $GLOBALS['__filters']['wpt_user_can_manage_module'] = [];
 
-// ── Zero-load: nothing in this run may include module code ───
-check( [] === module_files_included(), 'ZERO module implementation files included across boot + every route' );
+// ── Zero-load: the ONLY module include in this run is the
+// sanctioned settings-route lazy load of its target ──────────────
+$included = module_files_included();
+check(
+    1 === count( $included ) && 'class-database-cleanup.php' === basename( $included[0] ),
+    'across boot + every route, exactly ONE module file included — the settings-route target (class-database-cleanup.php)'
+);
 check( ! class_exists( 'WPTransformed\\Modules\\AdminInterface\\White_Label', false ), 'Pro class (White_Label) never loaded' );
 
 echo $fail === 0 ? "\nALL GREEN\n" : "\n{$fail} FAILURE(S)\n";

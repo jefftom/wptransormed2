@@ -133,7 +133,7 @@ Both pending (decision 5; reframe step 13): the status dashboard and Module Libr
 
 - Success: `WP_REST_Response` carrying the data payload directly with the HTTP status. No `{success: true}` envelope.
 - Error: `WP_Error` with a stable `wpt_*` code, human-readable message, and `data.status` — WP core renders the standard `{code, message, data: {status}}` shape.
-- Stable codes so far: `wpt_forbidden` (401 logged-out / 403 capless), `wpt_invalid_module` (404), `wpt_pro_locked` (403), `wpt_module_stub` (400, toggle hardening §16.1), `wpt_toggle_failed` (500).
+- Stable codes so far: `wpt_forbidden` (401 logged-out / 403 capless), `wpt_invalid_module` (404), `wpt_pro_locked` (403), `wpt_module_stub` (400, toggle hardening §16.1), `wpt_module_unavailable` (500, slice 10a §16.2), `wpt_toggle_failed` (500), `wpt_settings_save_failed` (500, slice 10a §16.2).
 
 **Routes:**
 
@@ -144,6 +144,8 @@ Both pending (decision 5; reframe step 13): the status dashboard and Module Libr
 | `/wpt/v1/modules/{id}` | GET | `manage_wpt_modules` | accepts canonical id or legacy alias; payload always carries the canonical id |
 | `/wpt/v1/capabilities` | GET | `manage_wpt` | current user's `wpt_*` capability booleans; no role/user enumeration |
 | `/wpt/v1/modules/{id}/toggle` | POST | `manage_wpt_modules` + `wpt_user_can_manage_module` filter (canonical id) | same validation order as admin-ajax; persists via shared `Core::set_module_active()` |
+| `/wpt/v1/modules/{id}/settings` | GET | `manage_wpt_settings` | defaults-merged stored settings + defaults; sanctioned single-module lazy load (§16.2) |
+| `/wpt/v1/modules/{id}/settings` | POST | `manage_wpt_settings` | FULL REPLACE via `validate_settings()`; `changed` semantics; never `sanitize_settings()` (§16.2) |
 
 - No public unauthenticated routes; every route has a real permission callback through `Permission_Manager` capabilities.
 - Pro-locked module metadata is returned (`pro_locked: true`), Pro files/classes never load; Pro toggle rejects `wpt_pro_locked` before any write.
@@ -170,3 +172,24 @@ Both pending (decision 5; reframe step 13): the status dashboard and Module Libr
 - `$context` parameter on lifecycle hooks: deferred until the audit-log module actually consumes them. Decided deferral, not an oversight.
 - ✓ Settings-save no-op semantics CLOSED (settings-save hardening commit, 2026-06-10) — **no-op save suppression is a permanent contract**: when a cache entry exists for the module AND `wp_json_encode()` of the incoming settings is strictly identical to the encoding of the cached settings, `Settings::save()` returns `true` with no database write and no `wpt_module_settings_saved` hook. The comparison is a string comparison of the two encodings — key-order or type differences that change the encoding are real changes and write normally. No cache entry = never a no-op (first saves create the row). `is_active` handling and sanitization behavior unchanged; the method compares already-sanitized input as-is.
 - `wp_ajax_wpt_toggle_parent` applies **no per-module filter** — the batch path requires `manage_wpt_modules` outright; `wpt_user_can_manage_module` applies to single-module toggles only. Recorded as a known gap, unchanged by this pass.
+
+### 16.2 Slice 10a — module settings routes + validate_settings (2026-06-10)
+
+**The validate/sanitize dual contract (PERMANENT):** `Module_Base::sanitize_settings( array $raw ): array` maps RAW FORM input (`wpt_*` field names) to storage shape and keeps serving the existing form save paths, unchanged. `Module_Base::validate_settings( array $settings ): array` (new) takes and returns STORAGE shape — the contract for REST and, at slice 12, import (whose known caveat becomes a one-line swap to `validate_settings`). Feeding storage-shape data to `sanitize_settings()` silently returns defaults — the import bug class; the REST POST path never calls it. Base implementation is a whitelist + type floor (default-key whitelist, scalar coercion to the default's PHP type, array/non-array mismatch → default, missing key → default, unsupported default types → default); modules whose settings can enable dangerous behavior MUST override with real validation. `Database_Cleanup::validate_settings` is the first override: strict category booleans, `keep_recent_revisions` absint-clamped 0–100, `optimize_tables` bool, output exactly the three storage keys.
+
+**Settings-route contracts (PERMANENT):**
+
+- **Permission:** `manage_wpt_settings` only — named, decided parity with the `Admin::handle_save` form path, which checks CAP_SETTINGS and nothing else. Deliberately NO `wpt_user_can_manage_module` filter and NO `def['capability']` check on settings routes (`def['capability']` currently gates app pages, not settings writes).
+- **{id} handling:** the pinned id regex/args pattern; canonical ids or legacy aliases accepted; payload `id` always canonical; alias-addressed responses carry `canonicalized_from: <requested alias>` (absent on canonical requests).
+- **Gating ladder (both methods, toggle order):** unknown → `wpt_invalid_module` 404 · pro unlicensed → `wpt_pro_locked` 403 (file never loads) · status ≠ implemented → `wpt_module_stub` 400 (file never loads) · `load_module()` null after those gates → `wpt_module_unavailable` 500 ("Module could not be loaded.").
+- **GET 200 payload:** `{ id, settings: get_settings() (defaults-merged storage shape), defaults: get_default_settings() }`.
+- **POST:** body `{ "settings": { …storage shape… } }`, required object validated via route args schema (missing/invalid → WP-native `rest_missing_callback_param`/`rest_invalid_param`, the ratified third response origin). Semantics are FULL REPLACE: the stored row becomes exactly `validate_settings( body.settings )` — never a merge; reads stay defaults-merged so omitted keys behave as defaults. 200 payload `{ id, settings: get_settings() after save, changed }`; `changed` = persisted encoding differs from the pre-save encoding; an identical save is a storage-layer no-op (no write, no `wpt_module_settings_saved`) returning `changed: false`. `Settings::save()` failure → `wpt_settings_save_failed` 500.
+- **Zero-load amendment (PERMANENT):** settings routes are the sanctioned single-module lazy-load exception — at most the target module's file is included, via `Core::load_module()`, which never calls `init()` (no hooks register). `/modules` and `/modules/{id}` stay strictly no-load; the pro/stub gates guarantee those files still never load.
+
+**§8 divergence note:** reframe §8 prescribed `POST /enable` + `/disable`; built and ratified as `POST /toggle` (§16.1) — supersedes §8.
+
+**Gaps (slice 10a):**
+
+- Import still calls `sanitize_settings()` with storage-shape data (known caveat) — the slice-12 fix is now a one-line swap to `validate_settings()`.
+- `def['capability']` is not enforced on any settings surface (form path or REST) — decided parity choice; open policy question: should settings routes honor def capability? Revisit at 10c.
+- Remaining reframe §8 routes unbuilt: `GET /system/safe-mode-url`, `POST /import-export/export`, `POST /import-export/import`.

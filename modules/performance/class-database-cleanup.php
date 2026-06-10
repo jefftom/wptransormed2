@@ -968,6 +968,46 @@ class Database_Cleanup extends Module_Base {
         ];
     }
 
+    // ── Validate Settings (storage shape) ─────────────────────
+
+    /**
+     * Storage-shape validation (slice 10a contract). Output is exactly
+     * { items_to_clean, keep_recent_revisions, optimize_tables }:
+     * - items_to_clean: booleans keyed strictly to self::CATEGORIES —
+     *   every category present, non-listed keys dropped, values cast
+     *   bool (a category absent from a provided object reads false,
+     *   matching the form path's checkbox semantics)
+     * - keep_recent_revisions: absint, clamped 0–100
+     * - optimize_tables: cast bool
+     *
+     * @param array $settings Storage-shape settings (untrusted).
+     * @return array Validated storage-shape settings.
+     */
+    public function validate_settings( array $settings ): array {
+        $defaults = $this->get_default_settings();
+
+        $items = [];
+        if ( isset( $settings['items_to_clean'] ) && is_array( $settings['items_to_clean'] ) ) {
+            foreach ( self::CATEGORIES as $category ) {
+                $items[ $category ] = (bool) ( $settings['items_to_clean'][ $category ] ?? false );
+            }
+        } else {
+            // Key missing (or not an array): fall back to the defaults,
+            // per the base missing-key rule.
+            $items = $defaults['items_to_clean'];
+        }
+
+        $keep = array_key_exists( 'keep_recent_revisions', $settings )
+            ? $settings['keep_recent_revisions']
+            : $defaults['keep_recent_revisions'];
+
+        return [
+            'items_to_clean'        => $items,
+            'keep_recent_revisions' => min( 100, absint( $keep ) ),
+            'optimize_tables'       => (bool) ( $settings['optimize_tables'] ?? $defaults['optimize_tables'] ),
+        ];
+    }
+
     // ── Assets ────────────────────────────────────────────────
 
     public function enqueue_admin_assets( string $hook ): void {

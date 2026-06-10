@@ -44,6 +44,68 @@ abstract class Module_Base {
         return [];
     }
 
+    /**
+     * Validate STORAGE-SHAPE settings (slice 10a contract — checkpoint
+     * §16.2). Input and output are both storage shape.
+     *
+     * Distinct from sanitize_settings(), which maps RAW FORM input
+     * (wpt_* field names) to storage shape and keeps serving the
+     * existing form save paths. Feeding storage-shape data to
+     * sanitize_settings() silently returns defaults — REST and import
+     * surfaces must use THIS method instead.
+     *
+     * Base implementation is a whitelist + type floor:
+     * - input keys are whitelisted to get_default_settings() keys;
+     *   unknown keys are dropped
+     * - scalar defaults coerce the input to the default's PHP type
+     *   (bool/int/float/string casts)
+     * - array/non-array mismatches (either direction) fall back to the
+     *   default value for that key
+     * - missing keys fall back to the default value — the output always
+     *   contains exactly the default-settings keys
+     *
+     * SECURITY: this floor is NOT a ceiling. Modules whose settings can
+     * enable dangerous behavior (anything that turns on PHP snippet
+     * execution, code output, auth/login changes, …) MUST override with
+     * real validation — import will eventually feed this method
+     * attacker-influencable export files, so a type-correct boolean
+     * that flips on snippet execution is still a hostile payload.
+     *
+     * @param array $settings Storage-shape settings (untrusted).
+     * @return array Validated storage-shape settings.
+     */
+    public function validate_settings( array $settings ): array {
+        $out = [];
+
+        foreach ( $this->get_default_settings() as $key => $default ) {
+            if ( ! array_key_exists( $key, $settings ) ) {
+                $out[ $key ] = $default;
+                continue;
+            }
+
+            $value = $settings[ $key ];
+
+            if ( is_array( $default ) || is_array( $value ) ) {
+                // Array/non-array mismatches fall back to the default.
+                $out[ $key ] = ( is_array( $default ) && is_array( $value ) ) ? $value : $default;
+            } elseif ( is_bool( $default ) ) {
+                $out[ $key ] = (bool) $value;
+            } elseif ( is_int( $default ) ) {
+                $out[ $key ] = (int) $value;
+            } elseif ( is_float( $default ) ) {
+                $out[ $key ] = (float) $value;
+            } elseif ( is_string( $default ) ) {
+                $out[ $key ] = (string) $value;
+            } else {
+                // Unsupported default types (null, objects) intentionally
+                // fall back to the default — no safe coercion exists.
+                $out[ $key ] = $default;
+            }
+        }
+
+        return $out;
+    }
+
     // -- Assets --
     public function enqueue_admin_assets( string $hook ): void {}
 
