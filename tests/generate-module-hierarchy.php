@@ -91,8 +91,17 @@ $md[] = '';
 $md[] = '- Registry modules: **' . count( $defs ) . '** (' . count( $implemented ) . ' implemented, ' . count( $stubs ) . ' stubs)';
 $md[] = '- Tiers: **' . ( count( $defs ) - count( $pro ) ) . ' Core**, **' . count( $pro ) . ' Pro**';
 $md[] = '- Display categories: ' . count( $categories ) . '; parent cards: ' . count( $parents ) . ' (' . count( $visible_parents ) . ' visible, ' . count( $hidden_parents ) . ' hidden — zero built sub-modules)';
+$md[] = '- Implemented split: **' . ( count( $implemented ) - count( $pro ) ) . ' Core implemented**, **' . count( $pro ) . ' Pro implemented**, ' . count( $stubs ) . ' Core stubs';
 $md[] = '- Pro modules: ' . implode( ', ', array_map( fn( $id ) => "`{$id}`", array_keys( $pro ) ) );
 $md[] = '- Stub modules (spec exists, implementation pending): ' . implode( ', ', array_map( fn( $id ) => "`{$id}`", array_keys( $stubs ) ) );
+$md[] = '- Mixed-tier parent cards (Core + Pro sub-modules; per-sub Pro gating applies): **' . count( array_filter( $visible_parents, function ( $p ) use ( $defs ) {
+    $tiers = [];
+    foreach ( Module_Hierarchy::filter_existing_sub_modules( $p['sub_modules'] ?? [] ) as $id ) {
+        $tiers[ $defs[ $id ]['tier'] ] = true;
+    }
+    return isset( $tiers['core'], $tiers['pro'] );
+} ) ) . '**';
+$md[] = '- Companion integrations: none defined yet (no companion tier/status in definitions; companions register via the `wpt_registered_modules` filter when built)';
 $md[] = '- Not assigned to any parent card: ' . ( $unassigned ? implode( ', ', array_map( fn( $id ) => "`{$id}`", $unassigned ) ) : 'none' );
 $md[] = '';
 $md[] = '## Display Hierarchy';
@@ -127,8 +136,14 @@ foreach ( $categories as $cat_slug => $cat ) {
             $flags[] = 'badges: ' . implode( '/', $parent['badges'] );
         }
 
+        // Parent ids are grouping keys, not module ids — annotate any that
+        // coincide with a legacy module slug (documented exception).
+        $key_note = isset( Module_Registry::get_legacy_map()[ $parent['id'] ] )
+            ? ' _(grouping key only — not a module id)_'
+            : '';
+
         $md[] = '';
-        $md[] = '#### ' . $parent['label'] . ' — `' . $parent['id'] . '`' . ( $flags ? ' _[' . implode( '; ', $flags ) . ']_' : '' );
+        $md[] = '#### ' . $parent['label'] . ' — `' . $parent['id'] . '`' . $key_note . ( $flags ? ' _[' . implode( '; ', $flags ) . ']_' : '' );
         $md[] = '';
         $md[] = $parent['description'];
         $md[] = '';
@@ -153,6 +168,43 @@ foreach ( $hidden_parents as $parent ) {
 }
 
 $md[] = '';
+$md[] = '## Canonical Slug Registry (' . count( $defs ) . ')';
+$md[] = '';
+$md[] = '### Core launch modules — implemented (' . ( count( $implemented ) - count( $pro ) ) . ')';
+$md[] = '';
+$core_impl = array_keys( array_filter( $defs, fn( $d ) => 'core' === $d['tier'] && 'implemented' === $d['status'] ) );
+sort( $core_impl );
+$md[] = implode( ', ', array_map( fn( $id ) => "`{$id}`", $core_impl ) );
+$md[] = '';
+$md[] = '### Pro launch modules (' . count( $pro ) . ')';
+$md[] = '';
+$pro_ids = array_keys( $pro );
+sort( $pro_ids );
+$md[] = implode( ', ', array_map( fn( $id ) => "`{$id}`", $pro_ids ) );
+$md[] = '';
+$md[] = '### Core stubs — spec exists, implementation pending (' . count( $stubs ) . ')';
+$md[] = '';
+$stub_ids = array_keys( $stubs );
+sort( $stub_ids );
+$md[] = implode( ', ', array_map( fn( $id ) => "`{$id}`", $stub_ids ) );
+
+$aspirational = [];
+foreach ( $parents as $parent ) {
+    foreach ( array_diff( $parent['sub_modules'] ?? [], Module_Hierarchy::filter_existing_sub_modules( $parent['sub_modules'] ?? [] ) ) as $id ) {
+        $aspirational[ $id ] = true;
+    }
+}
+$aspirational = array_keys( $aspirational );
+sort( $aspirational );
+$md[] = '';
+$md[] = '## Deferred / Future — NOT implemented (' . count( $aspirational ) . ')';
+$md[] = '';
+$md[] = 'Aspirational hierarchy ids with NO definition. Filtered from the UI at render time;';
+$md[] = 'archived-roadmap material only — never treat these as live modules.';
+$md[] = '';
+$md[] = implode( ', ', array_map( fn( $id ) => "`{$id}`", $aspirational ) );
+
+$md[] = '';
 $md[] = '## App Pages';
 $md[] = '';
 $md[] = '| Page slug | Boundary capability | Backing module |';
@@ -175,11 +227,26 @@ $md[] = 'permission-model, recovery-center (Safe Mode), conflict-detector (not y
 $md[] = 'module-library, dashboard-shell, import-export, admin-chrome-foundation,';
 $md[] = 'editor-dashboard-shell. These are always-available services, not toggleable modules.';
 $md[] = '';
+$md[] = '## Migration, Loading & Gating Notes';
+$md[] = '';
+$md[] = '- **Legacy slug migration:** 10 module ids were renamed to canonical slugs (see the';
+$md[] = '  Legacy alias columns above). The one-time, idempotent migration is gated by the';
+$md[] = '  `wpt_slug_version` option and audited in `wpt_slug_migration_v1_backup`. Legacy ids';
+$md[] = '  remain resolvable aliases for old exports/bookmarks but are never written back.';
+$md[] = '- **Zero-load:** module implementation files are included only when a module is active,';
+$md[] = '  status `implemented`, tier-allowed, and not quarantined. Inactive modules contribute';
+$md[] = '  zero file includes, instances, hooks, or assets; all cards/search render from definitions.';
+$md[] = '- **Pro gating:** locks derive from definition tiers. Unlicensed Pro implementation files';
+$md[] = '  never load; locked cards render from definitions. A parent card is fully locked only';
+$md[] = '  when every built sub-module is Pro; mixed parents gate per sub-module.';
+$md[] = '- **History:** the archived 125/141-module docs under `docs/archive/` are roadmap material';
+$md[] = '  only and must not be used as implementation authority.';
+$md[] = '';
 
 $out = implode( "\n", $md );
 file_put_contents( WPT_PATH . 'docs/module-hierarchy.md', $out );
 
-// Self-check: every canonical id appears in the doc exactly where expected.
+// Self-check 1: every canonical id appears in the doc.
 $missing = [];
 foreach ( array_keys( $defs ) as $id ) {
     if ( false === strpos( $out, '`' . $id . '`' ) ) {
@@ -191,4 +258,39 @@ if ( $missing ) {
     exit( 1 );
 }
 
-echo 'Generated docs/module-hierarchy.md — ' . count( $defs ) . " modules, all present in doc.\n";
+// Self-check 2: legacy slugs appear ONLY in alias cells / migration notes.
+$legacy_map = Module_Registry::get_legacy_map();
+$violations = [];
+foreach ( explode( "\n", $out ) as $n => $line ) {
+    foreach ( $legacy_map as $legacy => $canonical ) {
+        if ( false === strpos( $line, '`' . $legacy . '`' ) ) {
+            continue;
+        }
+        $is_alias_cell     = false !== strpos( $line, '`' . $canonical . '`' ); // table row pairing alias with canonical
+        $is_migration_note = (bool) preg_match( '/legacy|migration|alias|grouping key/i', $line );
+        if ( ! $is_alias_cell && ! $is_migration_note ) {
+            $violations[] = 'line ' . ( $n + 1 ) . ": {$legacy}";
+        }
+    }
+}
+if ( $violations ) {
+    fwrite( STDERR, 'Legacy slugs outside alias/migration context: ' . implode( '; ', $violations ) . "\n" );
+    exit( 1 );
+}
+
+// Self-check 3: every aspirational id is listed in the Deferred section and none has a definition.
+$deferred_section = substr( $out, strpos( $out, '## Deferred / Future' ) );
+$deferred_section = substr( $deferred_section, 0, strpos( $deferred_section, "\n## " ) ?: strlen( $deferred_section ) );
+$asp_missing      = [];
+foreach ( $aspirational as $id ) {
+    if ( isset( $defs[ $id ] ) || false === strpos( $deferred_section, '`' . $id . '`' ) ) {
+        $asp_missing[] = $id;
+    }
+}
+if ( $asp_missing ) {
+    fwrite( STDERR, 'Aspirational ids missing from Deferred section (or wrongly defined): ' . implode( ', ', $asp_missing ) . "\n" );
+    exit( 1 );
+}
+
+echo 'Generated docs/module-hierarchy.md — ' . count( $defs ) . ' modules present, '
+    . count( $aspirational ) . " aspirational ids consolidated as Deferred, legacy slugs confined to alias/migration context.\n";

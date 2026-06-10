@@ -11,8 +11,11 @@
 - Registry modules: **83** (77 implemented, 6 stubs)
 - Tiers: **76 Core**, **7 Pro**
 - Display categories: 7; parent cards: 29 (26 visible, 3 hidden — zero built sub-modules)
+- Implemented split: **70 Core implemented**, **7 Pro implemented**, 6 Core stubs
 - Pro modules: `white-label`, `client-dashboard`, `terms-order`, `two-factor-authentication`, `temporary-user-access`, `email-log`, `error-log-viewer`
 - Stub modules (spec exists, implementation pending): `media-library-pro`, `login-protection`, `strong-passwords`, `login-notifications`, `disable-frontend`, `disable-backend`
+- Mixed-tier parent cards (Core + Pro sub-modules; per-sub Pro gating applies): **6**
+- Companion integrations: none defined yet (no companion tier/status in definitions; companions register via the `wpt_registered_modules` filter when built)
 - Not assigned to any parent card: `setup-wizard`
 
 ## Display Hierarchy
@@ -182,7 +185,7 @@ Rate-limit failed logins, add a CAPTCHA, hide wp-login.php behind a custom slug,
 
 Deferred (no definition yet — filtered from the UI): `limit-login-attempts`, `captcha-protection`, `change-login-url`, `login-id-type`, `strong-password-policy`
 
-#### Two-Factor Auth — `two-factor-auth` _[LOCKED (all sub-modules Pro)]_
+#### Two-Factor Auth — `two-factor-auth` _(grouping key only — not a module id)_ _[LOCKED (all sub-modules Pro)]_
 
 TOTP (Google Authenticator, Authy, 1Password) as primary, email as fallback, recovery codes, and admin override for lockouts.
 
@@ -335,6 +338,27 @@ Deferred (no definition yet — filtered from the UI): `file-manager`, `webhook-
 - **Custom Post Types** — `custom-post-types` — deferred: `custom-content-types`
 - **WooCommerce Enhancements** — `woocommerce-enhancements` — deferred: `woo-admin-cleanup`, `woo-custom-statuses`, `woo-disable-reviews`, `woo-empty-cart-button`, `woo-login-redirect`
 
+## Canonical Slug Registry (83)
+
+### Core launch modules — implemented (70)
+
+`404-monitor`, `active-plugins-first`, `activity-feed`, `admin-bar-manager`, `admin-body-classes`, `admin-bookmarks`, `admin-color-schemes`, `admin-columns`, `admin-menu-editor`, `admin-quick-notes`, `audit-log`, `auto-clear-caches`, `auto-publish-missed-schedule`, `broken-link-checker`, `bulk-content-editor`, `code-snippets`, `command-palette`, `content-duplication`, `content-order`, `cron-manager`, `custom-admin-footer`, `custom-nav-new-tab`, `dark-mode`, `dashboard-columns`, `database-optimizer`, `disable-comments`, `disable-gutenberg`, `duplicate-menu`, `duplicate-widget`, `email-delivery`, `email-obfuscator`, `environment-indicator`, `export-import-settings`, `external-links-new-tab`, `external-permalinks`, `heartbeat-control`, `hide-admin-notices`, `hide-dashboard-widgets`, `image-srcset-control`, `image-upload-control`, `keyboard-shortcuts`, `lazy-load`, `list-table-enhancements`, `login-designer`, `login-logout-menu`, `maintenance-mode`, `media-infinite-scroll`, `minify-assets`, `multiple-user-roles`, `notification-center`, `obfuscate-author-slugs`, `page-hierarchy-organizer`, `password-protection`, `post-type-switcher`, `preserve-taxonomy-hierarchy`, `public-preview`, `redirect-404`, `redirect-after-login`, `redirect-manager`, `revision-control`, `role-manager`, `search-replace`, `search-visibility-status`, `session-manager`, `setup-wizard`, `smart-menu-organizer`, `system-summary`, `taxonomy-filter`, `view-as-role`, `wider-admin-menu`
+
+### Pro launch modules (7)
+
+`client-dashboard`, `email-log`, `error-log-viewer`, `temporary-user-access`, `terms-order`, `two-factor-authentication`, `white-label`
+
+### Core stubs — spec exists, implementation pending (6)
+
+`disable-backend`, `disable-frontend`, `login-notifications`, `login-protection`, `media-library-pro`, `strong-passwords`
+
+## Deferred / Future — NOT implemented (62)
+
+Aspirational hierarchy ids with NO definition. Filtered from the UI at render time;
+archived-roadmap material only — never treat these as live modules.
+
+`admin-bar-enhancer`, `admin-columns-pro`, `admin-shortcut-cheatsheet`, `ads-txt-manager`, `autoloaded-options-audit`, `avif-upload`, `capability-tester`, `captcha-protection`, `change-login-url`, `content-calendar`, `custom-admin-css`, `custom-body-class`, `custom-content-types`, `custom-frontend-css`, `dashboard-welcome-panel`, `disable-attachment-pages`, `disable-author-archives`, `disable-embeds`, `disable-emojis`, `disable-feeds`, `disable-rest-api`, `disable-rest-fields`, `disable-self-pingbacks`, `disable-updates`, `disable-xmlrpc`, `file-manager`, `hide-admin-bar`, `honeypot-forms`, `hook-inspector`, `image-sizes-panel`, `last-login-column`, `limit-login-attempts`, `local-user-avatar`, `login-id-type`, `media-folders`, `media-replace`, `media-visibility-control`, `object-cache-status`, `options-browser`, `page-template-column`, `passkey-auth`, `per-role-ui-profiles`, `plugin-profiler`, `prefetch-on-hover`, `registration-date-column`, `rewrite-rules-viewer`, `robots-txt-manager`, `security-headers`, `site-identity-login`, `strong-password-policy`, `suspicious-activity-alerts`, `svg-upload`, `transient-browser`, `transient-cleanup`, `user-enumeration-block`, `webhook-manager`, `woo-admin-cleanup`, `woo-custom-statuses`, `woo-disable-reviews`, `woo-empty-cart-button`, `woo-login-redirect`, `workflow-automation`
+
 ## App Pages
 
 | Page slug | Boundary capability | Backing module |
@@ -355,3 +379,18 @@ Specified in `docs/modules/system/`: module-registry, module-loader, settings-st
 permission-model, recovery-center (Safe Mode), conflict-detector (not yet built),
 module-library, dashboard-shell, import-export, admin-chrome-foundation,
 editor-dashboard-shell. These are always-available services, not toggleable modules.
+
+## Migration, Loading & Gating Notes
+
+- **Legacy slug migration:** 10 module ids were renamed to canonical slugs (see the
+  Legacy alias columns above). The one-time, idempotent migration is gated by the
+  `wpt_slug_version` option and audited in `wpt_slug_migration_v1_backup`. Legacy ids
+  remain resolvable aliases for old exports/bookmarks but are never written back.
+- **Zero-load:** module implementation files are included only when a module is active,
+  status `implemented`, tier-allowed, and not quarantined. Inactive modules contribute
+  zero file includes, instances, hooks, or assets; all cards/search render from definitions.
+- **Pro gating:** locks derive from definition tiers. Unlicensed Pro implementation files
+  never load; locked cards render from definitions. A parent card is fully locked only
+  when every built sub-module is Pro; mixed parents gate per sub-module.
+- **History:** the archived 125/141-module docs under `docs/archive/` are roadmap material
+  only and must not be used as implementation authority.
