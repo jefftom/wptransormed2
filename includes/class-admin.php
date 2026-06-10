@@ -918,6 +918,10 @@ class Admin {
     public function ajax_save_dark_mode(): void {
         check_ajax_referer( 'wpt_global_nonce', 'nonce' );
 
+        if ( ! current_user_can( 'read' ) ) {
+            wp_send_json_error();
+        }
+
         $dark = isset( $_POST['dark_mode'] ) ? sanitize_text_field( wp_unslash( $_POST['dark_mode'] ) ) : '0';
         update_user_meta( get_current_user_id(), 'wpt_dark_mode', $dark === '1' ? '1' : '0' );
 

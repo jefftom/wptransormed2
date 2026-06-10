@@ -177,13 +177,13 @@ class Export_Import_Settings extends Module_Base {
 
             // SECURITY: Pass imported settings through module's sanitize_settings()
             // to prevent injection of unsanitized values (e.g., enabling PHP snippets).
-            $core = \WPTransformed\Core\Core::get_instance();
-            if ( $core && method_exists( $core, 'get_module' ) ) {
-                $module = $core->get_module( $module_id );
-                if ( $module ) {
-                    $settings = $module->sanitize_settings( $settings );
-                }
+            // Unknown module IDs are skipped — never write unsanitized rows.
+            $module = \WPTransformed\Core\Core::instance()->get_module( $module_id );
+            if ( ! $module ) {
+                $skipped++;
+                continue;
             }
+            $settings = $module->sanitize_settings( $settings );
 
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $result = $wpdb->replace(

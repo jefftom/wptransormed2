@@ -157,7 +157,7 @@ class Setup_Wizard extends Module_Base {
         $woo_active      = $this->is_woocommerce_active();
         $nonce           = wp_create_nonce( 'wpt_setup_wizard_nonce' );
         $ajax_url        = admin_url( 'admin-ajax.php' );
-        $dashboard_url   = admin_url();
+        $dashboard_url   = admin_url( 'admin.php?page=wpt-dashboard' );
         $profiles_json   = wp_json_encode( self::PROFILES, JSON_HEX_TAG | JSON_HEX_AMP );
         $module_titles   = $this->get_module_titles( $all_modules );
         $titles_json     = wp_json_encode( $module_titles, JSON_HEX_TAG | JSON_HEX_AMP );

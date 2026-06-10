@@ -62,6 +62,8 @@ register_activation_hook( __FILE__, function() {
     \WPTransformed\Core\Settings::create_table();
     \WPTransformed\Core\Safe_Mode::generate_token();
     flush_rewrite_rules();
+    // Consumed by the Setup Wizard on the next admin load to start onboarding.
+    set_transient( 'wpt_activation_redirect', true, 30 );
 } );
 
 // Deactivation

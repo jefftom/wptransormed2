@@ -21,10 +21,19 @@
     'use strict';
 
     var dashboard, cmdOverlay, cmdInput, cmdResults, selectedIdx;
+    var bentoHiddenActive = 0;
 
     document.addEventListener('DOMContentLoaded', function() {
         dashboard = document.querySelector('.wpt-dashboard');
         if (!dashboard) return;
+
+        /* Modules active inside APP parents render no checkboxes; remember
+           how many the server counted so updateBentoCount() stays exact. */
+        var bentoEl = document.getElementById('wptActiveCount');
+        if (bentoEl) {
+            bentoHiddenActive = Math.max(0,
+                parseInt(bentoEl.dataset.count || '0', 10) - countVisibleActiveToggles());
+        }
 
         initModuleToggles();
         initParentToggles();
@@ -276,15 +285,20 @@
         countEl.textContent = active + ' of ' + total + ' active';
     }
 
-    function updateBentoCount() {
-        /* Bento "Active Modules" — counts only real sub-module toggles,
-           excludes .wpt-parent-toggle which are presentation-layer only. */
-        var activeCount = 0;
+    function countVisibleActiveToggles() {
+        /* Real sub-module toggles only — .wpt-parent-toggle is presentation-layer. */
+        var n = 0;
         document.querySelectorAll('.wpt-module-toggle:checked').forEach(function(t) {
-            if (!t.classList.contains('wpt-parent-toggle')) activeCount++;
+            if (!t.classList.contains('wpt-parent-toggle')) n++;
         });
+        return n;
+    }
+
+    function updateBentoCount() {
+        /* Bento "Active Modules" — visible checked toggles plus the modules
+           active inside APP parents, which render no checkboxes. */
         var el = document.getElementById('wptActiveCount');
-        if (el) el.textContent = activeCount;
+        if (el) el.textContent = bentoHiddenActive + countVisibleActiveToggles();
     }
 
     /* ──────────────────────────────────────

@@ -25,7 +25,8 @@ class Settings {
         global $wpdb;
         $table = $wpdb->prefix . 'wpt_settings';
 
-        // Check if table exists (handles fresh install before activation hook runs)
+        // A missing table (fresh install before the activation hook runs) simply
+        // yields no rows — every module then reads as inactive with defaults.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         $results = $wpdb->get_results(
             "SELECT module_id, is_active, settings FROM {$table}",
@@ -71,6 +72,9 @@ class Settings {
      * Save settings for a module. Uses REPLACE INTO (upsert).
      */
     public static function save( string $module_id, array $settings ): bool {
+        // Prime the cache — a cold-cache save would otherwise write is_active=0.
+        self::load();
+
         global $wpdb;
         $table = $wpdb->prefix . 'wpt_settings';
 
@@ -102,6 +106,9 @@ class Settings {
      * Toggle a module active/inactive.
      */
     public static function toggle_module( string $module_id, bool $active ): bool {
+        // Prime the cache — a cold-cache toggle would otherwise wipe saved settings.
+        self::load();
+
         global $wpdb;
         $table = $wpdb->prefix . 'wpt_settings';
 

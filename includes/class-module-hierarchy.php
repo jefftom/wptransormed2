@@ -366,9 +366,9 @@ class Module_Hierarchy {
                 'description' => __( 'Rate-limit failed logins, add a CAPTCHA, hide wp-login.php behind a custom slug, and enforce strong password policies per role.', 'wptransformed' ),
                 'category'    => self::CATEGORY_SECURITY,
                 'icon'        => 'fa-sign-in-alt',
-                'badges'      => [ 'app' ],
+                'badges'      => [],
                 'tier'        => 'free',
-                'app_page'    => 'wpt-login-protection', // APP page — deferred until built
+                'app_page'    => null, // App page not yet built — re-add slug when the page is registered.
                 'sub_modules' => [
                     'limit-login-attempts',   // not built (login-security is related but not identical)
                     'login-security',         // existing catch-all
@@ -511,9 +511,9 @@ class Module_Hierarchy {
                 'description' => __( 'Hide WordPress branding, rename admin footer, replace login logo, custom admin color scheme, and custom help tab.', 'wptransformed' ),
                 'category'    => self::CATEGORY_DESIGN,
                 'icon'        => 'fa-tag',
-                'badges'      => [ 'pro', 'app' ],
+                'badges'      => [ 'pro' ],
                 'tier'        => 'pro',
-                'app_page'    => 'wpt-white-label', // APP page — deferred until Session 5 builds it
+                'app_page'    => null, // App page not yet built (Session 5.3) — re-add slug when the page is registered.
                 'sub_modules' => [
                     'white-label',
                     'custom-admin-footer',
