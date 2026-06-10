@@ -167,7 +167,7 @@ class User_Role_Editor extends Module_Base {
     public function ajax_save_role_caps(): void {
         check_ajax_referer( 'wpt_role_editor_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
+        if ( ! current_user_can( 'manage_wpt_security' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
@@ -227,7 +227,7 @@ class User_Role_Editor extends Module_Base {
     public function ajax_add_role(): void {
         check_ajax_referer( 'wpt_role_editor_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
+        if ( ! current_user_can( 'manage_wpt_security' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
@@ -281,7 +281,7 @@ class User_Role_Editor extends Module_Base {
     public function ajax_delete_role(): void {
         check_ajax_referer( 'wpt_role_editor_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
+        if ( ! current_user_can( 'manage_wpt_security' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
@@ -327,7 +327,7 @@ class User_Role_Editor extends Module_Base {
     public function ajax_reset_role(): void {
         check_ajax_referer( 'wpt_role_editor_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
+        if ( ! current_user_can( 'manage_wpt_security' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
@@ -375,7 +375,7 @@ class User_Role_Editor extends Module_Base {
     public function ajax_view_as_role(): void {
         check_ajax_referer( 'wpt_role_editor_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_wpt_security' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
@@ -407,7 +407,7 @@ class User_Role_Editor extends Module_Base {
     public function ajax_stop_view_as(): void {
         check_ajax_referer( 'wpt_role_editor_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_wpt_security' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 

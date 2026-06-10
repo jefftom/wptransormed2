@@ -134,7 +134,7 @@ class Setup_Wizard extends Module_Base {
             '', // Empty parent slug — hidden from the menu, accessible by URL.
             __( 'WPTransformed Setup', 'wptransformed' ),
             __( 'Setup Wizard', 'wptransformed' ),
-            'manage_options',
+            'manage_wpt_settings',
             'wpt-setup-wizard',
             [ $this, 'render_page' ]
         );
@@ -774,7 +774,9 @@ class Setup_Wizard extends Module_Base {
     public function ajax_complete(): void {
         check_ajax_referer( 'wpt_setup_wizard_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        // The wizard saves settings AND batch-toggles modules, so it
+        // requires both boundary capabilities.
+        if ( ! current_user_can( 'manage_wpt_settings' ) || ! current_user_can( 'manage_wpt_modules' ) ) {
             wp_send_json_error( [ 'message' => 'Unauthorized.' ] );
         }
 

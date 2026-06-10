@@ -65,7 +65,7 @@ class Export_Import_Settings extends Module_Base {
             wp_send_json_error( [ 'message' => __( 'Security check failed.', 'wptransformed' ) ] );
         }
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'export_wpt_data' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
@@ -113,7 +113,7 @@ class Export_Import_Settings extends Module_Base {
             wp_send_json_error( [ 'message' => __( 'Security check failed.', 'wptransformed' ) ] );
         }
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_wpt_settings' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
@@ -223,7 +223,9 @@ class Export_Import_Settings extends Module_Base {
             wp_send_json_error( [ 'message' => __( 'Security check failed.', 'wptransformed' ) ] );
         }
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        // Destructive bulk delete (all settings + active states) — needs
+        // the dangerous-tools capability on top of settings rights.
+        if ( ! current_user_can( 'manage_wpt_settings' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 

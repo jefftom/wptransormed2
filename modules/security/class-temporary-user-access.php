@@ -179,7 +179,7 @@ class Temporary_User_Access extends Module_Base {
             'wptransformed',
             __( 'Temporary Access', 'wptransformed' ),
             __( 'Temporary Access', 'wptransformed' ),
-            'manage_options',
+            'manage_wpt_security',
             'wpt-temporary-access',
             [ $this, 'render_admin_page' ]
         );
@@ -191,7 +191,7 @@ class Temporary_User_Access extends Module_Base {
      * Render the admin page.
      */
     public function render_admin_page(): void {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_wpt_security' ) ) {
             wp_die( esc_html__( 'You do not have permission to access this page.', 'wptransformed' ) );
         }
 

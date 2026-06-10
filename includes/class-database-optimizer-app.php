@@ -55,7 +55,7 @@ class Database_Optimizer_App {
             'wpt-dashboard',
             __( 'Database Optimizer', 'wptransformed' ),
             __( 'Database', 'wptransformed' ),
-            'manage_options',
+            Permission_Manager::CAP_DATABASE,
             'wpt-database',
             [ $this, 'render' ]
         );
@@ -88,7 +88,7 @@ class Database_Optimizer_App {
     }
 
     public function render(): void {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( Permission_Manager::CAP_DATABASE ) ) {
             wp_die( esc_html__( 'Unauthorized.', 'wptransformed' ) );
         }
 

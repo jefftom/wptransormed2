@@ -32,6 +32,24 @@ final class Permission_Manager {
     /** Required IN ADDITION to a base capability for destructive tools. */
     public const CAP_DANGEROUS = 'run_wpt_dangerous_tools';
 
+    /** Database Optimizer app page and database actions. */
+    public const CAP_DATABASE = 'manage_wpt_database';
+
+    /** View the Audit Log and future log surfaces. */
+    public const CAP_LOGS = 'view_wpt_logs';
+
+    /** Export settings/data out of the site. */
+    public const CAP_EXPORT = 'export_wpt_data';
+
+    /** Code Manager / snippet boundaries. */
+    public const CAP_CODE = 'manage_wpt_code';
+
+    /** Security & Login boundaries. */
+    public const CAP_SECURITY = 'manage_wpt_security';
+
+    /** Email Delivery boundaries. */
+    public const CAP_EMAIL = 'manage_wpt_email';
+
     /**
      * The full capability set (build authority addendum v5.3.6 §14 /
      * permission-model spec §7 — supersedes the older draft list in
@@ -56,6 +74,31 @@ final class Permission_Manager {
         'export_wpt_data',
         'run_wpt_dangerous_tools',
         'manage_wpt_white_label',
+    ];
+
+    /**
+     * Page-slug → capability map for WPTransformed admin screens.
+     *
+     * Documentation-as-code: the boundary capability for every registered
+     * WPT page lives here; page registrations use the matching CAP_*
+     * constant (or string, in module files).
+     *
+     * TODO (pending per-module specs — do not invent caps beyond CAPS):
+     * - white-label app page → manage_wpt_white_label
+     * - reports pages → manage_wpt_reports
+     * - integrations hub → manage_wpt_integrations
+     * - search/AI visibility pages → manage_wpt_search_visibility
+     */
+    public const PAGE_CAPS = [
+        'wpt-dashboard'        => 'edit_posts',      // Editor Dashboard — intentionally editor-visible; do not raise.
+        'wptransformed'        => self::CAP_MODULES, // Modules / Module Library page.
+        'wpt-database'         => self::CAP_DATABASE,
+        'wpt-audit-log'        => self::CAP_LOGS,
+        'wpt-menu-editor'      => self::CAP_SETTINGS,
+        'wpt-login-designer'   => self::CAP_SETTINGS,
+        'wpt-setup-wizard'     => self::CAP_SETTINGS,
+        'wpt-temporary-access' => self::CAP_SECURITY,
+        'wpt-notifications'    => 'read',            // Per-user notices page (hide-admin-notices) — by design.
     ];
 
     /** Bump when CAPS changes so maybe_upgrade() re-grants once. */

@@ -153,7 +153,7 @@ class Email_SMTP extends Module_Base {
     public function ajax_send_test_email(): void {
         check_ajax_referer( 'wpt_test_email_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_wpt_email' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 

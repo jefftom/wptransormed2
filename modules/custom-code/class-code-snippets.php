@@ -174,6 +174,9 @@ class Code_Snippets extends Module_Base {
 
         // In admin context, PHP snippets only execute for users with manage_options.
         // On frontend, PHP snippets execute for all visitors (they're site functionality, not user-specific).
+        // TODO(per-module spec): decide whether this runtime execution gate
+        // should key off manage_wpt_code once the code-snippets spec exists —
+        // it is execution semantics, not a boundary check, so it stays put.
         if ( is_admin() && ! current_user_can( 'manage_options' ) ) {
             return;
         }
@@ -508,7 +511,7 @@ class Code_Snippets extends Module_Base {
     public function ajax_add_snippet(): void {
         check_ajax_referer( 'wpt_code_snippets_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
+        if ( ! current_user_can( 'manage_wpt_code' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
@@ -594,7 +597,7 @@ class Code_Snippets extends Module_Base {
     public function ajax_edit_snippet(): void {
         check_ajax_referer( 'wpt_code_snippets_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
+        if ( ! current_user_can( 'manage_wpt_code' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
@@ -682,7 +685,7 @@ class Code_Snippets extends Module_Base {
     public function ajax_delete_snippet(): void {
         check_ajax_referer( 'wpt_code_snippets_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
+        if ( ! current_user_can( 'manage_wpt_code' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
@@ -719,7 +722,7 @@ class Code_Snippets extends Module_Base {
     public function ajax_toggle_snippet(): void {
         check_ajax_referer( 'wpt_code_snippets_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
+        if ( ! current_user_can( 'manage_wpt_code' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 

@@ -132,4 +132,28 @@ class Test_Permission_Model extends WP_UnitTestCase {
         }
         $this->assertFalse( get_option( 'wpt_caps_version' ) );
     }
+
+    // ── Boundary capability map ───────────────────────────────
+
+    public function test_page_caps_map_shape(): void {
+        $expected = [
+            'wpt-dashboard'        => 'edit_posts',
+            'wptransformed'        => 'manage_wpt_modules',
+            'wpt-database'         => 'manage_wpt_database',
+            'wpt-audit-log'        => 'view_wpt_logs',
+            'wpt-menu-editor'      => 'manage_wpt_settings',
+            'wpt-login-designer'   => 'manage_wpt_settings',
+            'wpt-setup-wizard'     => 'manage_wpt_settings',
+            'wpt-temporary-access' => 'manage_wpt_security',
+            'wpt-notifications'    => 'read',
+        ];
+        $this->assertSame( $expected, Permission_Manager::PAGE_CAPS );
+    }
+
+    public function test_page_caps_use_only_canonical_or_core_caps(): void {
+        $allowed = array_merge( Permission_Manager::CAPS, [ 'edit_posts', 'read' ] );
+        foreach ( Permission_Manager::PAGE_CAPS as $slug => $cap ) {
+            $this->assertContains( $cap, $allowed, "{$slug} uses non-canonical capability {$cap}" );
+        }
+    }
 }

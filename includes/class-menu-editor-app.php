@@ -139,7 +139,7 @@ class Menu_Editor_App {
             'wpt-dashboard',
             __( 'Menu Editor', 'wptransformed' ),
             __( 'Menu Editor', 'wptransformed' ),
-            'manage_options',
+            Permission_Manager::CAP_SETTINGS,
             'wpt-menu-editor',
             [ $this, 'render' ]
         );
@@ -169,7 +169,7 @@ class Menu_Editor_App {
      * Handle the form POST from the Menu Editor app page.
      */
     public function handle_save(): void {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( Permission_Manager::CAP_SETTINGS ) ) {
             wp_die( esc_html__( 'Unauthorized.', 'wptransformed' ) );
         }
         check_admin_referer( 'wpt_save_menu_editor', 'wpt_menu_editor_nonce' );
@@ -189,7 +189,7 @@ class Menu_Editor_App {
     }
 
     public function render(): void {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( Permission_Manager::CAP_SETTINGS ) ) {
             wp_die( esc_html__( 'Unauthorized.', 'wptransformed' ) );
         }
 

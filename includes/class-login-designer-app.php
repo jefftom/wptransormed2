@@ -56,7 +56,7 @@ class Login_Designer_App {
             'wpt-dashboard',
             __( 'Login Designer', 'wptransformed' ),
             __( 'Login Designer', 'wptransformed' ),
-            'manage_options',
+            Permission_Manager::CAP_SETTINGS,
             'wpt-login-designer',
             [ $this, 'render' ]
         );
@@ -90,7 +90,7 @@ class Login_Designer_App {
      * Settings class, then redirects back to this app page with a saved flag.
      */
     public function handle_save(): void {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( Permission_Manager::CAP_SETTINGS ) ) {
             wp_die( esc_html__( 'Unauthorized.', 'wptransformed' ) );
         }
         check_admin_referer( 'wpt_save_login_designer', 'wpt_login_designer_nonce' );
@@ -110,7 +110,7 @@ class Login_Designer_App {
     }
 
     public function render(): void {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( Permission_Manager::CAP_SETTINGS ) ) {
             wp_die( esc_html__( 'Unauthorized.', 'wptransformed' ) );
         }
 

@@ -55,7 +55,7 @@ class Audit_Log_App {
             'wpt-dashboard',
             __( 'Audit Log', 'wptransformed' ),
             __( 'Audit Log', 'wptransformed' ),
-            'manage_options',
+            Permission_Manager::CAP_LOGS,
             'wpt-audit-log',
             [ $this, 'render' ]
         );
@@ -82,7 +82,7 @@ class Audit_Log_App {
     }
 
     public function render(): void {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( Permission_Manager::CAP_LOGS ) ) {
             wp_die( esc_html__( 'Unauthorized.', 'wptransformed' ) );
         }
 
