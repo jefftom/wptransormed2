@@ -630,8 +630,10 @@ class Admin {
        MODULE SETTINGS VIEW
     ══════════════════════════════════════════ */
     private function render_module_settings( string $module_slug ): void {
-        $core   = Core::instance();
-        $module = $core->get_module( $module_slug );
+        $core = Core::instance();
+        // Lazy-load: inactive modules' settings pages still render.
+        // Unknown ids, stubs, and locked-Pro modules redirect back.
+        $module = $core->load_module( $module_slug );
 
         if ( ! $module ) {
             wp_safe_redirect( admin_url( 'admin.php?page=wptransformed' ) );
@@ -1061,7 +1063,9 @@ class Admin {
             wp_die( __( 'Unauthorized.', 'wptransformed' ) );
         }
 
-        $module = Core::instance()->get_module( $module_id );
+        // Lazy-load: inactive modules' settings remain saveable; their
+        // sanitize_settings() runs without init() (no hooks registered).
+        $module = Core::instance()->load_module( $module_id );
         if ( ! $module ) return;
 
         $raw   = $_POST;
@@ -1090,13 +1094,14 @@ class Admin {
             wp_send_json_error( 'Unauthorized', 403 );
         }
 
-        $module = Core::instance()->get_module( $module_id );
-        if ( ! $module ) {
+        // Validate against definitions — inactive modules have no
+        // instance under zero-load.
+        $core = Core::instance();
+        $def  = $core->get_definition( $module_id );
+        if ( ! $def ) {
             wp_send_json_error( 'Unknown module' );
         }
 
-        // Tier comes from the module definition, not the instance.
-        $def = Core::instance()->get_definition( $module_id );
         if ( 'pro' === ( $def['tier'] ?? 'core' ) && ! Core::is_pro_licensed() ) {
             wp_send_json_error( 'Pro license required' );
         }
@@ -1105,11 +1110,16 @@ class Admin {
 
         if ( $result ) {
             if ( ! $active ) {
-                try {
-                    $module->deactivate();
-                } catch ( \Throwable $e ) {
-                    if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                        error_log( "WPTransformed: Module '{$module_id}' deactivate() failed: " . $e->getMessage() );
+                // The instance exists only while the module was loaded
+                // this request (it was active) — run lifecycle cleanup.
+                $module = $core->get_module( $module_id );
+                if ( $module ) {
+                    try {
+                        $module->deactivate();
+                    } catch ( \Throwable $e ) {
+                        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                            error_log( "WPTransformed: Module '{$module_id}' deactivate() failed: " . $e->getMessage() );
+                        }
                     }
                 }
             }
@@ -1207,8 +1217,10 @@ class Admin {
         $pro_locked = 0;
 
         foreach ( $sub_ids as $id ) {
-            $module = $core->get_module( $id );
-            if ( ! $module ) {
+            // Validate against definitions — inactive modules have no
+            // instance under zero-load.
+            $sub_def = $core->get_definition( $id );
+            if ( ! $sub_def ) {
                 $results[] = [ 'id' => $id, 'active' => null, 'error' => 'module_not_loaded' ];
                 $failed++;
                 continue;
@@ -1216,8 +1228,6 @@ class Admin {
 
             // Skip Pro-gated subs when unlicensed — the parent toggle treats
             // them as "intentionally left unset" rather than a batch failure.
-            // Tier comes from the module definition, not the instance.
-            $sub_def = $core->get_definition( $id );
             if ( 'pro' === ( $sub_def['tier'] ?? 'core' ) && ! Core::is_pro_licensed() ) {
                 $results[] = [ 'id' => $id, 'active' => null, 'error' => 'pro_locked' ];
                 $pro_locked++;
@@ -1234,11 +1244,14 @@ class Admin {
             // On deactivate, run the module's cleanup so cron/transients
             // don't orphan. Same pattern as ajax_toggle_module.
             if ( ! $active ) {
-                try {
-                    $module->deactivate();
-                } catch ( \Throwable $e ) {
-                    if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                        error_log( "WPTransformed: Module '{$id}' deactivate() failed: " . $e->getMessage() );
+                $module = $core->get_module( $id );
+                if ( $module ) {
+                    try {
+                        $module->deactivate();
+                    } catch ( \Throwable $e ) {
+                        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                            error_log( "WPTransformed: Module '{$id}' deactivate() failed: " . $e->getMessage() );
+                        }
                     }
                 }
             }

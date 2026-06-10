@@ -23,6 +23,9 @@ class Core {
     /** @var array<string, string> Runtime id => canonical definition key */
     private array $runtime_index = [];
 
+    /** @var array Quarantined runtime ids (Recovery Center; empty until built) */
+    private array $quarantined = [];
+
     /** @var array<string> IDs of currently active modules */
     private array $active_ids = [];
 
@@ -39,6 +42,11 @@ class Core {
     public function boot(): void {
         // 1. Load active module IDs from database (single query)
         $this->active_ids = Settings::get_active_modules();
+
+        // Structural stub for Recovery Center quarantine — reads the
+        // (currently always empty) list so quarantined modules never load.
+        $recovery          = Settings::get( 'recovery' );
+        $this->quarantined = (array) ( $recovery['quarantined_modules'] ?? [] );
 
         // 2. Canonical definitions — the single source of truth for module
         //    metadata (module-registry spec §6).
@@ -65,13 +73,20 @@ class Core {
                 continue;
             }
 
+            $def['id']                = $id;
             $this->definitions[ $id ] = $def;
 
             // Runtime ids stay legacy until the slug-migration slice.
             $runtime_id = $def['legacy_ids'][0] ?? $id;
 
             $this->runtime_index[ $runtime_id ] = $id;
-            $this->register_module( $runtime_id, $def['file'] );
+
+            // ZERO-LOAD: include an implementation file only when the
+            // module will actually run this request. Cards, search, and
+            // locked-Pro states all render from the definition above.
+            if ( $this->should_load( $runtime_id, $def ) ) {
+                $this->register_module( $runtime_id, $def['file'] );
+            }
         }
         $this->report_invalid_definitions( $invalid );
 
@@ -105,6 +120,63 @@ class Core {
         }
         $canonical = $this->runtime_index[ $id ] ?? null;
         return null !== $canonical ? ( $this->definitions[ $canonical ] ?? null ) : null;
+    }
+
+    /**
+     * ZERO-LOAD GATE: should this module's implementation be included at
+     * boot? Inactive modules contribute zero file includes, zero
+     * instances, zero hooks, and zero assets.
+     */
+    private function should_load( string $runtime_id, array $def ): bool {
+        if ( ! in_array( $runtime_id, $this->active_ids, true ) ) {
+            return false;
+        }
+        return $this->is_loadable( $runtime_id, $def );
+    }
+
+    /**
+     * Gates shared by boot-time and lazy loading: stub/planned modules and
+     * unlicensed Pro modules never load implementation; neither do modules
+     * quarantined by the (future) Recovery Center.
+     */
+    private function is_loadable( string $runtime_id, array $def ): bool {
+        if ( 'implemented' !== ( $def['status'] ?? 'implemented' ) ) {
+            return false;
+        }
+        if ( 'pro' === ( $def['tier'] ?? 'core' ) && ! self::is_pro_licensed() ) {
+            return false;
+        }
+        if ( isset( $this->quarantined[ $runtime_id ] )
+            || in_array( $runtime_id, $this->quarantined, true ) ) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Lazily include + instantiate a module for admin operations that need
+     * its code while it is inactive (settings form render/save, import
+     * sanitizers). Applies the same gates as boot-time loading; init() is
+     * NOT called, so no hooks are registered.
+     */
+    public function load_module( string $id ): ?\WPTransformed\Modules\Module_Base {
+        $existing = $this->get_module( $id );
+        if ( null !== $existing ) {
+            return $existing;
+        }
+
+        $def = $this->get_definition( $id );
+        if ( null === $def ) {
+            return null;
+        }
+
+        $runtime_id = $def['legacy_ids'][0] ?? $def['id'];
+        if ( ! $this->is_loadable( $runtime_id, $def ) ) {
+            return null;
+        }
+
+        $this->register_module( $runtime_id, $def['file'] );
+        return $this->modules[ $runtime_id ] ?? null;
     }
 
     /**

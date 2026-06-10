@@ -183,6 +183,14 @@ check( ! class_exists( 'WPTransformed\\Modules\\Utilities\\Maintenance_Mode', fa
 check( ! class_exists( 'WPTransformed\\Modules\\Utilities\\Email_Log', false ), 'unlicensed Pro module class never loaded' );
 check( ! class_exists( 'WPTransformed\\Modules\\ContentManagement\\Media_Library_Pro', false ), 'stub module class never loaded' );
 
+// ── Lazy admin-operation loading (settings forms, import sanitize) ──
+$actions_before = array_sum( array_map( 'count', $GLOBALS['__actions'] ) );
+$lazy           = $core->load_module( 'maintenance-mode' );
+$actions_after  = array_sum( array_map( 'count', $GLOBALS['__actions'] ) );
+check( null !== $lazy, 'load_module() lazily instantiates an inactive module for admin operations' );
+check( $actions_before === $actions_after, 'lazy load registers NO hooks (init() not called)' );
+check( null === $core->load_module( 'media-library-pro' ) && null === $core->load_module( 'email-log' ), 'lazy load refuses stub and unlicensed-Pro modules' );
+
 if ( $report_only ) {
     echo "\nREPORT MODE — metrics only, no assertions.\n";
     exit( 0 );

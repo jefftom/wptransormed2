@@ -178,7 +178,9 @@ class Export_Import_Settings extends Module_Base {
             // SECURITY: Pass imported settings through module's sanitize_settings()
             // to prevent injection of unsanitized values (e.g., enabling PHP snippets).
             // Unknown module IDs are skipped — never write unsanitized rows.
-            $module = \WPTransformed\Core\Core::instance()->get_module( $module_id );
+            // load_module() lazily includes INACTIVE modules so their
+            // sanitizers still run under the zero-load loader.
+            $module = \WPTransformed\Core\Core::instance()->load_module( $module_id );
             if ( ! $module ) {
                 $skipped++;
                 continue;
