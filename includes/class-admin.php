@@ -179,17 +179,18 @@ class Admin {
                 true
             );
 
-            // Build module data for JS (command palette + filtering)
-            $core        = Core::instance();
-            $all_modules = $core->get_all_modules();
-            $js_modules  = [];
+            // Build module data for JS (command palette + filtering).
+            // Sourced from definitions — no module instances required.
+            $core       = Core::instance();
+            $js_modules = [];
 
-            foreach ( $all_modules as $id => $module ) {
-                $cat = $module->get_category();
+            foreach ( $core->get_definitions() as $canonical_id => $def ) {
+                $id  = $def['legacy_ids'][0] ?? $canonical_id; // Runtime id until the slug migration.
+                $cat = $def['category'];
                 $js_modules[] = [
                     'id'          => $id,
-                    'title'       => $module->get_title(),
-                    'desc'        => $module->get_description(),
+                    'title'       => $def['title'],
+                    'desc'        => $def['description'],
                     'category'    => $cat,
                     'active'      => $core->is_active( $id ),
                     'icon'        => self::get_module_icon( $id, $cat ),
@@ -233,12 +234,14 @@ class Admin {
     ══════════════════════════════════════════ */
     private function render_dashboard(): void {
         $core         = Core::instance();
-        $all_modules  = $core->get_all_modules();
-        $total        = count( $all_modules );
+        // Counts come from definitions — no module instances required.
+        $definitions  = $core->get_definitions();
+        $total        = count( $definitions );
         $active_count = 0;
 
-        foreach ( $all_modules as $id => $module ) {
-            if ( $core->is_active( $id ) ) {
+        foreach ( $definitions as $id => $def ) {
+            $runtime_id = $def['legacy_ids'][0] ?? $id;
+            if ( $core->is_active( $runtime_id ) ) {
                 $active_count++;
             }
         }
@@ -456,35 +459,44 @@ class Admin {
         $category_map = Module_Hierarchy::get_categories();
         $cat_color    = $category_map[ $category ]['color'] ?? 'core';
 
-        // Filter sub-modules down to only those that exist in the registry.
+        // Filter sub-modules down to only those with registered definitions.
         $sub_module_ids = Module_Hierarchy::filter_existing_sub_modules( $parent['sub_modules'] ?? [] );
         $sub_modules    = [];
         $active_subs    = 0;
+        $all_subs_pro   = true;
         foreach ( $sub_module_ids as $id ) {
-            $module = $core->get_module( $id );
-            if ( ! $module ) {
-                continue; // Module registered but failed to load — skip.
+            // Metadata from definitions — no module instance required.
+            $def = $core->get_definition( $id );
+            if ( ! $def ) {
+                continue; // No validated definition — skip.
             }
             $is_active      = $core->is_active( $id );
             $sub_modules[] = [
                 'id'          => $id,
-                'module'      => $module,
                 'is_active'   => $is_active,
-                'title'       => $module->get_title(),
-                'description' => $module->get_description(),
-                'icon'        => self::get_module_icon( $id, $module->get_category() ),
-                'has_settings'=> ! empty( $module->get_default_settings() ),
+                'title'       => $def['title'],
+                'description' => $def['description'],
+                'icon'        => self::get_module_icon( $id, $def['category'] ),
+                'has_settings'=> $def['has_settings'],
                 'settings_url'=> admin_url( 'admin.php?page=wptransformed&module=' . $id ),
             ];
             if ( $is_active ) {
                 $active_subs++;
+            }
+            if ( 'pro' !== $def['tier'] ) {
+                $all_subs_pro = false;
             }
         }
 
         $total_subs     = count( $sub_modules );
         $parent_active  = $active_subs > 0;
         $badges         = $parent['badges'] ?? [];
-        $tier           = $parent['tier'] ?? 'free';
+        // Pro lock + PRO badge are DERIVED from definitions: a parent is
+        // Pro only when every built sub-module is Pro tier.
+        $tier           = ( $total_subs > 0 && $all_subs_pro ) ? 'pro' : 'free';
+        if ( 'pro' === $tier ) {
+            $badges[] = 'pro';
+        }
         $app_page_slug  = $parent['app_page'] ?? null;
         $has_app_page   = ! empty( $app_page_slug );
         $app_page_url   = $has_app_page ? admin_url( 'admin.php?page=' . $app_page_slug ) : '';
@@ -1019,12 +1031,12 @@ class Admin {
     }
 
     private function count_active_in_category( string $category ): int {
-        $core    = Core::instance();
-        $modules = $core->get_all_modules();
-        $count   = 0;
+        $core  = Core::instance();
+        $count = 0;
 
-        foreach ( $modules as $id => $module ) {
-            if ( $module->get_category() === $category && $core->is_active( $id ) ) {
+        foreach ( $core->get_definitions() as $id => $def ) {
+            $runtime_id = $def['legacy_ids'][0] ?? $id;
+            if ( $def['category'] === $category && $core->is_active( $runtime_id ) ) {
                 $count++;
             }
         }
@@ -1083,7 +1095,9 @@ class Admin {
             wp_send_json_error( 'Unknown module' );
         }
 
-        if ( $module->get_tier() === 'pro' && ! Core::is_pro_licensed() ) {
+        // Tier comes from the module definition, not the instance.
+        $def = Core::instance()->get_definition( $module_id );
+        if ( 'pro' === ( $def['tier'] ?? 'core' ) && ! Core::is_pro_licensed() ) {
             wp_send_json_error( 'Pro license required' );
         }
 
@@ -1202,7 +1216,9 @@ class Admin {
 
             // Skip Pro-gated subs when unlicensed — the parent toggle treats
             // them as "intentionally left unset" rather than a batch failure.
-            if ( $module->get_tier() === 'pro' && ! Core::is_pro_licensed() ) {
+            // Tier comes from the module definition, not the instance.
+            $sub_def = $core->get_definition( $id );
+            if ( 'pro' === ( $sub_def['tier'] ?? 'core' ) && ! Core::is_pro_licensed() ) {
                 $results[] = [ 'id' => $id, 'active' => null, 'error' => 'pro_locked' ];
                 $pro_locked++;
                 continue;

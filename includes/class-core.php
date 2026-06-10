@@ -20,6 +20,9 @@ class Core {
     /** @var array<string, array> Validated canonical module definitions (post-filter) */
     private array $definitions = [];
 
+    /** @var array<string, string> Runtime id => canonical definition key */
+    private array $runtime_index = [];
+
     /** @var array<string> IDs of currently active modules */
     private array $active_ids = [];
 
@@ -66,6 +69,8 @@ class Core {
 
             // Runtime ids stay legacy until the slug-migration slice.
             $runtime_id = $def['legacy_ids'][0] ?? $id;
+
+            $this->runtime_index[ $runtime_id ] = $id;
             $this->register_module( $runtime_id, $def['file'] );
         }
         $this->report_invalid_definitions( $invalid );
@@ -86,6 +91,20 @@ class Core {
      */
     public function get_definitions(): array {
         return $this->definitions;
+    }
+
+    /**
+     * Definition lookup by RUNTIME id (legacy until the slug migration)
+     * or canonical id. Presentation layers (Module Library, hierarchy,
+     * command palette) resolve per-module metadata through this — never
+     * through module instances.
+     */
+    public function get_definition( string $id ): ?array {
+        if ( isset( $this->definitions[ $id ] ) ) {
+            return $this->definitions[ $id ];
+        }
+        $canonical = $this->runtime_index[ $id ] ?? null;
+        return null !== $canonical ? ( $this->definitions[ $canonical ] ?? null ) : null;
     }
 
     /**

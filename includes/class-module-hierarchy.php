@@ -6,9 +6,13 @@ namespace WPTransformed\Core;
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
- * Module Hierarchy — Canonical parent/sub-module grouping.
+ * Module Hierarchy — presentation/grouping layer for the Modules page.
  *
- * This is the single source of truth the Modules page renders against.
+ * Owns grouping ONLY: parent/child relationships, display order, category
+ * grouping, card grouping labels/descriptions/icons, and parent-level app
+ * links. Per-module metadata (titles, descriptions, tiers, risk, flags)
+ * comes from Module_Registry DEFINITIONS via Core::get_definition() —
+ * never from this file.
  * It mirrors docs/module-hierarchy.md: ~28 parent modules across 7 categories,
  * each parent containing a list of sub-module IDs. Sub-module IDs point at
  * real Module_Registry entries — any that don't exist yet (v2/v3 aspirational
@@ -93,8 +97,10 @@ class Module_Hierarchy {
      *   - description  : one-sentence description for the card
      *   - category     : one of the CATEGORY_* constants
      *   - icon         : fa icon class (without 'fa-' prefix)
-     *   - badges       : array of 'popular' | 'new' | 'app' | 'pro' (display order)
-     *   - tier         : 'free' | 'pro' — drives Pro gating on the parent toggle
+     *   - badges       : array of 'popular' | 'new' — display-only marketing
+     *                    badges. PRO badge + Pro lock are DERIVED at render
+     *                    from definitions (parent is Pro only when every
+     *                    built sub-module is Pro tier).
      *   - app_page     : admin page slug for APP parents (e.g. 'wpt-menu-editor'),
      *                    null for non-APP parents. When set, the parent card
      *                    renders an "Open app page →" link instead of the
@@ -118,7 +124,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_CORE,
                 'icon'        => 'fa-bars',
                 'badges'      => [ 'popular' ],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'admin-bar',          // clean-admin-bar in docs
@@ -136,7 +141,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_CORE,
                 'icon'        => 'fa-tachometer-alt',
                 'badges'      => [],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'hide-dashboard-widgets',
@@ -156,7 +160,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_CORE,
                 'icon'        => 'fa-bell',
                 'badges'      => [],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'hide-admin-notices',
@@ -171,7 +174,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_CORE,
                 'icon'        => 'fa-table',
                 'badges'      => [ 'new' ],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'enhance-list-tables',
@@ -193,7 +195,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_CORE,
                 'icon'        => 'fa-keyboard',
                 'badges'      => [],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'keyboard-shortcuts',
@@ -209,7 +210,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_CORE,
                 'icon'        => 'fa-users-cog',
                 'badges'      => [],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'multiple-user-roles',
@@ -232,7 +232,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_CONTENT,
                 'icon'        => 'fa-pen-alt',
                 'badges'      => [ 'popular' ],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'content-duplication',
@@ -254,7 +253,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_CONTENT,
                 'icon'        => 'fa-calendar-alt',
                 'badges'      => [],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'content-calendar',     // v2 — not built yet
@@ -270,7 +268,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_CONTENT,
                 'icon'        => 'fa-edit',
                 'badges'      => [],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'disable-gutenberg',
@@ -286,7 +283,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_CONTENT,
                 'icon'        => 'fa-photo-film',
                 'badges'      => [ 'popular' ],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'media-library-pro',       // monolithic module that encompasses the feature set
@@ -308,7 +304,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_CONTENT,
                 'icon'        => 'fa-list',
                 'badges'      => [ 'popular', 'app' ],
-                'tier'        => 'free',
                 'app_page'    => 'wpt-menu-editor', // APP page — deferred until Session 5 builds it
                 'sub_modules' => [
                     'admin-menu-editor',
@@ -325,7 +320,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_CONTENT,
                 'icon'        => 'fa-puzzle-piece',
                 'badges'      => [ 'new' ],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     // Dynamic per detected builder — no fixed subs yet.
@@ -344,7 +338,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_SECURITY,
                 'icon'        => 'fa-shield-alt',
                 'badges'      => [ 'popular' ],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'disable-xmlrpc',             // v2 — not built yet
@@ -367,7 +360,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_SECURITY,
                 'icon'        => 'fa-sign-in-alt',
                 'badges'      => [],
-                'tier'        => 'free',
                 'app_page'    => null, // App page not yet built — re-add slug when the page is registered.
                 'sub_modules' => [
                     'limit-login-attempts',   // not built (login-security is related but not identical)
@@ -389,8 +381,7 @@ class Module_Hierarchy {
                 'description' => __( 'TOTP (Google Authenticator, Authy, 1Password) as primary, email as fallback, recovery codes, and admin override for lockouts.', 'wptransformed' ),
                 'category'    => self::CATEGORY_SECURITY,
                 'icon'        => 'fa-key',
-                'badges'      => [ 'pro' ],
-                'tier'        => 'pro',
+                'badges'      => [],
                 'app_page'    => null,
                 'sub_modules' => [
                     'two-factor-auth',
@@ -405,7 +396,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_SECURITY,
                 'icon'        => 'fa-clipboard-list',
                 'badges'      => [ 'app' ],
-                'tier'        => 'free',
                 'app_page'    => 'wpt-audit-log', // APP page — deferred until Session 4 builds it
                 'sub_modules' => [
                     'audit-log',
@@ -423,7 +413,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_PERFORMANCE,
                 'icon'        => 'fa-compress-arrows-alt',
                 'badges'      => [ 'popular', 'new' ],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'minify-assets',
@@ -440,7 +429,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_PERFORMANCE,
                 'icon'        => 'fa-image',
                 'badges'      => [ 'new' ],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'image-upload-control',
@@ -456,7 +444,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_PERFORMANCE,
                 'icon'        => 'fa-rocket',
                 'badges'      => [],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'heartbeat-control',
@@ -477,7 +464,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_PERFORMANCE,
                 'icon'        => 'fa-database',
                 'badges'      => [ 'app' ],
-                'tier'        => 'free',
                 'app_page'    => 'wpt-database', // APP page — deferred until Session 4 builds it
                 'sub_modules' => [
                     'database-cleanup', // database-optimizer in docs
@@ -497,7 +483,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_DESIGN,
                 'icon'        => 'fa-paint-brush',
                 'badges'      => [ 'popular', 'app' ],
-                'tier'        => 'free',
                 'app_page'    => 'wpt-login-designer', // APP page — deferred until Session 5 builds it
                 'sub_modules' => [
                     'login-branding',      // login-customizer in docs
@@ -511,8 +496,7 @@ class Module_Hierarchy {
                 'description' => __( 'Hide WordPress branding, rename admin footer, replace login logo, custom admin color scheme, and custom help tab.', 'wptransformed' ),
                 'category'    => self::CATEGORY_DESIGN,
                 'icon'        => 'fa-tag',
-                'badges'      => [ 'pro' ],
-                'tier'        => 'pro',
+                'badges'      => [],
                 'app_page'    => null, // App page not yet built (Session 5.3) — re-add slug when the page is registered.
                 'sub_modules' => [
                     'white-label',
@@ -527,7 +511,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_DESIGN,
                 'icon'        => 'fa-moon',
                 'badges'      => [],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'dark-mode',
@@ -548,7 +531,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_DEVELOPER,
                 'icon'        => 'fa-code',
                 'badges'      => [ 'popular' ],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'code-snippets',
@@ -564,8 +546,7 @@ class Module_Hierarchy {
                 'description' => __( 'In-admin error log viewer, system summary, plugin profiler, and a hook inspector for any admin request.', 'wptransformed' ),
                 'category'    => self::CATEGORY_DEVELOPER,
                 'icon'        => 'fa-bug',
-                'badges'      => [ 'pro' ],
-                'tier'        => 'pro',
+                'badges'      => [],
                 'app_page'    => null,
                 'sub_modules' => [
                     'plugin-profiler', // v2 — not built yet
@@ -581,8 +562,7 @@ class Module_Hierarchy {
                 'description' => __( 'GUI builder for custom post types, taxonomies, and meta fields. Export as code.', 'wptransformed' ),
                 'category'    => self::CATEGORY_DEVELOPER,
                 'icon'        => 'fa-cubes',
-                'badges'      => [ 'pro' ],
-                'tier'        => 'pro',
+                'badges'      => [],
                 'app_page'    => null,
                 'sub_modules' => [
                     'custom-content-types', // v2 — not built yet
@@ -596,7 +576,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_DEVELOPER,
                 'icon'        => 'fa-tools',
                 'badges'      => [],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'maintenance-mode',
@@ -619,7 +598,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_DEVELOPER,
                 'icon'        => 'fa-wrench',
                 'badges'      => [],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'search-replace',
@@ -652,7 +630,6 @@ class Module_Hierarchy {
                 'category'    => self::CATEGORY_ECOMMERCE,
                 'icon'        => 'fa-store',
                 'badges'      => [],
-                'tier'        => 'free',
                 'app_page'    => null,
                 'sub_modules' => [
                     'woo-admin-cleanup',    // v2 — not built yet
@@ -666,7 +643,7 @@ class Module_Hierarchy {
     }
 
     /**
-     * Return only the sub-module IDs that actually exist in Module_Registry.
+     * Return only the sub-module IDs with a registered definition (runtime-id keyed via the derived file map).
      *
      * Used by the renderer to skip aspirational v2/v3 entries until they're
      * actually built. A parent with an empty filtered list is hidden by
@@ -676,7 +653,7 @@ class Module_Hierarchy {
      * @return array Filtered list preserving input order.
      */
     public static function filter_existing_sub_modules( array $sub_ids ): array {
-        $registry = Module_Registry::get_all();
+        $registry = Module_Registry::get_file_map();
         $out      = [];
         foreach ( $sub_ids as $id ) {
             if ( isset( $registry[ $id ] ) ) {
