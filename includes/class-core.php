@@ -17,6 +17,9 @@ class Core {
     /** @var array<string, \WPTransformed\Modules\Module_Base> All instantiated modules */
     private array $modules = [];
 
+    /** @var array<string, array> Validated canonical module definitions (post-filter) */
+    private array $definitions = [];
+
     /** @var array<string> IDs of currently active modules */
     private array $active_ids = [];
 
@@ -34,22 +37,88 @@ class Core {
         // 1. Load active module IDs from database (single query)
         $this->active_ids = Settings::get_active_modules();
 
-        // 2. Register all modules from the registry
-        $registry = Module_Registry::get_all();
-        $registry = apply_filters( 'wpt_registered_modules', $registry );
+        // 2. Canonical definitions — the single source of truth for module
+        //    metadata (module-registry spec §6).
+        //
+        //    BREAKING (pre-launch, 2026-06-10): the wpt_registered_modules
+        //    payload is now id => definition array, no longer id => file
+        //    path. Documented in docs/modules/system/module-registry.md §7.
+        $definitions = apply_filters( 'wpt_registered_modules', Module_Registry::get_definitions() );
 
-        foreach ( $registry as $id => $file ) {
-            $this->register_module( $id, $file );
+        // 3. Re-validate AFTER the filter — filtered input is untrusted.
+        //    Invalid definitions are skipped (debug log + admin notice),
+        //    never fatal, and never require_once'd.
+        $invalid = [];
+        foreach ( $definitions as $id => $def ) {
+            if ( ! is_string( $id ) || ! is_array( $def ) ) {
+                $invalid[ (string) $id ] = [ 'definition is not an array' ];
+                continue;
+            }
+
+            $def      = Module_Registry::normalize( $def );
+            $problems = Module_Registry::validate_definition( $id, $def );
+            if ( $problems ) {
+                $invalid[ $id ] = $problems;
+                continue;
+            }
+
+            $this->definitions[ $id ] = $def;
+
+            // Runtime ids stay legacy until the slug-migration slice.
+            $runtime_id = $def['legacy_ids'][0] ?? $id;
+            $this->register_module( $runtime_id, $def['file'] );
         }
+        $this->report_invalid_definitions( $invalid );
 
-        // 3. Initialize active modules
+        // 4. Initialize active modules
         foreach ( $this->active_ids as $id ) {
             $this->init_module( $id );
         }
 
-        // 4. Hook asset loading
+        // 5. Hook asset loading
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_frontend_assets' ] );
+    }
+
+    /**
+     * Validated canonical definitions for this request (post-filter).
+     * The Module Library renders from these — no module code required.
+     */
+    public function get_definitions(): array {
+        return $this->definitions;
+    }
+
+    /**
+     * Surface skipped definitions: error_log under WP_DEBUG plus an
+     * aggregated admin notice for WPT managers. Never fatal.
+     *
+     * @param array<string, string[]> $invalid Map of id => problems.
+     */
+    private function report_invalid_definitions( array $invalid ): void {
+        if ( ! $invalid ) {
+            return;
+        }
+
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            foreach ( $invalid as $id => $problems ) {
+                error_log( "WPTransformed: skipped invalid module definition '{$id}': " . implode( '; ', $problems ) );
+            }
+        }
+
+        add_action( 'admin_notices', function () use ( $invalid ) {
+            if ( ! current_user_can( Permission_Manager::CAP_MANAGE ) ) {
+                return;
+            }
+            echo '<div class="notice notice-warning"><p>'
+                . esc_html(
+                    sprintf(
+                        /* translators: %s: comma-separated module ids */
+                        __( 'WPTransformed skipped invalid module definitions: %s', 'wptransformed' ),
+                        implode( ', ', array_keys( $invalid ) )
+                    )
+                )
+                . '</p></div>';
+        } );
     }
 
     /**

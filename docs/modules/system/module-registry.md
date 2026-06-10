@@ -151,6 +151,15 @@ apply_filters('wpt_module_categories', $categories);
 apply_filters('wpt_module_definition', $definition, $module_id);
 ```
 
+CHANGELOG (2026-06-10, pre-launch breaking change): the
+`wpt_registered_modules` payload changed from `id => file path` to
+`id => definition array` (canonical-keyed, schema per §6). Definitions
+are the single source of truth; filtered input is normalized and
+re-validated after the filter, and invalid entries are skipped with a
+debug log + admin notice — never `require_once`'d and never fatal. The
+runtime `id => file` map remains available internally via
+`Module_Registry::get_file_map()`; it is not a public contract.
+
 Validation rules:
 
 - ID must be kebab-case.
