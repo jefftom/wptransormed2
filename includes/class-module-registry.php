@@ -162,6 +162,10 @@ class Module_Registry {
             'title'       => 'White Label',
             'category'    => 'admin-interface',
             'description' => 'Rebrand the WordPress admin with custom logos, footer text, and branding.',
+            // Product authority overrides the class getter: White Label is
+            // Pro (canonical scope §12.3; build authority §10 — it subsumes
+            // the Core custom-admin-footer module).
+            'tier'        => 'pro',
             'has_cleanup' => true,
         ],
 
