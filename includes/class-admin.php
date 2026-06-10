@@ -1065,6 +1065,11 @@ class Admin {
         $module = Core::instance()->load_module( $module_id );
         if ( ! $module ) return;
 
+        // Settings writes must use the canonical id: load_module() resolves
+        // legacy aliases, and writing the raw alias would recreate a legacy
+        // settings row. The instance id is canonical by loader contract.
+        $module_id = $module->get_id();
+
         $raw   = $_POST;
         $clean = $module->sanitize_settings( $raw );
         Settings::save( $module_id, $clean );
@@ -1098,6 +1103,11 @@ class Admin {
         if ( ! $def ) {
             wp_send_json_error( 'Unknown module' );
         }
+
+        // Settings writes must use the canonical id: get_definition()
+        // resolves legacy aliases (old exports/bookmarks/external calls),
+        // and writing the raw alias would recreate a legacy settings row.
+        $module_id = $def['id'];
 
         if ( 'pro' === ( $def['tier'] ?? 'core' ) && ! Core::is_pro_licensed() ) {
             wp_send_json_error( 'Pro license required' );
