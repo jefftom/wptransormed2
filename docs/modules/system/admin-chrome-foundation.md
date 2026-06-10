@@ -81,8 +81,9 @@ The underlying WordPress admin menu remains native and functional.
 Notes:
 
 - `enabled` is not a public module toggle in Phase 1.
-- A future Safe Mode should be able to bypass global admin styling if needed.
-- `theme_mode` persists via localStorage and user meta.
+- Safe Mode bypasses ALL global chrome (decision 2026-06-09): when Safe Mode is active, `admin-global.css`/`admin-global.js`, font/icon enqueues, topbar injection, section labels, and chrome body classes must not load — stock WP admin renders.
+- `theme_mode` persists via localStorage and the `wpt_theme_mode` user meta.
+- Theme ownership (decision 2026-06-09): the chrome owns the base light/dark/system theme on `wpt_theme_mode` (`'light'|'dark'|'system'`). A one-time migration converts legacy `wpt_dark_mode` values — both the chrome vocabulary (`'1'/'0'`) and the dark-mode module vocabulary (`'dark'/'light'`) — to `wpt_theme_mode`. Theme-related modules (dark-mode / admin-theme) layer extras on the same key and must not define a parallel preference key.
 
 ## 7. Hooks & Implementation
 
@@ -158,7 +159,7 @@ On admin page load:
 
 1. Check whether Safe Mode bypass is active.
 2. Enqueue `admin-global.css` on all admin pages.
-3. Enqueue Outfit, JetBrains Mono, and Font Awesome 6.
+3. Enqueue Outfit, JetBrains Mono, and Font Awesome 6 from bundled plugin assets — self-hosted, no CDN (decision 2026-06-09; WordPress.org guideline 8 + GDPR).
 4. Enqueue `admin-global.js`.
 5. Apply CSS variables using `--wpt-*`.
 6. Style native `#adminmenu`, `#adminmenuwrap`, and `#wpadminbar`.

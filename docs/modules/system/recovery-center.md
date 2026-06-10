@@ -88,6 +88,8 @@ Safe Mode activation methods:
 - Admin UI toggle.
 - Recovery link sent to admin email.
 
+Safe Mode activation requires BOTH a valid token AND a logged-in administrator (`manage_wpt`; `manage_options` until Permission Model ships) — decision 2026-06-09. A bare token is not sufficient.
+
 Action hooks:
 
 ```php
@@ -126,10 +128,10 @@ Optional future table:
 
 Safe Mode request:
 
-1. Validate token.
+1. Validate token AND confirm the current user is a logged-in administrator.
 2. Set request-level safe mode.
 3. Prevent optional modules from loading.
-4. Load only core recovery services.
+4. Load only core recovery services. Definition (decision 2026-06-09): zero WPT admin chrome (no admin-global.css/js, fonts, topbar, section labels — stock WP admin renders); only the WPT settings page and Recovery Center load, and they read module state directly from Settings Storage rather than from booted module instances.
 5. Show Safe Mode banner.
 6. Allow admin to disable/repair modules.
 

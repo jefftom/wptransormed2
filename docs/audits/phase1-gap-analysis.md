@@ -134,26 +134,28 @@ The reskin itself is real and contract-compliant in its core mechanics: native `
 
 Core loop works well (real data, `perm => 'editable'` on recent posts, bounded queries, escaping, empty states). Gaps: not a module (hard-instantiated, no settings, can't be disabled, no registry entry); wizard redirect dead (live bug #8); quick actions have zero capability checks (Block Patterns → site-editor.php shown to users who lack `edit_theme_options`; New Page/Upload Media lack `edit_pages`/`upload_files` checks) and the spec'd Duplicate-Content/Modules/Settings actions are missing; scheduled-content query has no `perm` filter (contributors see other authors' scheduled titles); no site-health/notifications/module-activity sections; no dedicated drafts list; never collapses to single column ≤768px; unspecced "Writing Tip" card with marketing claims (adjacent-feature violation); "View Calendar" links to a list table, not a calendar.
 
-## Architecture Decisions Needed (resolve before building; record as spec TODOs)
+## Architecture Decisions (resolved 2026-06-09)
 
-1. **REST vs admin-ajax for Phase 1** — every spec assumes `wpt/v1`; nothing has it. One decision, applied everywhere.
-2. **Registry metadata model** — definition objects in the registry vs sidecar array vs class getters; payload contract for `wpt_registered_modules` (current shape — file paths — is already semi-public API).
-3. **Safe Mode scope** — exactly which services count as "core recovery services" (chrome is OUT per the safety contract); how the modules page behaves during a Safe Mode request; whether Safe Mode activation needs a capability in addition to the token.
-4. **Global uninstall/retention policy** — multiple specs reference retention choices; `uninstall.php` currently deletes everything unconditionally.
-5. **Dashboard-shell vs module-library page split** — keep merged (amend specs) or split.
-6. **Dark mode ownership** — chrome vs dark-mode module: one owner, one meta vocabulary, define conflict behavior.
-7. **CDN vs self-hosted fonts/icons.**
-8. **Canonical slug reconciliation** — implemented IDs vs canonical registry (ties into `docs/module-hierarchy.md` regeneration, which is still pending and required by CLAUDE.md before Module Grid work).
+All 8 open decisions were resolved with the product owner. Notably, the spec-compliant option was chosen in every case where one existed — so the specs build as written; only the two decisions that ADDED definition (3 and 6) required spec amendments, recorded in `recovery-center.md` and `admin-chrome-foundation.md`.
 
-## Recommended Build Order
+1. **API layer → Full `wpt/v1` REST in Phase 1.** Every spec's §8 builds as written. Existing admin-ajax toggle/save endpoints (and their JS) migrate to REST and retire. The REST layer lands after its prerequisites (permission-model, registry metadata). Conflict rule to record: the disable-backend module's "disable REST API" feature must whitelist `wpt/v1` for authenticated admins.
+2. **Registry metadata → definition arrays in the registry.** Each entry becomes `id => { file, title, category, tier, risk, default_enabled, search_terms, dependencies, … }`. Class getters become derived/deprecated. Enables zero-load, locked-Pro-without-loading, validation, REST exposure, on-page search.
+3. **Safe Mode → native admin + admin-only token.** Safe Mode strips ALL WPT chrome assets/injections (stock WP admin renders); only the WPT settings page and Recovery Center load, reading module state directly from Settings Storage; activation requires a valid token AND a logged-in administrator (`manage_options` until permission-model ships, then `manage_wpt`). Recorded in recovery-center spec §7/§10 and admin-chrome spec §6.
+4. **Uninstall → full 4-choice retention matrix in Phase 1** (keep all / settings only / logs only / delete all) per settings-storage §15. `uninstall.php` branches on the stored choice; default = keep all.
+5. **Dashboard/library → split into two pages.** Modules page becomes a pure library; a new Dashboard submenu page hosts status cards (setup progress, conflicts, recovery alerts, real stats); welcome banner/bento move there. Matches both specs and the addendum §3 nav model.
+6. **Dark mode → chrome owns the base theme.** Single user meta `wpt_theme_mode` ∈ `light|dark|system`, with a one-time migration converting both legacy `wpt_dark_mode` vocabularies (`'1'/'0'` and `'dark'/'light'`). Theme modules layer on the same key; no parallel preference keys. Recorded in admin-chrome spec §6.
+7. **Fonts/icons → self-host/bundle** Outfit + JetBrains Mono + Font Awesome Free; remove the Google Fonts / cdnjs enqueues (WordPress.org guideline 8, GDPR, offline/intranet). Recorded in admin-chrome spec §10.
+8. **Slugs → rename code IDs to canonical now**, pre-launch, with a one-time `wpt_settings` row migration — done together with the registry restructure and the required `docs/module-hierarchy.md` regeneration from v5.2.3 + addendum §12 slug registry.
 
-1. **Quick-fix batch (live bugs):** `Core::get_instance()` fatal; Safe Mode chrome bypass (gate `Admin` hooks); dark-mode meta collision; dead app-page links; bento count; `Settings` cache-priming guard. Small, independent, immediately shippable.
-2. **permission-model** (MISSING; everything depends on it): `Permission_Manager` + capability grants/migration + swap the 88 `manage_options` sites incrementally (AJAX/menu gates first).
-3. **Registry metadata + loader zero-load** (one structural change, two specs): definition-object registry → include only active module files → Pro/locked cards from metadata → validation + admin notices.
-4. **Lifecycle hooks** (cheap once #3 is open): the `wpt_module_*` actions + settings-save hook, so later modules have integration points.
-5. **recovery-center**: quarantine (shutdown-handler pattern from code-snippets), Recovery Center UI, token hygiene + surfacing, Safe-Mode-aware modules page.
-6. **conflict-detector**: greenfield on the seeds listed above; rules for the headline overlaps (WP Mail SMTP, Redirection, login plugins, FileBird) first.
-7. **import-export system service** (rebuild per spec; retire/thin the utilities module).
-8. **Surface remediation:** remove fake metrics, dashboard status cards, library search + risk badges + Safety Check Modal, chrome settings + mobile toggle + CSS scoping fix, editor-dashboard capability checks + settings.
+## Build Order (updated for resolved decisions)
 
-Steps 1–4 unblock everything else; 5–8 can then proceed module-at-a-time per the build rules (one module, full verification on the live install, then next).
+1. **Quick-fix batch (live bugs):** `Core::get_instance()` fatal; dead app-page links; bento count; `Settings` cache-priming guard; activation→wizard→dashboard redirect chain; dark-mode AJAX capability check. Small, independent, immediately shippable. (The dark-mode meta collision and Safe Mode chrome gate are *not* patched here — their proper fixes are decisions 6 and 3, implemented in steps 5 and 8.)
+2. **permission-model** (MISSING; everything depends on it, now including REST): `Permission_Manager` + capability grants on activation + `wpt_db_version`-gated migration for existing installs + swap the 88 `manage_options` sites incrementally (menu/AJAX gates first).
+3. **Registry definition arrays + loader zero-load + canonical slug renames + hierarchy regeneration** (one structural workstream, one settings migration): definition-object registry → include only active module files → Pro/locked cards from metadata → validation + admin notices → rename IDs to canonical slugs → regenerate `docs/module-hierarchy.md` from v5.2.3.
+4. **`wpt/v1` REST layer (decision 1):** namespace bootstrap, base controller, permission-callback plumbing; modules + settings routes per spec; migrate existing toggle/save JS off admin-ajax and retire those actions. Lifecycle hooks (`wpt_module_enabled/disabled/quarantined`, `wpt_module_settings_saved`, …) land here alongside the loader/settings touch points.
+5. **recovery-center** (REST-first, per decision 3): Safe Mode chrome bypass + admin-only activation + hash-stored token + token surfacing; crash quarantine (generalize the shutdown-handler pattern from `class-code-snippets.php:161-200`); Recovery Center UI; Settings-Storage-direct reads for the Safe Mode modules page.
+6. **conflict-detector** (REST-first, greenfield on the seeds listed above): rules for the headline overlaps first (WP Mail SMTP, Redirection, login plugins, FileBird) + `wpt/v1` whitelist rule for disable-backend.
+7. **import-export system service** (rebuild per spec, REST preview/apply flow; retire/thin the utilities module) + settings-storage hardening + the 4-choice uninstall retention matrix (decision 4).
+8. **Surface remediation:** Dashboard/Modules page split (decision 5); remove fake metrics; library on-page search + risk badges + Safety Check Modal; chrome settings object + self-hosted fonts (decision 7) + `wpt_theme_mode` migration (decision 6) + CSS scoping fix + mobile menu toggle; editor-dashboard capability checks + settings.
+
+Steps 1–4 unblock everything else; 5–8 then proceed module-at-a-time per the build rules (one module, full verification on the live install, then next).
