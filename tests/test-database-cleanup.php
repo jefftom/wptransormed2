@@ -32,7 +32,7 @@ class Test_Database_Cleanup extends WP_UnitTestCase {
     // ── Identity ──────────────────────────────────────────────
 
     public function test_get_id(): void {
-        $this->assertSame( 'database-cleanup', $this->module->get_id() );
+        $this->assertSame( 'database-optimizer', $this->module->get_id() );
     }
 
     public function test_get_title(): void {

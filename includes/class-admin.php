@@ -41,16 +41,16 @@ class Admin {
         'content-duplication'        => 'fa-copy',
         'admin-menu-editor'          => 'fa-bars',
         'hide-admin-notices'         => 'fa-bell-slash',
-        'admin-bar'                  => 'fa-minus-circle',
+        'admin-bar-manager'          => 'fa-minus-circle',
         'admin-columns'              => 'fa-columns',
         'dark-mode'                  => 'fa-moon',
-        'database-cleanup'           => 'fa-database',
+        'database-optimizer'         => 'fa-database',
         'heartbeat-control'          => 'fa-heartbeat',
         'disable-comments'           => 'fa-comment-slash',
-        'email-smtp'                 => 'fa-envelope',
+        'email-delivery'             => 'fa-envelope',
         'audit-log'                  => 'fa-clipboard-list',
-        'login-security'             => 'fa-lock',
-        'two-factor-auth'            => 'fa-key',
+        'login-protection'           => 'fa-lock',
+        'two-factor-authentication'  => 'fa-key',
         'strong-passwords'           => 'fa-shield-alt',
         'login-notifications'        => 'fa-bell',
         'revision-control'           => 'fa-history',
@@ -67,7 +67,7 @@ class Admin {
         'image-upload-control'       => 'fa-image',
         'code-snippets'              => 'fa-terminal',
         'custom-code'                => 'fa-paint-brush',
-        'login-branding'             => 'fa-fingerprint',
+        'login-designer'             => 'fa-fingerprint',
         'white-label'                => 'fa-tag',
         'command-palette'            => 'fa-search',
         'keyboard-shortcuts'         => 'fa-keyboard',
@@ -76,7 +76,7 @@ class Admin {
         'disable-frontend'           => 'fa-ban',
         'disable-backend'            => 'fa-plug',
         'disable-gutenberg'          => 'fa-edit',
-        'user-role-editor'           => 'fa-users-cog',
+        'role-manager'               => 'fa-users-cog',
         'password-protection'        => 'fa-user-lock',
         'session-manager'            => 'fa-user-clock',
         'redirect-404'               => 'fa-exclamation-triangle',
@@ -184,8 +184,7 @@ class Admin {
             $core       = Core::instance();
             $js_modules = [];
 
-            foreach ( $core->get_definitions() as $canonical_id => $def ) {
-                $id  = $def['legacy_ids'][0] ?? $canonical_id; // Runtime id until the slug migration.
+            foreach ( $core->get_definitions() as $id => $def ) {
                 $cat = $def['category'];
                 $js_modules[] = [
                     'id'          => $id,
@@ -240,8 +239,7 @@ class Admin {
         $active_count = 0;
 
         foreach ( $definitions as $id => $def ) {
-            $runtime_id = $def['legacy_ids'][0] ?? $id;
-            if ( $core->is_active( $runtime_id ) ) {
+            if ( $core->is_active( $id ) ) {
                 $active_count++;
             }
         }
@@ -1037,8 +1035,7 @@ class Admin {
         $count = 0;
 
         foreach ( $core->get_definitions() as $id => $def ) {
-            $runtime_id = $def['legacy_ids'][0] ?? $id;
-            if ( $def['category'] === $category && $core->is_active( $runtime_id ) ) {
+            if ( $def['category'] === $category && $core->is_active( $id ) ) {
                 $count++;
             }
         }

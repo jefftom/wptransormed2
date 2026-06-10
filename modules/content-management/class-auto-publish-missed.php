@@ -20,7 +20,7 @@ class Auto_Publish_Missed extends Module_Base {
     // ── Identity ──────────────────────────────────────────────
 
     public function get_id(): string {
-        return 'auto-publish-missed';
+        return 'auto-publish-missed-schedule';
     }
 
     public function get_title(): string {

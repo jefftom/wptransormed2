@@ -76,16 +76,17 @@ class Core {
             $def['id']                = $id;
             $this->definitions[ $id ] = $def;
 
-            // Runtime ids stay legacy until the slug-migration slice.
-            $runtime_id = $def['legacy_ids'][0] ?? $id;
-
-            $this->runtime_index[ $runtime_id ] = $id;
+            // Runtime ids are CANONICAL (slug migration done). Legacy ids
+            // remain resolvable aliases for old exports/bookmarks.
+            foreach ( $def['legacy_ids'] as $legacy_alias ) {
+                $this->runtime_index[ $legacy_alias ] = $id;
+            }
 
             // ZERO-LOAD: include an implementation file only when the
             // module will actually run this request. Cards, search, and
             // locked-Pro states all render from the definition above.
-            if ( $this->should_load( $runtime_id, $def ) ) {
-                $this->register_module( $runtime_id, $def['file'] );
+            if ( $this->should_load( $id, $def ) ) {
+                $this->register_module( $id, $def['file'] );
             }
         }
         $this->report_invalid_definitions( $invalid );
@@ -170,7 +171,11 @@ class Core {
             return null;
         }
 
-        $runtime_id = $def['legacy_ids'][0] ?? $def['id'];
+        $runtime_id = $def['id']; // Canonical — runtime ids match since the slug migration.
+        if ( isset( $this->modules[ $runtime_id ] ) ) {
+            // Already loaded — caller passed a legacy alias of a loaded module.
+            return $this->modules[ $runtime_id ];
+        }
         if ( ! $this->is_loadable( $runtime_id, $def ) ) {
             return null;
         }

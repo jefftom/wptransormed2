@@ -44,7 +44,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class Login_Designer_App {
 
     /** Module ID the app page wraps. */
-    private const MODULE_ID = 'login-branding';
+    private const MODULE_ID = 'login-designer';
 
     public function __construct() {
         add_action( 'admin_menu', [ $this, 'register_page' ], 20 );

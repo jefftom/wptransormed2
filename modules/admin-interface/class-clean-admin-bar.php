@@ -64,7 +64,7 @@ class Clean_Admin_Bar extends Module_Base {
     // ── Identity ──────────────────────────────────────────────
 
     public function get_id(): string {
-        return 'admin-bar';
+        return 'admin-bar-manager';
     }
 
     public function get_title(): string {

@@ -49,7 +49,7 @@ class Two_Factor_Auth extends Module_Base {
     // -- Identity ---------------------------------------------------------
 
     public function get_id(): string {
-        return 'two-factor-auth';
+        return 'two-factor-authentication';
     }
 
     public function get_title(): string {

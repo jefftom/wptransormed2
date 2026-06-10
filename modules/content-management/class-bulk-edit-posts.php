@@ -17,7 +17,7 @@ class Bulk_Edit_Posts extends Module_Base {
     // -- Identity --
 
     public function get_id(): string {
-        return 'bulk-edit-posts';
+        return 'bulk-content-editor';
     }
 
     public function get_title(): string {

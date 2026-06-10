@@ -25,7 +25,7 @@ class Export_Import_Settings extends Module_Base {
      * Format: module_id => [ setting_key, ... ]
      */
     private const SENSITIVE_KEYS = [
-        'email-smtp' => [ 'password', 'smtp_password' ],
+        'email-delivery' => [ 'password', 'smtp_password' ],
     ];
 
     // ── Identity ──────────────────────────────────────────────
@@ -191,7 +191,9 @@ class Export_Import_Settings extends Module_Base {
             $result = $wpdb->replace(
                 $table,
                 [
-                    'module_id' => $module_id,
+                    // CANONICAL id — legacy ids in old exports are resolved
+                    // by load_module() above but never written back.
+                    'module_id' => $module->get_id(),
                     'is_active' => (int) $is_active,
                     'settings'  => wp_json_encode( $settings ),
                 ],

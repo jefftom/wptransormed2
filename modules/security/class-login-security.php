@@ -21,7 +21,7 @@ use WPTransformed\Modules\Module_Base;
 class Login_Security extends Module_Base {
 
 	public function get_id(): string {
-		return 'login-security';
+		return 'login-protection';
 	}
 
 	public function get_title(): string {

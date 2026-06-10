@@ -257,7 +257,7 @@ class Email_SMTP_Test extends \PHPUnit\Framework\TestCase {
     public function test_module_identity(): void {
         $instance = $this->createInstance();
 
-        $this->assertSame( 'email-smtp', $instance->get_id() );
+        $this->assertSame( 'email-delivery', $instance->get_id() );
         $this->assertSame( 'utilities', $instance->get_category() );
         $this->assertNotEmpty( $instance->get_title() );
         $this->assertNotEmpty( $instance->get_description() );

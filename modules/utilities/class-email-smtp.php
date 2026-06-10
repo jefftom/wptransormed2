@@ -26,7 +26,7 @@ class Email_SMTP extends Module_Base {
     // ── Identity ──────────────────────────────────────────────
 
     public function get_id(): string {
-        return 'email-smtp';
+        return 'email-delivery';
     }
 
     public function get_title(): string {

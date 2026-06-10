@@ -82,6 +82,17 @@ add_action( 'plugins_loaded', function() {
     // Cheap: role mutation only runs when the caps version is stale.
     \WPTransformed\Core\Permission_Manager::init();
 
+    // One-time canonical slug migration — version-gated and idempotent.
+    // Runs BEFORE boot so the Settings cache only ever sees canonical ids.
+    // Audit trail: wpt_slug_migration_v1_backup option.
+    if ( get_option( 'wpt_slug_version' ) !== '1' ) {
+        \WPTransformed\Core\Settings::migrate_module_ids(
+            \WPTransformed\Core\Module_Registry::get_legacy_map(),
+            array_keys( \WPTransformed\Core\Module_Registry::get_definitions() )
+        );
+        update_option( 'wpt_slug_version', '1' );
+    }
+
     // Check safe mode BEFORE loading any modules
     $safe_mode = \WPTransformed\Core\Safe_Mode::is_active();
 

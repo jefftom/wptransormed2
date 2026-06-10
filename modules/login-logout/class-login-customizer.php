@@ -28,7 +28,7 @@ class Login_Customizer extends Module_Base {
     // ── Identity ──────────────────────────────────────────────
 
     public function get_id(): string {
-        return 'login-branding';
+        return 'login-designer';
     }
 
     public function get_title(): string {

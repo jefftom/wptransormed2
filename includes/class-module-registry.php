@@ -980,18 +980,27 @@ class Module_Registry {
     }
 
     /**
-     * Derived runtime id => file map.
-     *
-     * Transitional: keyed by the CURRENT runtime id (first legacy id when a
-     * rename is pending, canonical id otherwise) so loader behavior is
-     * byte-identical to the legacy get_all() map until the slug migration
-     * flips runtime ids to canonical.
+     * Derived runtime id => file map. Runtime ids are CANONICAL since the
+     * slug migration; legacy ids survive only as resolvable aliases.
      */
     public static function get_file_map(): array {
         $map = [];
         foreach ( self::get_definitions() as $id => $def ) {
-            $runtime_id         = $def['legacy_ids'][0] ?? $id;
-            $map[ $runtime_id ] = $def['file'];
+            $map[ $id ] = $def['file'];
+        }
+        return $map;
+    }
+
+    /**
+     * Legacy id => canonical id map, derived from definitions. The single
+     * source for the slug migration and legacy alias resolution.
+     */
+    public static function get_legacy_map(): array {
+        $map = [];
+        foreach ( self::get_definitions() as $id => $def ) {
+            foreach ( $def['legacy_ids'] as $legacy ) {
+                $map[ $legacy ] = $id;
+            }
         }
         return $map;
     }

@@ -24,7 +24,7 @@ class Enhance_List_Tables extends Module_Base {
     // ── Identity ──────────────────────────────────────────────
 
     public function get_id(): string {
-        return 'enhance-list-tables';
+        return 'list-table-enhancements';
     }
 
     public function get_title(): string {

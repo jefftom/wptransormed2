@@ -93,7 +93,7 @@ class Database_Optimizer_App {
         }
 
         $core              = Core::instance();
-        $module_active     = $core->is_active( 'database-cleanup' );
+        $module_active     = $core->is_active( 'database-optimizer' );
         $cleanup           = $this->get_cleanup_instance();
         $cleanup_settings  = $cleanup ? $cleanup->get_settings() : [];
         $cleanup_categories = $this->get_cleanup_data( $cleanup, $cleanup_settings );

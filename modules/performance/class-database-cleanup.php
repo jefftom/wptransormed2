@@ -63,7 +63,7 @@ class Database_Cleanup extends Module_Base {
     // ── Identity ──────────────────────────────────────────────
 
     public function get_id(): string {
-        return 'database-cleanup';
+        return 'database-optimizer';
     }
 
     public function get_title(): string {

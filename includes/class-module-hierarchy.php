@@ -126,7 +126,7 @@ class Module_Hierarchy {
                 'badges'      => [ 'popular' ],
                 'app_page'    => null,
                 'sub_modules' => [
-                    'admin-bar',          // clean-admin-bar in docs
+                    'admin-bar-manager',
                     'admin-bar-enhancer', // v2 — not built yet
                     'hide-admin-bar',     // v2 — not built yet
                     'command-palette',
@@ -176,7 +176,7 @@ class Module_Hierarchy {
                 'badges'      => [ 'new' ],
                 'app_page'    => null,
                 'sub_modules' => [
-                    'enhance-list-tables',
+                    'list-table-enhancements',
                     'admin-columns',              // admin-columns-enhancer in docs
                     'admin-columns-pro',          // v2 Pro — not built yet
                     'page-template-column',       // v2 — not built yet
@@ -213,7 +213,7 @@ class Module_Hierarchy {
                 'app_page'    => null,
                 'sub_modules' => [
                     'multiple-user-roles',
-                    'user-role-editor',
+                    'role-manager',
                     'session-manager',
                     'temporary-user-access',
                     'view-as-role',
@@ -237,7 +237,7 @@ class Module_Hierarchy {
                     'content-duplication',
                     'content-order',
                     'terms-order',
-                    'bulk-edit-posts',
+                    'bulk-content-editor',
                     'post-type-switcher',
                     'public-preview',
                     'external-links-new-tab',
@@ -256,7 +256,7 @@ class Module_Hierarchy {
                 'app_page'    => null,
                 'sub_modules' => [
                     'content-calendar',     // v2 — not built yet
-                    'auto-publish-missed',
+                    'auto-publish-missed-schedule',
                     'workflow-automation',  // deferred — not built yet
                 ],
             ],
@@ -363,7 +363,7 @@ class Module_Hierarchy {
                 'app_page'    => null, // App page not yet built — re-add slug when the page is registered.
                 'sub_modules' => [
                     'limit-login-attempts',   // not built (login-security is related but not identical)
-                    'login-security',         // existing catch-all
+                    'login-protection',       // stub — spec'd, not yet implemented
                     'captcha-protection',     // v2 — not built yet
                     'change-login-url',       // v2 — not built yet
                     'login-id-type',          // v2 — not built yet
@@ -376,7 +376,7 @@ class Module_Hierarchy {
             ],
 
             [
-                'id'          => 'two-factor-auth',
+                'id'          => 'two-factor-auth', // Grouping key only — NOT a module id (module: two-factor-authentication).
                 'label'       => __( 'Two-Factor Auth', 'wptransformed' ),
                 'description' => __( 'TOTP (Google Authenticator, Authy, 1Password) as primary, email as fallback, recovery codes, and admin override for lockouts.', 'wptransformed' ),
                 'category'    => self::CATEGORY_SECURITY,
@@ -384,7 +384,7 @@ class Module_Hierarchy {
                 'badges'      => [],
                 'app_page'    => null,
                 'sub_modules' => [
-                    'two-factor-auth',
+                    'two-factor-authentication',
                     'passkey-auth', // deferred to Pro/v3 — not built yet
                 ],
             ],
@@ -466,7 +466,7 @@ class Module_Hierarchy {
                 'badges'      => [ 'app' ],
                 'app_page'    => 'wpt-database', // APP page — deferred until Session 4 builds it
                 'sub_modules' => [
-                    'database-cleanup', // database-optimizer in docs
+                    'database-optimizer',
                     'autoloaded-options-audit', // v2 — not built yet
                     'transient-cleanup',        // v2 — not built yet
                 ],
@@ -485,7 +485,7 @@ class Module_Hierarchy {
                 'badges'      => [ 'popular', 'app' ],
                 'app_page'    => 'wpt-login-designer', // APP page — deferred until Session 5 builds it
                 'sub_modules' => [
-                    'login-branding',      // login-customizer in docs
+                    'login-designer',
                     'site-identity-login', // v2 — not built yet
                 ],
             ],
@@ -585,7 +585,7 @@ class Module_Hierarchy {
                     'redirect-404',
                     '404-monitor',
                     'broken-link-checker',
-                    'email-smtp',
+                    'email-delivery',
                     'email-log',
                     'disable-updates', // v2 — not built yet
                 ],

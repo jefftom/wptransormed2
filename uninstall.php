@@ -123,6 +123,8 @@ delete_option( 'wpt_db_version' );
 delete_option( 'wpt_safe_mode_token' );
 delete_option( 'wpt_caps_version' );
 delete_option( 'wpt_admin_role_missing' );
+delete_option( 'wpt_slug_version' );
+delete_option( 'wpt_slug_migration_v1_backup' );
 
 // WPT capabilities are intentionally LEFT on roles: the permission-model
 // spec forbids removing them without explicit user choice. The uninstall

@@ -136,6 +136,129 @@ class Settings {
     }
 
     /**
+     * One-time canonical slug migration: rename legacy module_id rows to
+     * their canonical ids. Version-gated by the caller (wpt_slug_version)
+     * and idempotent — a second run finds no legacy rows and changes
+     * nothing, including the audit option.
+     *
+     * Conflict policy (when canonical AND legacy rows both exist):
+     * - active state = canonical_active OR legacy_active
+     * - canonical settings empty + legacy non-empty => legacy preserved
+     * - both non-empty => canonical wins; legacy settings are backed up
+     *   in the audit option and debug-logged
+     * - the legacy row is deleted only AFTER the canonical row is
+     *   safely written
+     *
+     * Audit trail (pre-launch migration record, not a Recovery Center
+     * feature) is stored in the non-autoloaded option
+     * wpt_slug_migration_v1_backup.
+     *
+     * @param array<string,string> $legacy_map    legacy id => canonical id.
+     * @param string[]             $canonical_ids All canonical ids (for the
+     *                                            skipped-unknown report).
+     */
+    public static function migrate_module_ids( array $legacy_map, array $canonical_ids ): void {
+        global $wpdb;
+        $table = $wpdb->prefix . 'wpt_settings';
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        $rows  = $wpdb->get_results( "SELECT module_id, is_active, settings FROM {$table}", ARRAY_A );
+        $by_id = [];
+        foreach ( (array) $rows as $row ) {
+            $by_id[ $row['module_id'] ] = $row;
+        }
+
+        $audit = [
+            'timestamp'              => gmdate( 'c' ),
+            'version'                => '1',
+            'map'                    => $legacy_map,
+            'legacy_rows_touched'    => [],
+            'canonical_rows_touched' => [],
+            'conflicts'              => [],
+            'skipped_unknown'        => [],
+        ];
+
+        foreach ( array_keys( $by_id ) as $row_id ) {
+            if ( ! in_array( $row_id, $canonical_ids, true ) && ! isset( $legacy_map[ $row_id ] ) ) {
+                $audit['skipped_unknown'][] = $row_id;
+            }
+        }
+
+        foreach ( $legacy_map as $legacy => $canonical ) {
+            if ( ! isset( $by_id[ $legacy ] ) ) {
+                continue;
+            }
+            $legacy_row                     = $by_id[ $legacy ];
+            $audit['legacy_rows_touched'][] = $legacy;
+
+            if ( ! isset( $by_id[ $canonical ] ) ) {
+                // Simple rename — single atomic UPDATE, nothing deleted.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+                $ok = $wpdb->update(
+                    $table,
+                    [ 'module_id' => $canonical ],
+                    [ 'module_id' => $legacy ],
+                    [ '%s' ],
+                    [ '%s' ]
+                );
+                if ( false !== $ok ) {
+                    $audit['canonical_rows_touched'][] = $canonical;
+                }
+                continue;
+            }
+
+            // Conflict: both rows exist.
+            $canon_row       = $by_id[ $canonical ];
+            $legacy_settings = json_decode( $legacy_row['settings'], true ) ?: [];
+            $canon_settings  = json_decode( $canon_row['settings'], true ) ?: [];
+            $merged_active   = ( (bool) $canon_row['is_active'] ) || ( (bool) $legacy_row['is_active'] );
+
+            if ( [] === $canon_settings && [] !== $legacy_settings ) {
+                $settings = $legacy_settings;
+                $decision = 'legacy-settings-preserved';
+            } elseif ( [] !== $canon_settings && [] !== $legacy_settings ) {
+                $settings = $canon_settings;
+                $decision = 'canonical-settings-won';
+                $audit['conflicts'][ $canonical ]['legacy_settings_backup'] = $legacy_settings;
+                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                    error_log( "WPTransformed slug migration: settings conflict for '{$canonical}' — canonical kept, legacy '{$legacy}' settings backed up in wpt_slug_migration_v1_backup." );
+                }
+            } else {
+                $settings = $canon_settings;
+                $decision = 'no-settings-conflict';
+            }
+            $audit['conflicts'][ $canonical ]['decision']      = $decision;
+            $audit['conflicts'][ $canonical ]['merged_active'] = $merged_active;
+
+            // Write the canonical row FIRST; delete legacy only on success.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $ok = $wpdb->replace(
+                $table,
+                [
+                    'module_id' => $canonical,
+                    'is_active' => (int) $merged_active,
+                    'settings'  => wp_json_encode( $settings ),
+                ],
+                [ '%s', '%d', '%s' ]
+            );
+            if ( false !== $ok ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+                $wpdb->delete( $table, [ 'module_id' => $legacy ], [ '%s' ] );
+                $audit['canonical_rows_touched'][] = $canonical;
+            }
+        }
+
+        // Audit is written only when a migration actually ran, so re-runs
+        // never clobber the original record.
+        if ( $audit['legacy_rows_touched'] ) {
+            update_option( 'wpt_slug_migration_v1_backup', $audit, false );
+        }
+
+        // Drop the request cache so post-migration reads see the new ids.
+        self::$cache = null;
+    }
+
+    /**
      * Create the settings table. Called on plugin activation.
      */
     public static function create_table(): void {

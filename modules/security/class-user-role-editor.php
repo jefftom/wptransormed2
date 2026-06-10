@@ -115,7 +115,7 @@ class User_Role_Editor extends Module_Base {
     // -- Identity ---------------------------------------------------------
 
     public function get_id(): string {
-        return 'user-role-editor';
+        return 'role-manager';
     }
 
     public function get_title(): string {
