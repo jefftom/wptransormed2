@@ -1,6 +1,6 @@
 # WPTransformed — Verified Facts Sheet
 
-Source of truth for build prompts and reviews. Extracted directly from the committed codebase at `1.1.0-session5p2.3` (commit 1148452, REST Skeleton v1 landed). Every value below was read from the repo, not recalled. Refresh this file when foundations change; until then, prompts cite this sheet instead of asking or guessing.
+Source of truth for build prompts and reviews. v1.1 — independently extracted from the committed codebase (1148452, REST Skeleton v1), updated for toggle hardening (8176100). Provenance rule: facts here are read from implementation behavior unless marked **[doc-derived]**; docblocks are NOT ground truth (v1.0 carried one docblock-derived error on batch pro semantics, caught against behavior and corrected below). Refresh when foundations change; until then, prompts cite this sheet instead of asking or guessing. If a session report and this sheet disagree, re-verify against code — this sheet is the tiebreaker only because of its extraction method, not its age.
 
 ## Plugin identity
 - Version constant: `WPT_VERSION = '1.1.0-session5p2.3'` (wptransformed.php)
@@ -35,7 +35,7 @@ All aliases match the pinned REST id regex. **Constraint going forward: new alia
 manage_wpt, manage_wpt_modules, manage_wpt_settings, manage_wpt_client_safe, manage_wpt_security, manage_wpt_email, manage_wpt_search_visibility, manage_wpt_code, manage_wpt_database, manage_wpt_reports, manage_wpt_integrations, view_wpt_logs, export_wpt_data, run_wpt_dangerous_tools, manage_wpt_white_label.
 - Constants: CAP_MANAGE=manage_wpt, CAP_MODULES=manage_wpt_modules, CAP_SETTINGS, CAP_DANGEROUS, CAP_DATABASE, CAP_LOGS, CAP_EXPORT, CAP_CODE, CAP_SECURITY, CAP_EMAIL (see class for full constant list).
 - Per-module gate: `Permission_Manager::user_can_manage_module( $module_id, $user_id )` = CAP_MODULES check wrapped in public filter `wpt_user_can_manage_module( $can, $user_id, $module_id )`.
-- ⚠ Known drift (open): ajax_toggle_module passes the RAW (possibly alias) id to this filter before canonicalization; REST passes canonical. Fix pending.
+- ✓ CLOSED (8176100): ajax filter drift fixed — ajax_toggle_module now canonicalizes before the per-module filter; check order is nonce → empty → definition lookup → canonicalize → filter → pro → status → toggle. Filter receives canonical ids on all surfaces that apply it.
 
 ## REST surface (includes/class-rest-controller.php — class `WPTransformed\Core\Rest_Controller`)
 - Namespace: `wpt/v1`. Bootstrapped via `Rest_Controller::init()` from wptransformed.php; routes registered on `rest_api_init`.
@@ -48,11 +48,21 @@ manage_wpt, manage_wpt_modules, manage_wpt_settings, manage_wpt_client_safe, man
 - Stable error codes: wpt_forbidden ("Sorry, you are not allowed to do that." / "...manage this module."), wpt_invalid_module ("Unknown module.", 404), wpt_pro_locked ("Pro license required.", 403), wpt_toggle_failed ("Failed to update module state.", 500).
 - Auth status: 401 logged-out / 403 authenticated-without-cap via rest_authorization_required_code().
 - Module payload fields: id, title, description, category, tier, risk, status, default_enabled, has_settings, app_page, dependencies, search_terms, legacy_ids, active, pro_locked. Private (never exposed): file, class, capability, has_cleanup.
-- ⚠ Known gap (open): toggle does NOT reject stub-status modules; persists inert active state. Pro rejected, unknown 404'd, stub allowed.
+- ✓ CLOSED (8176100): stub gating added. Stub ENABLE rejects — REST: wpt_module_stub, "This module is not yet implemented.", 400 (after pro gate, via shared error helper); ajax single: wp_send_json_error('Module not yet implemented'); ajax parent batch: per-sub skip with error 'not implemented', counted in failed, batch continues; wizard: pre-loop filter to status=implemented. Stub DISABLE is allowed (cleans up pre-fix inert active rows). Unknown→404 and pro→wpt_pro_locked unchanged.
+
+## Toggle hardening contracts (commit 8176100; facts sheet committed separately as d0a34ea)
+- No-op suppression: Settings::toggle_module returns true early when cached is_active equals requested state — no DB write, no lifecycle hook. Hooks fire on real transitions only (docblock updated to match).
+- New helper: `Settings::is_module_active( string $module_id ): bool` — cache-primed read; the single source of pre-toggle state. Do not use Core::$active_ids (boot snapshot) for pre-toggle reads.
+- REST toggle response (PERMANENT): `{ "id", "active", "previous_active", "changed" }`. No-op = HTTP 200, changed false. Ajax response contracts unchanged and frozen.
+- Stable REST error codes now: wpt_forbidden, wpt_invalid_module, wpt_pro_locked, wpt_toggle_failed, wpt_module_stub.
+- Checkpoint §16.1 records ratifications (Rest_Controller naming, set_module_active signature, args-schema validation origin), these contracts, and decided deferrals ($context hook param until audit-log consumes hooks; settings-save no-op semantics undecided).
+- Harness: tests/harness-rest.php at 28 assertions post-hardening.
+- Open cleanup item: stale ajax_toggle_parent DOCBLOCK (whole-batch pro rejection claim) contradicts implementation — fix in next touching commit so it stops poisoning future extraction.
 
 ## Toggle architecture
 - Shared method (as built): `Core::set_module_active( string $id, bool $active ): bool` — caller validates + canonicalizes first; method persists via Settings::toggle_module and runs $module->deactivate() cleanup on disable. NOT the v2-spec'd (input_id, active, source): array|WP_Error signature.
-- Toggle surfaces: wpt/v1 REST · wp_ajax_wpt_toggle_module · wp_ajax_wpt_toggle_parent (batch; Pro sub-module anywhere rejects whole batch pre-write) · setup wizard (calls Settings::toggle_module directly, enable-only, validates ids against canonical registry keys so aliases are dropped not resolved).
+- Toggle surfaces: wpt/v1 REST · wp_ajax_wpt_toggle_module · wp_ajax_wpt_toggle_parent (batch: per-sub pro_locked skips with error entries, batch continues — the class-admin.php method DOCBLOCK claiming whole-batch pre-write rejection is STALE and pending correction) · setup wizard (calls Settings::toggle_module directly, enable-only, validates ids against canonical registry keys so aliases are dropped not resolved; since 8176100 also filters to status=implemented).
+- wp_ajax_wpt_toggle_parent applies NO per-module wpt_user_can_manage_module filter (deliberate, commented in code); gates on manage_wpt_modules only. Recorded in checkpoint §16.1 gaps.
 - Existing ajax contracts (unchanged, preserved): success {"success":true,"data":{"active":bool}}; errors via wp_send_json_error strings ("Missing module ID", "Unauthorized" 403, "Unknown module", "Pro license required", "Failed to update").
 
 ## Lifecycle hooks (live in shared storage layer — includes/class-settings.php)
