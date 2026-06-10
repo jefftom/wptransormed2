@@ -860,6 +860,9 @@ class Module_Registry {
             'title'       => 'Error Log Viewer',
             'category'    => 'utilities',
             'description' => 'View, search, and manage the PHP error log directly from the WordPress admin.',
+            // Product authority overrides the class getter: Error Log
+            // Viewer is Pro (canonical scope §17.2).
+            'tier'        => 'pro',
             'has_cleanup' => true,
         ],
     ];
