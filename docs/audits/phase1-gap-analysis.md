@@ -68,6 +68,8 @@ No shutdown-handler fatal detection, no quarantine state, no rollback-on-failed-
 
 ## Confirmed Live Bugs (independent of spec compliance)
 
+> Status update 2026-06-09: bugs #1, #4, #6, #7, #8, #9 fixed in `5412fb7` (build-order step 1). #2 deferred to the import-export rebuild (step 7), #3 to the `wpt_theme_mode` migration (decision 6, step 8), #5 to chrome/palette remediation (step 8), #10 resolves with the registry rework (step 3).
+
 | # | Bug | Location | Impact |
 |---|---|---|---|
 | 1 | Settings import fatals: calls `Core::get_instance()`, but Core only defines `instance()` | `modules/utilities/class-export-import-settings.php:180` vs `includes/class-core.php:23` | Every import 500s before writing anything (verified) |
