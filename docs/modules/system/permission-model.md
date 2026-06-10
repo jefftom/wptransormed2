@@ -101,6 +101,14 @@ run_wpt_dangerous_tools
 manage_wpt_white_label
 ```
 
+Note (2026-06-09): this 15-capability list (identical to build authority
+addendum v5.3.6 §14) is authoritative. Canonical scope §18.4 contains an
+older draft with different names (`view_wpt_dashboard`, `export_wpt_settings`,
+`import_wpt_settings`, `manage_wpt_schema`, `manage_wpt_roles`) and a Core/Pro
+grant split — superseded per the source-of-truth hierarchy (Layers 2a/3 own
+implementation detail). Administrators receive ALL capabilities by default;
+per-role Core/Pro assignment UI belongs to Role Manager Pro.
+
 Filter:
 
 ```php

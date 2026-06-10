@@ -508,7 +508,7 @@ class Code_Snippets extends Module_Base {
     public function ajax_add_snippet(): void {
         check_ajax_referer( 'wpt_code_snippets_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
@@ -594,7 +594,7 @@ class Code_Snippets extends Module_Base {
     public function ajax_edit_snippet(): void {
         check_ajax_referer( 'wpt_code_snippets_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
@@ -682,7 +682,7 @@ class Code_Snippets extends Module_Base {
     public function ajax_delete_snippet(): void {
         check_ajax_referer( 'wpt_code_snippets_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 
@@ -719,7 +719,7 @@ class Code_Snippets extends Module_Base {
     public function ajax_toggle_snippet(): void {
         check_ajax_referer( 'wpt_code_snippets_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'wptransformed' ) ] );
         }
 

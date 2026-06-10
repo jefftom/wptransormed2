@@ -121,6 +121,13 @@ $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpt_settings" );
 // Remove plugin options
 delete_option( 'wpt_db_version' );
 delete_option( 'wpt_safe_mode_token' );
+delete_option( 'wpt_caps_version' );
+delete_option( 'wpt_admin_role_missing' );
+
+// WPT capabilities are intentionally LEFT on roles: the permission-model
+// spec forbids removing them without explicit user choice. The uninstall
+// retention matrix (decision 4, build-order step 7) will call
+// Permission_Manager::remove_from_all_roles() when full cleanup is selected.
 
 // Clear any remaining transients with our prefix
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery

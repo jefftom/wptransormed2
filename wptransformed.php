@@ -60,6 +60,7 @@ spl_autoload_register( function( $class ) {
 // Activation
 register_activation_hook( __FILE__, function() {
     \WPTransformed\Core\Settings::create_table();
+    \WPTransformed\Core\Permission_Manager::grant_to_administrator();
     \WPTransformed\Core\Safe_Mode::generate_token();
     flush_rewrite_rules();
     // Consumed by the Setup Wizard on the next admin load to start onboarding.
@@ -76,6 +77,10 @@ register_deactivation_hook( __FILE__, function() {
 add_action( 'plugins_loaded', function() {
     // Load text domain
     load_plugin_textdomain( 'wptransformed', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+
+    // Permission model boots first — capability checks below depend on it.
+    // Cheap: role mutation only runs when the caps version is stale.
+    \WPTransformed\Core\Permission_Manager::init();
 
     // Check safe mode BEFORE loading any modules
     $safe_mode = \WPTransformed\Core\Safe_Mode::is_active();

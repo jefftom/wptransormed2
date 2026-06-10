@@ -149,7 +149,7 @@ class Database_Cleanup extends Module_Base {
     public function ajax_run(): void {
         check_ajax_referer( 'wpt_db_cleanup_nonce', 'nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'run_wpt_dangerous_tools' ) ) {
             wp_send_json_error( [ 'message' => 'Unauthorized.' ], 403 );
         }
 

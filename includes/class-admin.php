@@ -146,7 +146,7 @@ class Admin {
             'wpt-dashboard',                                // parent slug
             __( 'Modules', 'wptransformed' ),               // page title
             __( 'Modules', 'wptransformed' ),               // menu title
-            'manage_options',                               // capability
+            Permission_Manager::CAP_MODULES,                // capability
             'wptransformed',                                // menu slug (keep for back-compat)
             [ $this, 'render_page' ]                        // callback
         );
@@ -206,7 +206,7 @@ class Admin {
      * Render the main page — either dashboard or module settings.
      */
     public function render_page(): void {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( Permission_Manager::CAP_MODULES ) ) {
             wp_die( __( 'Unauthorized.', 'wptransformed' ) );
         }
 
@@ -1039,7 +1039,7 @@ class Admin {
         if ( empty( $module_id ) ) return;
 
         check_admin_referer( 'wpt_save_' . $module_id, 'wpt_nonce' );
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( Permission_Manager::CAP_SETTINGS ) ) {
             wp_die( __( 'Unauthorized.', 'wptransformed' ) );
         }
 
@@ -1060,15 +1060,16 @@ class Admin {
 
     public function ajax_toggle_module(): void {
         check_ajax_referer( 'wpt_admin_nonce', 'nonce' );
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( 'Unauthorized', 403 );
-        }
 
         $module_id = isset( $_POST['module_id'] ) ? sanitize_key( $_POST['module_id'] ) : '';
         $active    = isset( $_POST['active'] ) && $_POST['active'] === '1';
 
         if ( empty( $module_id ) ) {
             wp_send_json_error( 'Missing module ID' );
+        }
+
+        if ( ! Permission_Manager::user_can_manage_module( $module_id ) ) {
+            wp_send_json_error( 'Unauthorized', 403 );
         }
 
         $module = Core::instance()->get_module( $module_id );
@@ -1134,7 +1135,10 @@ class Admin {
      */
     public function ajax_toggle_parent(): void {
         check_ajax_referer( 'wpt_admin_nonce', 'nonce' );
-        if ( ! current_user_can( 'manage_options' ) ) {
+        // Batch toggles require the full capability; the per-module
+        // wpt_user_can_manage_module grant filter applies only to
+        // individual toggles (ajax_toggle_module).
+        if ( ! current_user_can( Permission_Manager::CAP_MODULES ) ) {
             wp_send_json_error( 'Unauthorized', 403 );
         }
 
