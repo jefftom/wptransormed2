@@ -83,10 +83,28 @@ class Settings {
 
     /**
      * Save settings for a module. Uses REPLACE INTO (upsert).
+     *
+     * No-op suppression (PERMANENT contract): when a cache entry exists
+     * for the module AND wp_json_encode() of the incoming settings is
+     * strictly identical to the encoding of the cached settings, the
+     * save returns true with no database write and no
+     * wpt_module_settings_saved hook. The comparison is a string
+     * comparison of the two encodings — key-order or type differences
+     * that change the encoding count as real changes and write
+     * normally. No cache entry = never a no-op (first saves create the
+     * row). Input is compared as-is — this method never sanitizes.
      */
     public static function save( string $module_id, array $settings ): bool {
         // Prime the cache — a cold-cache save would otherwise write is_active=0.
         self::load();
+
+        // No-op suppression: identical persisted settings (by encoding)
+        // write nothing and fire no hook; rows the module never saved
+        // always write.
+        if ( isset( self::$cache[ $module_id ] )
+            && wp_json_encode( $settings ) === wp_json_encode( self::$cache[ $module_id ]['settings'] ) ) {
+            return true;
+        }
 
         global $wpdb;
         $table = $wpdb->prefix . 'wpt_settings';
@@ -117,7 +135,10 @@ class Settings {
              * surface (admin form, app pages, import, future REST
              * settings routes) fires it identically. Callers
              * canonicalize ids ahead of the write, so subscribers
-             * always receive the canonical module id.
+             * always receive the canonical module id. Fires only when
+             * the persisted settings actually change — no-op re-saves
+             * return true silently above, without a write and without
+             * this hook.
              *
              * @param string $module_id Canonical module id.
              * @param array  $settings  The persisted (sanitized) settings.

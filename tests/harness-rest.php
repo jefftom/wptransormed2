@@ -32,6 +32,11 @@ declare(strict_types=1);
  *     with changed=false, NO database write, NO lifecycle hook
  *   - stub gating: ENABLE rejects wpt_module_stub 400 (canonical id or
  *     legacy alias), DISABLE is allowed so stale active rows clean up
+ *   - no-op SAVE suppression: identical re-save (by wp_json_encode
+ *     string equality) returns true with NO write and NO
+ *     wpt_module_settings_saved hook; changed saves and first saves
+ *     (no cache entry) write and fire; encoding-changing differences
+ *     (e.g. key order) count as real changes
  *   - the per-module wpt_user_can_manage_module filter receives the
  *     CANONICAL id and can deny the toggle
  *
@@ -370,6 +375,47 @@ check(
 check(
     is_wpt_error( $ctrl->toggle_module( req( [ 'id' => 'login-protection', 'active' => true ] ) ), 'wpt_module_stub', 400 ),
     'stub ENABLE still rejects after cleanup (enable/disable asymmetry)'
+);
+
+// ── Settings-save no-op suppression ───────────────────────────
+// admin-bar-manager is seeded with settings {probe: kept}; the cache
+// was primed at boot, so an identical re-save must suppress.
+$GLOBALS['__did_actions'] = [];
+$rows_before = json_encode( $GLOBALS['wpdb']->rows );
+check(
+    true === Settings::save( 'admin-bar-manager', [ 'probe' => 'kept' ] )
+    && json_encode( $GLOBALS['wpdb']->rows ) === $rows_before
+    && [] === $GLOBALS['__did_actions'],
+    'identical re-save returns true with NO write and NO wpt_module_settings_saved hook'
+);
+
+$GLOBALS['__did_actions'] = [];
+check(
+    true === Settings::save( 'admin-bar-manager', [ 'a' => 1, 'b' => 2 ] )
+    && [ 'a' => 1, 'b' => 2 ] === json_decode( $GLOBALS['wpdb']->row( 'admin-bar-manager' )['settings'], true )
+    && '0' === $GLOBALS['wpdb']->row( 'admin-bar-manager' )['is_active']
+    && [ [ 'wpt_module_settings_saved', [ 'admin-bar-manager', [ 'a' => 1, 'b' => 2 ] ] ] ] === $GLOBALS['__did_actions'],
+    'changed save writes, preserves is_active, and fires the hook once with the persisted array'
+);
+
+$GLOBALS['__did_actions'] = [];
+$rows_before = json_encode( $GLOBALS['wpdb']->rows );
+Settings::save( 'admin-bar-manager', [ 'a' => 1, 'b' => 2 ] );
+$noop_held = json_encode( $GLOBALS['wpdb']->rows ) === $rows_before && [] === $GLOBALS['__did_actions'];
+Settings::save( 'admin-bar-manager', [ 'b' => 2, 'a' => 1 ] ); // same pairs, different key order
+check(
+    $noop_held
+    && [ [ 'wpt_module_settings_saved', [ 'admin-bar-manager', [ 'b' => 2, 'a' => 1 ] ] ] ] === $GLOBALS['__did_actions'],
+    'comparison is by encoding: identical re-save suppresses, key-order change writes and fires'
+);
+
+$GLOBALS['__did_actions'] = [];
+check(
+    null === $GLOBALS['wpdb']->row( 'duplicate-widget' )
+    && true === Settings::save( 'duplicate-widget', [ 'fresh' => true ] )
+    && [ 'fresh' => true ] === json_decode( $GLOBALS['wpdb']->row( 'duplicate-widget' )['settings'], true )
+    && [ [ 'wpt_module_settings_saved', [ 'duplicate-widget', [ 'fresh' => true ] ] ] ] === $GLOBALS['__did_actions'],
+    'first save with no cache entry is never a no-op: row created, hook fires'
 );
 
 // Per-module gating: the wpt_user_can_manage_module filter receives the

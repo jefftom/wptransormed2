@@ -168,5 +168,5 @@ Both pending (decision 5; reframe step 13): the status dashboard and Module Libr
 **Decided deferrals / gaps:**
 
 - `$context` parameter on lifecycle hooks: deferred until the audit-log module actually consumes them. Decided deferral, not an oversight.
-- Settings-save no-op semantics undecided: `Settings::save()` still fires `wpt_module_settings_saved` on every successful persist, including identical-settings writes.
+- ✓ Settings-save no-op semantics CLOSED (settings-save hardening commit, 2026-06-10) — **no-op save suppression is a permanent contract**: when a cache entry exists for the module AND `wp_json_encode()` of the incoming settings is strictly identical to the encoding of the cached settings, `Settings::save()` returns `true` with no database write and no `wpt_module_settings_saved` hook. The comparison is a string comparison of the two encodings — key-order or type differences that change the encoding are real changes and write normally. No cache entry = never a no-op (first saves create the row). `is_active` handling and sanitization behavior unchanged; the method compares already-sanitized input as-is.
 - `wp_ajax_wpt_toggle_parent` applies **no per-module filter** — the batch path requires `manage_wpt_modules` outright; `wpt_user_can_manage_module` applies to single-module toggles only. Recorded as a known gap, unchanged by this pass.

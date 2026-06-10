@@ -1154,7 +1154,8 @@ class Admin {
      *       sub_modules: [ {id, active, error?}, ... ],
      *       total: 3,
      *       succeeded: 3,
-     *       failed: 0
+     *       failed: 0,
+     *       pro_locked: 0
      *     }}
      *
      * Semantics:
@@ -1165,8 +1166,13 @@ class Admin {
      *   revert any sub whose individual write failed
      * - On deactivate, $module->deactivate() is called so cron/transients
      *   get cleaned up (same lifecycle semantics as ajax_toggle_module)
-     * - Pro-gated parents: if any sub-module is Pro and the install isn't
-     *   Pro-licensed, the whole batch is rejected before any writes
+     * - Pro-gated sub-modules: when the install isn't Pro-licensed, each
+     *   Pro sub is skipped individually with error='pro_locked' and
+     *   counted in pro_locked — the batch continues, so free subs of a
+     *   mixed-tier parent still toggle
+     * - Non-implemented (stub) sub-modules: skipped on ENABLE with
+     *   error='not implemented' and counted in failed — the batch
+     *   continues; DISABLE passes through so stale active rows clean up
      */
     public function ajax_toggle_parent(): void {
         check_ajax_referer( 'wpt_admin_nonce', 'nonce' );

@@ -52,12 +52,13 @@ manage_wpt, manage_wpt_modules, manage_wpt_settings, manage_wpt_client_safe, man
 
 ## Toggle hardening contracts (commit 8176100; facts sheet committed separately as d0a34ea)
 - No-op suppression: Settings::toggle_module returns true early when cached is_active equals requested state — no DB write, no lifecycle hook. Hooks fire on real transitions only (docblock updated to match).
+- No-op SAVE suppression (this commit — fix(core): suppress no-op settings saves): Settings::save returns true early when a cache entry exists for the module AND wp_json_encode(incoming) is strictly identical to wp_json_encode(cached settings) — no DB write, no wpt_module_settings_saved hook. Encoding string comparison: key-order/type differences that change the encoding are real writes. No cache entry = never a no-op (first saves create the row). is_active handling and sanitization untouched. Closes the §16.1 settings-save deferral.
 - New helper: `Settings::is_module_active( string $module_id ): bool` — cache-primed read; the single source of pre-toggle state. Do not use Core::$active_ids (boot snapshot) for pre-toggle reads.
 - REST toggle response (PERMANENT): `{ "id", "active", "previous_active", "changed" }`. No-op = HTTP 200, changed false. Ajax response contracts unchanged and frozen.
 - Stable REST error codes now: wpt_forbidden, wpt_invalid_module, wpt_pro_locked, wpt_toggle_failed, wpt_module_stub.
 - Checkpoint §16.1 records ratifications (Rest_Controller naming, set_module_active signature, args-schema validation origin), these contracts, and decided deferrals ($context hook param until audit-log consumes hooks; settings-save no-op semantics undecided).
 - Harness: tests/harness-rest.php at 28 assertions post-hardening.
-- Open cleanup item: stale ajax_toggle_parent DOCBLOCK (whole-batch pro rejection claim) contradicts implementation — fix in next touching commit so it stops poisoning future extraction.
+- ✓ CLOSED (this commit — fix(core): suppress no-op settings saves): the stale ajax_toggle_parent DOCBLOCK now describes the implemented per-sub pro_locked skip (batch continues) plus the stub per-sub skip; the whole-batch pre-write rejection claim is gone.
 
 ## Toggle architecture
 - Shared method (as built): `Core::set_module_active( string $id, bool $active ): bool` — caller validates + canonicalizes first; method persists via Settings::toggle_module and runs $module->deactivate() cleanup on disable. NOT the v2-spec'd (input_id, active, source): array|WP_Error signature.
