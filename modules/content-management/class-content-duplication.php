@@ -263,6 +263,53 @@ JS;
             wp_die( esc_html__( 'Source post not found.', 'wptransformed' ) );
         }
 
+        // Steps 4–7 run in the shared implementation (the wpt/v1 action
+        // route delegates to the same method — no second duplication
+        // implementation exists).
+        $new_id = $this->duplicate_post( $post_id );
+
+        if ( is_wp_error( $new_id ) ) {
+            wp_die( esc_html( $new_id->get_error_message() ) );
+        }
+
+        $settings = $this->get_settings();
+
+        // Step 8: Set transient for admin notice
+        set_transient( 'wpt_duplicate_notice_' . get_current_user_id(), $new_id, 30 );
+
+        // Step 9: Redirect based on setting
+        if ( $settings['redirect_after'] === 'edit' ) {
+            wp_safe_redirect( get_edit_post_link( $new_id, 'raw' ) );
+        } else {
+            wp_safe_redirect( admin_url( 'edit.php?post_type=' . $source->post_type ) );
+        }
+        exit;
+    }
+
+    // ── Shared Duplication Implementation ─────────────────────
+
+    /**
+     * Duplicate a post, honoring the module settings (title
+     * prefix/suffix, new_status, copy_taxonomies/meta/featured_image
+     * with the standard skip keys) — the SOLE duplication
+     * implementation, shared by the admin_action handler and the wpt/v1
+     * duplicate action route.
+     *
+     * PURE with respect to UI (slice 10b, checkpoint §16.3): sets no
+     * admin notices, transients, redirects, or other admin-screen
+     * state — callers own all surface behavior. Callers also own
+     * capability and post-type gating; this method only performs the
+     * duplication.
+     *
+     * @param int $post_id Source post ID.
+     * @return int|\WP_Error The new post ID, or WP_Error on failure.
+     */
+    public function duplicate_post( int $post_id ) {
+        $source = get_post( $post_id );
+        if ( ! $source ) {
+            return new \WP_Error( 'wpt_source_missing', __( 'Source post not found.', 'wptransformed' ) );
+        }
+
         $settings = $this->get_settings();
 
         // Step 4: Create new post via wp_insert_post()
@@ -285,7 +332,7 @@ JS;
         $new_id = wp_insert_post( $new_post_args, true );
 
         if ( is_wp_error( $new_id ) ) {
-            wp_die( esc_html( $new_id->get_error_message() ) );
+            return $new_id;
         }
 
         // Step 5: Copy taxonomies
@@ -328,19 +375,10 @@ JS;
             }
         }
 
-        // Step 8: Set transient for admin notice
-        set_transient( 'wpt_duplicate_notice_' . get_current_user_id(), $new_id, 30 );
-
         // Store the original post ID as meta on the new post
         add_post_meta( $new_id, '_wpt_duplicated_from', $post_id );
 
-        // Step 9: Redirect based on setting
-        if ( $settings['redirect_after'] === 'edit' ) {
-            wp_safe_redirect( get_edit_post_link( $new_id, 'raw' ) );
-        } else {
-            wp_safe_redirect( admin_url( 'edit.php?post_type=' . $source->post_type ) );
-        }
-        exit;
+        return $new_id;
     }
 
     // ── Admin Notice ──────────────────────────────────────────
@@ -493,6 +531,52 @@ JS;
                                      ? $raw['wpt_new_status'] : 'draft',
             'redirect_after'      => in_array( $raw['wpt_redirect_after'] ?? '', $valid_redirects, true )
                                      ? $raw['wpt_redirect_after'] : 'list',
+        ];
+    }
+
+    // ── Validate Settings (storage shape) ─────────────────────
+
+    /**
+     * Storage-shape validation (slice 10b override — closes the base
+     * floor's gaps for this module): post_types are sanitize_key'd and
+     * filtered to registered post types (default [post, page] when the
+     * result is empty), enums are pinned, text fields sanitized.
+     *
+     * @param array $settings Storage-shape settings (untrusted).
+     * @return array Validated storage-shape settings.
+     */
+    public function validate_settings( array $settings ): array {
+        $valid_statuses  = [ 'draft', 'publish', 'pending', 'private' ];
+        $valid_redirects = [ 'list', 'edit' ];
+
+        $str = static function ( $value ): string {
+            return is_scalar( $value ) ? (string) $value : '';
+        };
+
+        $post_types = [];
+        if ( isset( $settings['post_types'] ) && is_array( $settings['post_types'] ) ) {
+            foreach ( $settings['post_types'] as $type ) {
+                $key = sanitize_key( $str( $type ) );
+                if ( '' !== $key && post_type_exists( $key ) ) {
+                    $post_types[] = $key;
+                }
+            }
+        }
+        if ( [] === $post_types ) {
+            $post_types = [ 'post', 'page' ];
+        }
+
+        return [
+            'post_types'          => array_values( $post_types ),
+            'copy_taxonomies'     => ! empty( $settings['copy_taxonomies'] ),
+            'copy_meta'           => ! empty( $settings['copy_meta'] ),
+            'copy_featured_image' => ! empty( $settings['copy_featured_image'] ),
+            'title_prefix'        => sanitize_text_field( $str( $settings['title_prefix'] ?? '' ) ),
+            'title_suffix'        => sanitize_text_field( $str( $settings['title_suffix'] ?? '' ) ),
+            'new_status'          => in_array( $settings['new_status'] ?? '', $valid_statuses, true )
+                                     ? $settings['new_status'] : 'draft',
+            'redirect_after'      => in_array( $settings['redirect_after'] ?? '', $valid_redirects, true )
+                                     ? $settings['redirect_after'] : 'list',
         ];
     }
 

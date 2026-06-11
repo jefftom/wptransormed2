@@ -57,6 +57,15 @@ class Email_SMTP extends Module_Base {
         ];
     }
 
+    /**
+     * The SMTP password is a declared secret: the REST controller masks
+     * it on GET and splices the stored value on sentinel/omitted POSTs
+     * (slice 10b secret-settings contract, checkpoint §16.3).
+     */
+    public function get_secret_settings_keys(): array {
+        return [ 'password' ];
+    }
+
     // ── Lifecycle ─────────────────────────────────────────────
 
     public function init(): void {
@@ -148,7 +157,10 @@ class Email_SMTP extends Module_Base {
     // ── Test Email AJAX Handler ───────────────────────────────
 
     /**
-     * Send a test email via AJAX.
+     * Send a test email via AJAX. Validation and the response contract
+     * are byte-unchanged; the send itself delegates to the shared
+     * send_test_email() (slice 10b — the wpt/v1 action route calls the
+     * same method; no second send implementation exists).
      */
     public function ajax_send_test_email(): void {
         check_ajax_referer( 'wpt_test_email_nonce', 'nonce' );
@@ -163,31 +175,9 @@ class Email_SMTP extends Module_Base {
             wp_send_json_error( [ 'message' => __( 'Please enter a valid email address.', 'wptransformed' ) ] );
         }
 
-        // Capture PHPMailer debug output.
-        $debug_output = '';
-        add_action( 'phpmailer_init', function ( $phpmailer ) use ( &$debug_output ) {
-            $phpmailer->SMTPDebug = 1; // Level 1: connection only, not auth data.
-            $phpmailer->Debugoutput = function ( $str ) use ( &$debug_output ) {
-                $debug_output .= $str;
-            };
-        }, 999 );
+        $result = $this->send_test_email( $recipient );
 
-        $subject = sprintf(
-            /* translators: %s: site name */
-            __( 'WPTransformed SMTP Test - %s', 'wptransformed' ),
-            get_bloginfo( 'name' )
-        );
-
-        $message = sprintf(
-            /* translators: 1: site name, 2: date/time */
-            __( "This is a test email from %1\$s.\n\nSent at: %2\$s\n\nIf you received this email, your SMTP settings are working correctly.", 'wptransformed' ),
-            get_bloginfo( 'name' ),
-            current_time( 'mysql' )
-        );
-
-        $result = wp_mail( $recipient, $subject, $message );
-
-        if ( $result ) {
+        if ( $result['sent'] ) {
             wp_send_json_success( [
                 'message' => sprintf(
                     /* translators: %s: recipient email */
@@ -214,12 +204,63 @@ class Email_SMTP extends Module_Base {
                 );
             }
 
-            if ( ! empty( $debug_output ) ) {
-                $message .= "\n\n" . __( 'Debug log:', 'wptransformed' ) . "\n" . $debug_output;
+            if ( ! empty( $result['debug'] ) ) {
+                $message .= "\n\n" . __( 'Debug log:', 'wptransformed' ) . "\n" . $result['debug'];
             }
 
             wp_send_json_error( [ 'message' => $message ] );
         }
+    }
+
+    /**
+     * Send the test email — the SOLE send implementation, shared by the
+     * AJAX handler and the wpt/v1 send-test-email action route.
+     *
+     * PINNED return contract (slice 10b, checkpoint §16.3): always
+     * array{ sent: bool, debug: string } — never WP_Error, never throws.
+     * Wraps wp_mail (bool); any internal exception or pre-send failure
+     * resolves to sent:false with whatever debug was captured, possibly
+     * ''. The caller validates the recipient.
+     *
+     * @param string $recipient Validated recipient email address.
+     * @return array{sent: bool, debug: string}
+     */
+    public function send_test_email( string $recipient ): array {
+        // Capture PHPMailer debug output.
+        $debug_output = '';
+        $capture      = function ( $phpmailer ) use ( &$debug_output ) {
+            $phpmailer->SMTPDebug = 1; // Level 1: connection only, not auth data.
+            $phpmailer->Debugoutput = function ( $str ) use ( &$debug_output ) {
+                $debug_output .= $str;
+            };
+        };
+        add_action( 'phpmailer_init', $capture, 999 );
+
+        $subject = sprintf(
+            /* translators: %s: site name */
+            __( 'WPTransformed SMTP Test - %s', 'wptransformed' ),
+            get_bloginfo( 'name' )
+        );
+
+        $message = sprintf(
+            /* translators: 1: site name, 2: date/time */
+            __( "This is a test email from %1\$s.\n\nSent at: %2\$s\n\nIf you received this email, your SMTP settings are working correctly.", 'wptransformed' ),
+            get_bloginfo( 'name' ),
+            current_time( 'mysql' )
+        );
+
+        try {
+            $sent = (bool) wp_mail( $recipient, $subject, $message );
+        } catch ( \Throwable $e ) {
+            $sent = false;
+        }
+
+        remove_action( 'phpmailer_init', $capture, 999 );
+
+        return [
+            'sent'  => $sent,
+            'debug' => $debug_output,
+        ];
     }
 
     // ── Password Encryption ───────────────────────────────────
@@ -686,6 +727,69 @@ class Email_SMTP extends Module_Base {
             'encryption'     => $encryption,
             'authentication' => $authentication,
             'username'       => $username,
+            'password'       => $password,
+        ];
+    }
+
+    // ── Validate Settings (storage shape) ─────────────────────
+
+    /**
+     * Storage-shape validation (slice 10b secret-bearing override) —
+     * the mirror of sanitize_settings' rules for storage-shape input.
+     *
+     * Password rule is by IDENTITY, not by prefix: an incoming value
+     * string-identical to the currently stored value (the controller's
+     * sentinel-splice case) passes through byte-unchanged; '' clears;
+     * ANY other string — including enc1:-prefixed strings that do not
+     * match the stored value — is treated as new plaintext and
+     * encrypted via encrypt_password(). A client therefore cannot
+     * persist arbitrary ciphertext-looking values, and a stored legacy
+     * plaintext password splices through unchanged until the user
+     * submits a new one.
+     *
+     * @param array $settings Storage-shape settings (untrusted).
+     * @return array Validated storage-shape settings.
+     */
+    public function validate_settings( array $settings ): array {
+        $str = static function ( $value ): string {
+            return is_scalar( $value ) ? (string) $value : '';
+        };
+
+        $smtp_port = absint( $settings['smtp_port'] ?? 587 );
+        if ( $smtp_port < 1 || $smtp_port > 65535 ) {
+            $smtp_port = 587;
+        }
+
+        $encryption = sanitize_key( $str( $settings['encryption'] ?? 'tls' ) );
+        if ( ! in_array( $encryption, [ 'none', 'ssl', 'tls' ], true ) ) {
+            $encryption = 'tls';
+        }
+
+        // Password by identity (see docblock).
+        $stored_password = $this->get_settings()['password'] ?? '';
+        $raw_password    = $settings['password'] ?? '';
+        $incoming        = is_string( $raw_password ) ? $raw_password : '';
+
+        if ( $incoming === $stored_password ) {
+            $password = $stored_password;
+        } elseif ( '' === $incoming ) {
+            $password = '';
+        } else {
+            $encrypted = $this->encrypt_password( $incoming );
+            // Mirror of the form path: if encryption is unavailable,
+            // keep the stored value rather than persisting plaintext.
+            $password = ( '' !== $encrypted ) ? $encrypted : $stored_password;
+        }
+
+        return [
+            'from_email'     => sanitize_email( $str( $settings['from_email'] ?? '' ) ),
+            'from_name'      => sanitize_text_field( $str( $settings['from_name'] ?? '' ) ),
+            'force_from'     => ! empty( $settings['force_from'] ),
+            'smtp_host'      => sanitize_text_field( $str( $settings['smtp_host'] ?? '' ) ),
+            'smtp_port'      => $smtp_port,
+            'encryption'     => $encryption,
+            'authentication' => ! empty( $settings['authentication'] ),
+            'username'       => sanitize_text_field( $str( $settings['username'] ?? '' ) ),
             'password'       => $password,
         ];
     }

@@ -19,8 +19,25 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * - Error: WP_Error with a stable wpt_* code, a human-readable message,
  *   and data.status — WP core renders the standard REST error shape.
  * Stable error codes so far: wpt_forbidden, wpt_invalid_module,
- * wpt_pro_locked, wpt_module_stub, wpt_module_unavailable,
- * wpt_toggle_failed, wpt_settings_save_failed.
+ * wpt_pro_locked, wpt_module_stub, wpt_module_inactive,
+ * wpt_module_unavailable, wpt_toggle_failed, wpt_settings_save_failed,
+ * wpt_invalid_settings, wpt_invalid_post, wpt_post_type_not_enabled,
+ * wpt_duplicate_failed, wpt_invalid_recipient, wpt_email_send_failed.
+ *
+ * Action routes (slice 10b, PERMANENT shape):
+ * POST /modules/(?P<id>[a-z0-9-]+)/actions/(?P<action>[a-z0-9-]+) —
+ * explicit per-action registrations only (no generic dispatcher until a
+ * third action exists). Actions run module BEHAVIOR, so they require an
+ * ACTIVE module (wpt_module_inactive 409) and use the boot-loaded
+ * instance — never load_module(). Two-tier permissions: the
+ * permission_callback enforces the coarse capability; object-level
+ * checks live in the handler (wpt_forbidden 403). Declared secret
+ * settings (Module_Base::get_secret_settings_keys) never leave over
+ * REST: GET masks them ('' or the __WPT_SECRET__ sentinel), POST
+ * splices the stored value for sentinel/omitted keys before
+ * validate_settings. canonicalized_from is a SUCCESS-payload member
+ * only, on every module-addressed route — error responses never carry
+ * it.
  *
  * Read routes render from validated definitions only — never module
  * instances — so no module implementation file loads from a read
@@ -39,6 +56,14 @@ class Rest_Controller {
 
     /** REST namespace — the canonical API surface for all new work. */
     public const REST_NAMESPACE = 'wpt/v1';
+
+    /**
+     * Reserved secret-settings token (slice 10b): GET masks non-empty
+     * declared secrets with it; a POSTed secret equal to it means
+     * keep-existing. A literal secret VALUE of this string is
+     * unsupported by design.
+     */
+    private const SECRET_SENTINEL = '__WPT_SECRET__';
 
     /**
      * Boot-time hookup. Called on plugins_loaded for every request type;
@@ -109,6 +134,37 @@ class Rest_Controller {
                 'settings' => [
                     'description' => __( 'Storage-shape module settings (full replace).', 'wptransformed' ),
                     'type'        => 'object',
+                    'required'    => true,
+                ],
+            ],
+        ] );
+
+        register_rest_route( self::REST_NAMESPACE, '/modules/(?P<id>[a-z0-9-]+)/actions/(?P<action>duplicate)', [
+            'methods'             => \WP_REST_Server::CREATABLE,
+            'callback'            => [ $this, 'action_duplicate' ],
+            'permission_callback' => [ $this, 'can_duplicate_content' ],
+            'args'                => [
+                'id'      => $this->module_id_arg(),
+                'action'  => $this->action_arg(),
+                'post_id' => [
+                    'description' => __( 'Source post ID.', 'wptransformed' ),
+                    'type'        => 'integer',
+                    'required'    => true,
+                    'minimum'     => 1,
+                ],
+            ],
+        ] );
+
+        register_rest_route( self::REST_NAMESPACE, '/modules/(?P<id>[a-z0-9-]+)/actions/(?P<action>send-test-email)', [
+            'methods'             => \WP_REST_Server::CREATABLE,
+            'callback'            => [ $this, 'action_send_test_email' ],
+            'permission_callback' => [ $this, 'can_send_test_email' ],
+            'args'                => [
+                'id'        => $this->module_id_arg(),
+                'action'    => $this->action_arg(),
+                'recipient' => [
+                    'description' => __( 'Test email recipient address.', 'wptransformed' ),
+                    'type'        => 'string',
                     'required'    => true,
                 ],
             ],
@@ -201,6 +257,28 @@ class Rest_Controller {
     }
 
     /**
+     * Duplicate-action coarse gate: edit_posts. The object-level
+     * edit_post check on the SOURCE lives in the handler (two-tier
+     * pattern, §16.3) — parity with the existing admin_action path,
+     * which checks exactly those two things.
+     *
+     * @return true|\WP_Error
+     */
+    public function can_duplicate_content( \WP_REST_Request $request ) {
+        return $this->require_cap( 'edit_posts' );
+    }
+
+    /**
+     * Send-test-email coarse gate: manage_wpt_email — parity with the
+     * existing ajax handler.
+     *
+     * @return true|\WP_Error
+     */
+    public function can_send_test_email( \WP_REST_Request $request ) {
+        return $this->require_cap( Permission_Manager::CAP_EMAIL );
+    }
+
+    /**
      * Toggle gate: manage_wpt_modules PLUS the per-module
      * wpt_user_can_manage_module filter — the same module-level gating
      * the single-module admin-ajax toggle applies. The filter receives
@@ -290,7 +368,10 @@ class Rest_Controller {
         if ( null === $def ) {
             return $this->invalid_module();
         }
-        return $this->respond( $this->module_payload( $def ) );
+        // canonicalized_from parity (slice 10b, §16.3): every
+        // module-addressed route carries the member on alias-addressed
+        // SUCCESS payloads.
+        return $this->respond( $this->with_canonicalized_from( $this->module_payload( $def ), $request, $def ) );
     }
 
     /**
@@ -373,8 +454,8 @@ class Rest_Controller {
 
         $payload = [
             'id'       => $def['id'],
-            'settings' => $module->get_settings(),
-            'defaults' => $module->get_default_settings(),
+            'settings' => $this->redact_secrets( $module->get_settings(), $module ),
+            'defaults' => $this->redact_secrets( $module->get_default_settings(), $module ),
         ];
 
         return $this->respond( $this->with_canonicalized_from( $payload, $request, $def ) );
@@ -399,7 +480,15 @@ class Rest_Controller {
         }
         [ $module, $def ] = $resolved;
 
-        $validated = $module->validate_settings( (array) $request['settings'] );
+        // Secret resolution happens in the controller BEFORE
+        // validate_settings (Contract 1, §16.3): sentinel/omitted secret
+        // keys splice the stored value back in; non-string secrets reject.
+        $incoming = $this->resolve_secret_settings( (array) $request['settings'], $module, $def['id'] );
+        if ( is_wp_error( $incoming ) ) {
+            return $incoming;
+        }
+
+        $validated = $module->validate_settings( $incoming );
         $pre       = wp_json_encode( Settings::get( $def['id'] ) );
 
         if ( ! Settings::save( $def['id'], $validated ) ) {
@@ -408,8 +497,119 @@ class Rest_Controller {
 
         $payload = [
             'id'       => $def['id'],
-            'settings' => $module->get_settings(),
+            // Redacted like GET: declared secrets never leave over REST,
+            // on ANY response (Contract 1's invariant).
+            'settings' => $this->redact_secrets( $module->get_settings(), $module ),
             'changed'  => wp_json_encode( Settings::get( $def['id'] ) ) !== $pre,
+        ];
+
+        return $this->respond( $this->with_canonicalized_from( $payload, $request, $def ) );
+    }
+
+    /**
+     * POST /modules/{id}/actions/duplicate — duplicate a post via the
+     * module's shared duplicate_post() implementation, honoring its
+     * settings. Two-tier permissions: edit_posts at the route gate,
+     * edit_post on the SOURCE here (parity with the admin_action path;
+     * capability on the resulting post is deliberately not separately
+     * checked — recorded inherited risk, §16.3).
+     *
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function action_duplicate( \WP_REST_Request $request ) {
+        $resolved = $this->resolve_action_module( $request );
+        if ( is_wp_error( $resolved ) ) {
+            return $resolved;
+        }
+        [ $module, $def ] = $resolved;
+
+        // The duplicate action belongs to content-duplication; any other
+        // module id reaching this concrete route has no such action.
+        if ( ! $module instanceof \WPTransformed\Modules\ContentManagement\Content_Duplication ) {
+            return $this->invalid_module();
+        }
+
+        $post_id = (int) $request['post_id'];
+
+        // Object-level check (two-tier pattern).
+        if ( ! current_user_can( 'edit_post', $post_id ) ) {
+            return $this->error( 'wpt_forbidden', __( 'Sorry, you are not allowed to do that.', 'wptransformed' ), 403 );
+        }
+
+        $source = get_post( $post_id );
+        if ( ! $source || in_array( $source->post_type, [ 'revision', 'attachment' ], true ) ) {
+            return $this->error( 'wpt_invalid_post', __( 'Post not found.', 'wptransformed' ), 404 );
+        }
+
+        $settings = $module->get_settings();
+        if ( ! in_array( $source->post_type, (array) $settings['post_types'], true ) ) {
+            return $this->error( 'wpt_post_type_not_enabled', __( 'Duplication is not enabled for this post type.', 'wptransformed' ), 400 );
+        }
+
+        $new_id = $module->duplicate_post( $post_id );
+        if ( is_wp_error( $new_id ) ) {
+            return new \WP_Error(
+                'wpt_duplicate_failed',
+                __( 'Failed to duplicate post.', 'wptransformed' ),
+                [
+                    'status' => 500,
+                    'reason' => $new_id->get_error_message(),
+                ]
+            );
+        }
+
+        $payload = [
+            'source_id'  => $post_id,
+            'new_id'     => $new_id,
+            'new_status' => get_post_status( $new_id ),
+            'edit_link'  => get_edit_post_link( $new_id, 'raw' ),
+        ];
+
+        return $this->respond( $this->with_canonicalized_from( $payload, $request, $def ) );
+    }
+
+    /**
+     * POST /modules/{id}/actions/send-test-email — send via the
+     * module's shared send_test_email() implementation (pinned
+     * {sent, debug} contract). One failure code covers every send-path
+     * failure.
+     *
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function action_send_test_email( \WP_REST_Request $request ) {
+        $resolved = $this->resolve_action_module( $request );
+        if ( is_wp_error( $resolved ) ) {
+            return $resolved;
+        }
+        [ $module, $def ] = $resolved;
+
+        // The send-test-email action belongs to email-delivery.
+        if ( ! $module instanceof \WPTransformed\Modules\Utilities\Email_SMTP ) {
+            return $this->invalid_module();
+        }
+
+        $recipient = sanitize_email( (string) $request['recipient'] );
+        if ( '' === $recipient || ! is_email( $recipient ) ) {
+            return $this->error( 'wpt_invalid_recipient', __( 'Please enter a valid email address.', 'wptransformed' ), 400 );
+        }
+
+        $result = $module->send_test_email( $recipient );
+
+        if ( ! $result['sent'] ) {
+            return new \WP_Error(
+                'wpt_email_send_failed',
+                __( 'Test email could not be sent.', 'wptransformed' ),
+                [
+                    'status' => 502,
+                    'debug'  => $result['debug'],
+                ]
+            );
+        }
+
+        $payload = [
+            'sent'      => true,
+            'recipient' => $recipient,
+            'debug'     => $result['debug'],
         ];
 
         return $this->respond( $this->with_canonicalized_from( $payload, $request, $def ) );
@@ -418,6 +618,92 @@ class Rest_Controller {
     /* ══════════════════════════════════════════
        INTERNAL
     ══════════════════════════════════════════ */
+
+    /**
+     * Shared action-route gate ladder (extends the settings ladder by
+     * the active rung): unknown → wpt_invalid_module 404 · pro
+     * unlicensed → wpt_pro_locked 403 · stub → wpt_module_stub 400 ·
+     * NOT ACTIVE → wpt_module_inactive 409 (actions run module
+     * behavior; settings routes deliberately serve inactive modules,
+     * actions deliberately do not) · active instance unexpectedly
+     * missing → wpt_module_unavailable 500.
+     *
+     * Returns [ ACTIVE module instance, definition ] — the instance the
+     * loader booted, never load_module().
+     *
+     * @return array{0:\WPTransformed\Modules\Module_Base,1:array}|\WP_Error
+     */
+    private function resolve_action_module( \WP_REST_Request $request ) {
+        $def = Core::instance()->get_definition( (string) $request['id'] );
+        if ( null === $def ) {
+            return $this->invalid_module();
+        }
+
+        if ( 'pro' === $def['tier'] && ! Core::is_pro_licensed() ) {
+            return $this->error( 'wpt_pro_locked', __( 'Pro license required.', 'wptransformed' ), 403 );
+        }
+
+        if ( 'stub' === $def['status'] ) {
+            return $this->error( 'wpt_module_stub', __( 'This module is not yet implemented.', 'wptransformed' ), 400 );
+        }
+
+        if ( ! Core::instance()->is_active( $def['id'] ) ) {
+            return $this->error( 'wpt_module_inactive', __( 'Module is not active.', 'wptransformed' ), 409 );
+        }
+
+        $module = Core::instance()->get_module( $def['id'] );
+        if ( null === $module ) {
+            return $this->error( 'wpt_module_unavailable', __( 'Module could not be loaded.', 'wptransformed' ), 500 );
+        }
+
+        return [ $module, $def ];
+    }
+
+    /**
+     * GET-side secret masking (Contract 1, §16.3): declared secret keys
+     * never leave over REST — '' stays '', anything else becomes the
+     * reserved sentinel.
+     */
+    private function redact_secrets( array $settings, \WPTransformed\Modules\Module_Base $module ): array {
+        foreach ( $module->get_secret_settings_keys() as $key ) {
+            if ( array_key_exists( $key, $settings ) ) {
+                $settings[ $key ] = ( '' === $settings[ $key ] ) ? '' : self::SECRET_SENTINEL;
+            }
+        }
+        return $settings;
+    }
+
+    /**
+     * POST-side secret resolution (Contract 1, §16.3), BEFORE
+     * validate_settings: an absent or sentinel-valued declared secret
+     * splices the stored value back in unchanged (the full-replace
+     * exemption); an explicit '' clears; any other string flows to
+     * validate_settings as new input; non-string values reject. A
+     * literal secret value of __WPT_SECRET__ is unsupported by design —
+     * the token is reserved to mean keep-existing.
+     *
+     * @return array|\WP_Error
+     */
+    private function resolve_secret_settings( array $settings, \WPTransformed\Modules\Module_Base $module, string $module_id ) {
+        $secret_keys = $module->get_secret_settings_keys();
+        if ( [] === $secret_keys ) {
+            return $settings;
+        }
+
+        $stored = Settings::get( $module_id );
+
+        foreach ( $secret_keys as $key ) {
+            if ( ! array_key_exists( $key, $settings ) || self::SECRET_SENTINEL === $settings[ $key ] ) {
+                $settings[ $key ] = $stored[ $key ] ?? '';
+                continue;
+            }
+            if ( ! is_string( $settings[ $key ] ) ) {
+                return $this->error( 'wpt_invalid_settings', __( 'Secret settings values must be strings.', 'wptransformed' ), 400 );
+            }
+        }
+
+        return $settings;
+    }
 
     /**
      * Shared settings-route gate ladder, in the toggle route's order:
@@ -474,6 +760,19 @@ class Rest_Controller {
     private function module_id_arg(): array {
         return [
             'description'       => __( 'Canonical module id or legacy alias.', 'wptransformed' ),
+            'type'              => 'string',
+            'pattern'           => '^[a-z0-9]+(?:-[a-z0-9]+)*$',
+            'sanitize_callback' => 'sanitize_key',
+        ];
+    }
+
+    /**
+     * Shared {action} route argument schema — the same pinned pattern
+     * as {id} (slice 10b action-route shape, §16.3).
+     */
+    private function action_arg(): array {
+        return [
+            'description'       => __( 'Action name.', 'wptransformed' ),
             'type'              => 'string',
             'pattern'           => '^[a-z0-9]+(?:-[a-z0-9]+)*$',
             'sanitize_callback' => 'sanitize_key',

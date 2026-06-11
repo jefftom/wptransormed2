@@ -37,6 +37,21 @@ abstract class Module_Base {
         return wp_parse_args( $saved, $this->get_default_settings() );
     }
 
+    /**
+     * Declare which settings keys hold secrets (slice 10b contract —
+     * checkpoint §16.3). The REST controller, not modules, applies the
+     * redaction: declared keys never leave over REST (GET masks them
+     * with '' or the literal sentinel __WPT_SECRET__), and POSTs carrying
+     * the sentinel (or omitting the key) splice the stored value back in
+     * unchanged. A literal secret VALUE of __WPT_SECRET__ is unsupported
+     * by design — the token is reserved to mean keep-existing.
+     *
+     * @return string[] Storage-shape keys holding secret values.
+     */
+    public function get_secret_settings_keys(): array {
+        return [];
+    }
+
     // -- Admin UI --
     public function render_settings(): void {}
 

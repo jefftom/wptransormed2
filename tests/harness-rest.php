@@ -51,6 +51,22 @@ declare(strict_types=1);
  *     failed write — zero hook on every non-change path
  *   - the per-module wpt_user_can_manage_module filter receives the
  *     CANONICAL id and can deny the toggle
+ *   - secret settings (slice 10b): GET masks declared secrets ('' or
+ *     the __WPT_SECRET__ sentinel, defaults included); POST splices
+ *     stored values for sentinel/omitted keys, '' clears, new
+ *     plaintext is stored enc1:-encrypted, ciphertext injection is
+ *     re-encrypted, legacy plaintext splices byte-unchanged,
+ *     non-string secrets reject wpt_invalid_settings 400
+ *   - Email_SMTP + Content_Duplication validate_settings overrides
+ *     (port clamp, encryption enum, post_types registered-type filter,
+ *     status/redirect enums)
+ *   - action routes (slice 10b): ladder incl. wpt_module_inactive 409
+ *     and active-instance wpt_module_unavailable 500; wrong-module ids
+ *     reject; two-tier permissions (coarse gate + object-level 403);
+ *     send-test-email success/failure mapping over the pinned
+ *     {sent, debug} contract; actions fire ZERO lifecycle hooks
+ *   - canonicalized_from parity on GET /modules/{id} (success payloads
+ *     only, alias-addressed requests only)
  *
  * Usage: php tests/harness-rest.php
  *
@@ -65,6 +81,8 @@ define( 'ABSPATH', __DIR__ . '/' ); // Dummy — satisfies the ABSPATH guards.
 define( 'WPT_PATH', dirname( __DIR__ ) . '/' );
 define( 'WPT_VERSION', '0.0.0-harness' );
 define( 'ARRAY_A', 'ARRAY_A' );
+define( 'AUTH_KEY', 'harness-auth-key-3f9a2c81d7e645b0' );        // Real AES path for Email_SMTP.
+define( 'SECURE_AUTH_KEY', 'harness-secure-auth-key-8b14c6d2' );
 
 // ── WP stubs ──────────────────────────────────────────────────
 function __( $s, $d = null ) { return $s; }
@@ -78,6 +96,18 @@ function wp_json_encode( $d, $f = 0 ) { return json_encode( $d, $f ); }
 function wp_parse_args( $args, $defaults = [] ) { return array_merge( (array) $defaults, (array) $args ); }
 function absint( $n ) { return abs( (int) $n ); }
 function is_wp_error( $thing ) { return $thing instanceof WP_Error; }
+function remove_action( $tag, $cb, $p = 10 ) { return true; }
+function sanitize_email( $email ) { $email = trim( (string) $email ); return preg_match( '/^[^@\s]+@[^@\s]+\.[^@\s]+$/', $email ) ? $email : ''; }
+function is_email( $email ) { return preg_match( '/^[^@\s]+@[^@\s]+\.[^@\s]+$/', (string) $email ) ? $email : false; }
+function get_bloginfo( $show = '' ) { return 'Harness Site'; }
+function current_time( $type ) { return '2026-06-10 00:00:00'; }
+function post_type_exists( $type ) { return in_array( $type, [ 'post', 'page' ], true ); }
+$GLOBALS['__wp_mail_calls']  = [];
+$GLOBALS['__wp_mail_result'] = true;
+function wp_mail( $to, $subject, $message, $headers = '', $attachments = [] ) {
+    $GLOBALS['__wp_mail_calls'][] = [ 'to' => $to, 'subject' => $subject ];
+    return (bool) $GLOBALS['__wp_mail_result'];
+}
 function get_option( $k, $d = false ) { return $GLOBALS['__opts'][ $k ] ?? $d; }
 function update_option( $k, $v, $a = null ) { $GLOBALS['__opts'][ $k ] = $v; return true; }
 function delete_option( $k ) { unset( $GLOBALS['__opts'][ $k ] ); return true; }
@@ -156,6 +186,25 @@ class WPT_Rest_Harness_Wpdb {
         $this->rows[] = [ 'module_id' => 'admin-bar-manager', 'is_active' => '0', 'settings' => json_encode( [ 'probe' => 'kept' ] ) ];
         $this->rows[] = [ 'module_id' => 'database-optimizer', 'is_active' => '0', 'settings' => json_encode( [ 'keep' => 'me' ] ) ];
         $this->rows[] = [ 'module_id' => 'login-protection', 'is_active' => '1', 'settings' => json_encode( [ 'stale' => 'row' ] ) ];
+        // Slice 10b action fixtures: both action-owning modules ACTIVE
+        // (their files load at boot — the sanctioned active set), plus an
+        // ACTIVE ghost row whose definition has a missing file (drives
+        // the action ladder's wpt_module_unavailable 500 rung).
+        // email-delivery settings are seeded in validate-output key
+        // order so a sentinel round-trip is encoding-identical.
+        $this->rows[] = [ 'module_id' => 'email-delivery', 'is_active' => '1', 'settings' => json_encode( [
+            'from_email'     => '',
+            'from_name'      => '',
+            'force_from'     => true,
+            'smtp_host'      => '',
+            'smtp_port'      => 587,
+            'encryption'     => 'tls',
+            'authentication' => true,
+            'username'       => '',
+            'password'       => 'enc1:SEEDEDCIPHER',
+        ] ) ];
+        $this->rows[] = [ 'module_id' => 'content-duplication', 'is_active' => '1', 'settings' => '[]' ];
+        $this->rows[] = [ 'module_id' => 'harness-ghost', 'is_active' => '1', 'settings' => '{}' ];
     }
     public function get_results( $sql, $output = null ) { return $this->rows; }
     public function row( string $id ): ?array {
@@ -217,8 +266,9 @@ function module_files_included(): array {
         fn( $f ) => (bool) preg_match( '#[/\\\\]modules[/\\\\]#', $f )
     ) );
 }
-function as_admin(): void { $GLOBALS['__user'] = [ 'logged_in' => true, 'caps' => Permission_Manager::CAPS ]; }
+function as_admin(): void { $GLOBALS['__user'] = [ 'logged_in' => true, 'caps' => array_merge( Permission_Manager::CAPS, [ 'edit_posts', 'edit_post' ] ) ]; }
 function as_editor(): void { $GLOBALS['__user'] = [ 'logged_in' => true, 'caps' => [ 'edit_posts' ] ]; }
+function as_subscriber(): void { $GLOBALS['__user'] = [ 'logged_in' => true, 'caps' => [ 'read' ] ]; }
 function as_nobody(): void { $GLOBALS['__user'] = [ 'logged_in' => false, 'caps' => [] ]; }
 function req( array $params = [] ): WP_REST_Request { return new WP_REST_Request( $params ); }
 function is_wpt_error( $v, string $code, int $status ): bool {
@@ -245,6 +295,10 @@ $core = Core::instance();
 $core->boot();
 $defs = $core->get_definitions();
 
+// Boot include set: exactly the two seeded-active action modules (the
+// ghost's file is missing; the active stub never loads).
+$boot_files = module_files_included();
+
 $ctrl = new Rest_Controller();
 $ctrl->register_routes();
 
@@ -261,6 +315,8 @@ $expected_routes = [
     '/modules/(?P<id>[a-z0-9-]+)/toggle|' . WP_REST_Server::CREATABLE,
     '/modules/(?P<id>[a-z0-9-]+)/settings|' . WP_REST_Server::READABLE,
     '/modules/(?P<id>[a-z0-9-]+)/settings|' . WP_REST_Server::CREATABLE,
+    '/modules/(?P<id>[a-z0-9-]+)/actions/(?P<action>duplicate)|' . WP_REST_Server::CREATABLE,
+    '/modules/(?P<id>[a-z0-9-]+)/actions/(?P<action>send-test-email)|' . WP_REST_Server::CREATABLE,
 ];
 $route_problems = [];
 foreach ( $expected_routes as $key ) {
@@ -270,7 +326,7 @@ foreach ( $expected_routes as $key ) {
     if ( ! is_callable( $r['args']['callback'] ?? null ) ) { $route_problems[] = "{$key}: no callback"; }
     if ( ! is_callable( $r['args']['permission_callback'] ?? null ) ) { $route_problems[] = "{$key}: no permission callback"; }
 }
-check( count( $GLOBALS['__routes'] ) === 7 && $route_problems === [], 'all 7 wpt/v1 routes registered with callbacks + permission callbacks' . ( $route_problems ? ' [' . implode( '; ', $route_problems ) . ']' : '' ) );
+check( count( $GLOBALS['__routes'] ) === 9 && $route_problems === [], 'all 9 wpt/v1 routes registered with callbacks + permission callbacks' . ( $route_problems ? ' [' . implode( '; ', $route_problems ) . ']' : '' ) );
 check( 'wpt/v1' === Rest_Controller::REST_NAMESPACE, 'namespace constant is wpt/v1' );
 $toggle_args = $registered[ '/modules/(?P<id>[a-z0-9-]+)/toggle|' . WP_REST_Server::CREATABLE ]['args']['args'] ?? [];
 check( ( $toggle_args['active']['required'] ?? false ) === true && ( $toggle_args['active']['type'] ?? '' ) === 'boolean', 'toggle route requires boolean active param' );
@@ -281,6 +337,16 @@ check(
     && ( $sget['id'] ?? null ) === ( $toggle_args['id'] ?? false )
     && ( $spost['id'] ?? null ) === ( $toggle_args['id'] ?? false ),
     'settings POST requires an object settings param; settings id args identical to the pinned toggle id arg (route regex + pattern + sanitizer)'
+);
+$adup  = $registered[ '/modules/(?P<id>[a-z0-9-]+)/actions/(?P<action>duplicate)|' . WP_REST_Server::CREATABLE ]['args']['args'] ?? [];
+$amail = $registered[ '/modules/(?P<id>[a-z0-9-]+)/actions/(?P<action>send-test-email)|' . WP_REST_Server::CREATABLE ]['args']['args'] ?? [];
+check(
+    ( $adup['post_id']['required'] ?? false ) === true && ( $adup['post_id']['type'] ?? '' ) === 'integer' && ( $adup['post_id']['minimum'] ?? 0 ) === 1
+    && ( $amail['recipient']['required'] ?? false ) === true && ( $amail['recipient']['type'] ?? '' ) === 'string'
+    && ( $adup['id'] ?? null ) === ( $toggle_args['id'] ?? false ) && ( $amail['id'] ?? null ) === ( $toggle_args['id'] ?? false )
+    && ( $adup['action']['pattern'] ?? '' ) === ( $toggle_args['id']['pattern'] ?? false ) && ( $adup['action']['sanitize_callback'] ?? '' ) === 'sanitize_key'
+    && ( $amail['action']['pattern'] ?? '' ) === ( $toggle_args['id']['pattern'] ?? false ) && ( $amail['action']['sanitize_callback'] ?? '' ) === 'sanitize_key',
+    'action routes: post_id required integer min 1; recipient required string; id + action args pin the existing strict pattern + sanitize_key'
 );
 
 // ── Permission matrix ─────────────────────────────────────────
@@ -335,9 +401,9 @@ $status    = $resp->get_data();
 check(
     $resp->get_status() === 200
     && WPT_VERSION === $status['version']
-    && $status['modules'] === [ 'total' => count( $defs ), 'active' => 1, 'pro_locked' => $pro_total ]
+    && $status['modules'] === [ 'total' => count( $defs ), 'active' => 4, 'pro_locked' => $pro_total ]
     && false === $status['safe_mode'],
-    'GET /system/status reports version + module counts (1 active = the stale stub row) + request-scoped safe_mode'
+    'GET /system/status reports version + module counts (4 active = stale stub + ghost + 2 action modules) + request-scoped safe_mode'
 );
 
 // ── Toggle route ──────────────────────────────────────────────
@@ -512,7 +578,7 @@ check(
     && is_wpt_error( $ctrl->save_module_settings( req( [ 'id' => 'harness-ghost', 'settings' => [] ] ) ), 'wpt_module_unavailable', 500 ),
     'settings GET+POST: implemented definition with a missing file returns wpt_module_unavailable 500'
 );
-check( [] === module_files_included() && [] === $GLOBALS['__did_actions'], 'every settings gate-ladder rejection: ZERO module files included, ZERO hooks fired' );
+check( module_files_included() === $boot_files && [] === $GLOBALS['__did_actions'], 'every settings gate-ladder rejection: ZERO module files included beyond the boot set, ZERO hooks fired' );
 
 as_editor();
 $GLOBALS['__did_actions'] = [];
@@ -525,14 +591,13 @@ check( is_wpt_error( $ctrl->can_manage_settings( req() ), 'wpt_forbidden', 401 )
 as_admin();
 
 // ── Settings routes: GET (sanctioned single-module lazy load) ──
-$resp     = $ctrl->get_module_settings( req( [ 'id' => 'database-cleanup' ] ) );
-$included = module_files_included();
+$resp  = $ctrl->get_module_settings( req( [ 'id' => 'database-cleanup' ] ) );
+$delta = array_values( array_diff( array_map( 'basename', module_files_included() ), array_map( 'basename', $boot_files ) ) );
 check(
     $resp instanceof WP_REST_Response && 200 === $resp->get_status()
     && 'database-optimizer' === $resp->get_data()['id']
     && 'database-cleanup' === ( $resp->get_data()['canonicalized_from'] ?? null )
-    && 1 === count( $included )
-    && 'class-database-cleanup.php' === basename( $included[0] ),
+    && [ 'class-database-cleanup.php' ] === $delta,
     'GET settings via alias: canonical id + canonicalized_from; include delta exactly 1 = class-database-cleanup.php'
 );
 $dbo = Core::instance()->get_module( 'database-optimizer' );
@@ -545,7 +610,7 @@ check(
 );
 $resp = $ctrl->get_module_settings( req( [ 'id' => 'database-optimizer' ] ) );
 check(
-    ! array_key_exists( 'canonicalized_from', $resp->get_data() ) && 1 === count( module_files_included() ),
+    ! array_key_exists( 'canonicalized_from', $resp->get_data() ) && count( module_files_included() ) === count( $boot_files ) + 1,
     'canonical GET settings: no canonicalized_from member, no additional file includes'
 );
 
@@ -601,6 +666,203 @@ check(
     'save failure: wpt_settings_save_failed 500, ZERO hooks, row unchanged'
 );
 
+// ── Secret settings (slice 10b) ───────────────────────────────
+$email = Core::instance()->get_module( 'email-delivery' );
+check( $email instanceof \WPTransformed\Modules\Utilities\Email_SMTP && [ 'password' ] === $email->get_secret_settings_keys(), 'email-delivery is active with password declared secret' );
+
+$resp = $ctrl->get_module_settings( req( [ 'id' => 'email-smtp' ] ) );
+check(
+    '__WPT_SECRET__' === $resp->get_data()['settings']['password']
+    && '' === $resp->get_data()['defaults']['password']
+    && 'tls' === $resp->get_data()['settings']['encryption']
+    && 'email-smtp' === ( $resp->get_data()['canonicalized_from'] ?? null ),
+    'GET settings masks the stored secret with the sentinel (empty default stays empty); ciphertext never leaves; alias carries canonicalized_from'
+);
+
+// Sentinel round-trip: untouched GET -> POST is a clean no-op.
+$round_trip = $resp->get_data()['settings'];
+$GLOBALS['__did_actions'] = [];
+$resp = $ctrl->save_module_settings( req( [ 'id' => 'email-delivery', 'settings' => $round_trip ] ) );
+check(
+    false === $resp->get_data()['changed']
+    && [] === $GLOBALS['__did_actions']
+    && 'enc1:SEEDEDCIPHER' === json_decode( $GLOBALS['wpdb']->row( 'email-delivery' )['settings'], true )['password'],
+    'sentinel round-trip: stored secret spliced byte-unchanged, changed=false, ZERO hooks'
+);
+
+// New plaintext is encrypted; ciphertext injection is re-encrypted.
+$GLOBALS['__did_actions'] = [];
+$body = $round_trip;
+$body['password'] = 'new-harness-pw';
+$resp = $ctrl->save_module_settings( req( [ 'id' => 'email-delivery', 'settings' => $body ] ) );
+$stored_pw = json_decode( $GLOBALS['wpdb']->row( 'email-delivery' )['settings'], true )['password'];
+check(
+    0 === strpos( $stored_pw, 'enc1:' ) && 'enc1:SEEDEDCIPHER' !== $stored_pw && 'new-harness-pw' !== $stored_pw
+    && '__WPT_SECRET__' === $resp->get_data()['settings']['password']
+    && 1 === count( $GLOBALS['__did_actions'] ),
+    'new plaintext secret is stored enc1:-encrypted (never verbatim); the POST response masks it too; hook fires once'
+);
+$body['password'] = 'enc1:FAKEINJECT';
+$ctrl->save_module_settings( req( [ 'id' => 'email-delivery', 'settings' => $body ] ) );
+$stored_pw = json_decode( $GLOBALS['wpdb']->row( 'email-delivery' )['settings'], true )['password'];
+check(
+    0 === strpos( $stored_pw, 'enc1:' ) && 'enc1:FAKEINJECT' !== $stored_pw,
+    'ciphertext injection: a non-matching enc1:-prefixed string is re-encrypted as plaintext, never persisted verbatim'
+);
+
+// Explicit '' clears; GET then shows ''.
+$body['password'] = '';
+$ctrl->save_module_settings( req( [ 'id' => 'email-delivery', 'settings' => $body ] ) );
+$resp = $ctrl->get_module_settings( req( [ 'id' => 'email-delivery' ] ) );
+check(
+    '' === json_decode( $GLOBALS['wpdb']->row( 'email-delivery' )['settings'], true )['password']
+    && '' === $resp->get_data()['settings']['password'],
+    "explicit '' clears the secret; GET reports '' (not the sentinel) for empty"
+);
+
+// Legacy plaintext under sentinel splices byte-unchanged (the
+// pre-encryption store case): seed via the storage layer directly —
+// it is shape-agnostic — then round-trip with the sentinel.
+$legacy_shape             = json_decode( $GLOBALS['wpdb']->row( 'email-delivery' )['settings'], true );
+$legacy_shape['password'] = 'legacy-plain-pw';
+Settings::save( 'email-delivery', $legacy_shape );
+$GLOBALS['__did_actions'] = [];
+$rt             = $legacy_shape;
+$rt['password'] = '__WPT_SECRET__';
+$resp = $ctrl->save_module_settings( req( [ 'id' => 'email-delivery', 'settings' => $rt ] ) );
+check(
+    'legacy-plain-pw' === json_decode( $GLOBALS['wpdb']->row( 'email-delivery' )['settings'], true )['password']
+    && false === $resp->get_data()['changed']
+    && [] === $GLOBALS['__did_actions'],
+    'legacy plaintext under sentinel splices byte-unchanged (no silent upgrade), changed=false, ZERO hooks'
+);
+
+// Non-string secret rejects.
+$GLOBALS['__did_actions'] = [];
+$body['password'] = 123;
+check(
+    is_wpt_error( $ctrl->save_module_settings( req( [ 'id' => 'email-delivery', 'settings' => $body ] ) ), 'wpt_invalid_settings', 400 )
+    && [] === $GLOBALS['__did_actions'],
+    'non-string secret value rejects wpt_invalid_settings 400 with ZERO hooks'
+);
+
+// ── validate_settings overrides (slice 10b) ───────────────────
+$v = $email->validate_settings( [ 'smtp_port' => '70000', 'encryption' => 'junk', 'from_email' => [ 'x' ], 'password' => '__keep__unrelated__' ] );
+check( 587 === $v['smtp_port'] && 'tls' === $v['encryption'] && '' === $v['from_email'], 'Email_SMTP validate: port clamp 70000→587, encryption junk→tls, non-scalar from_email→empty' );
+$v = $email->validate_settings( [ 'smtp_port' => '443', 'encryption' => 'ssl', 'authentication' => 1, 'username' => ' user ' ] );
+check( 443 === $v['smtp_port'] && 'ssl' === $v['encryption'] && true === $v['authentication'] && 'user' === $v['username'], 'Email_SMTP validate: in-range port + valid enum + bool cast + text sanitization pass through' );
+
+$cd = Core::instance()->get_module( 'content-duplication' );
+$v  = $cd->validate_settings( [ 'post_types' => [ 'post', 'bogus_type', 'page' ], 'new_status' => 'publish', 'redirect_after' => 'edit' ] );
+check( [ 'post', 'page' ] === $v['post_types'] && 'publish' === $v['new_status'] && 'edit' === $v['redirect_after'], 'Content_Duplication validate: post_types filtered to registered types, publish allowed, redirect enum' );
+$v = $cd->validate_settings( [ 'post_types' => [ 'bogus_type' ], 'new_status' => 'junk', 'redirect_after' => 'junk' ] );
+check( [ 'post', 'page' ] === $v['post_types'] && 'draft' === $v['new_status'] && 'list' === $v['redirect_after'], 'Content_Duplication validate: empty filter result falls back to [post, page]; invalid enums fall back' );
+
+// ── Action routes: gate ladder (slice 10b) ────────────────────
+$GLOBALS['__did_actions'] = [];
+check(
+    is_wpt_error( $ctrl->action_duplicate( req( [ 'id' => 'not-a-module', 'post_id' => 1 ] ) ), 'wpt_invalid_module', 404 )
+    && is_wpt_error( $ctrl->action_send_test_email( req( [ 'id' => 'not-a-module', 'recipient' => 'a@b.co' ] ) ), 'wpt_invalid_module', 404 ),
+    'actions: unknown id returns wpt_invalid_module 404'
+);
+check(
+    is_wpt_error( $ctrl->action_duplicate( req( [ 'id' => 'white-label', 'post_id' => 1 ] ) ), 'wpt_pro_locked', 403 )
+    && ! class_exists( 'WPTransformed\\Modules\\AdminInterface\\White_Label', false ),
+    'actions: unlicensed Pro rejects wpt_pro_locked 403; Pro class never loads'
+);
+check(
+    is_wpt_error( $ctrl->action_duplicate( req( [ 'id' => 'login-protection', 'post_id' => 1 ] ) ), 'wpt_module_stub', 400 ),
+    'actions: stub rejects wpt_module_stub 400'
+);
+check(
+    is_wpt_error( $ctrl->action_duplicate( req( [ 'id' => 'public-preview', 'post_id' => 1 ] ) ), 'wpt_module_inactive', 409 )
+    && is_wpt_error( $ctrl->action_send_test_email( req( [ 'id' => 'public-preview', 'recipient' => 'a@b.co' ] ) ), 'wpt_module_inactive', 409 ),
+    'actions: implemented-but-INACTIVE module rejects wpt_module_inactive 409 (settings routes serve it; actions do not)'
+);
+check(
+    is_wpt_error( $ctrl->action_duplicate( req( [ 'id' => 'harness-ghost', 'post_id' => 1 ] ) ), 'wpt_module_unavailable', 500 ),
+    'actions: ACTIVE module whose instance failed to load returns wpt_module_unavailable 500'
+);
+check(
+    is_wpt_error( $ctrl->action_duplicate( req( [ 'id' => 'email-delivery', 'post_id' => 1 ] ) ), 'wpt_invalid_module', 404 )
+    && is_wpt_error( $ctrl->action_send_test_email( req( [ 'id' => 'content-duplication', 'recipient' => 'a@b.co' ] ) ), 'wpt_invalid_module', 404 ),
+    'actions: an active module that does not own the action returns wpt_invalid_module 404'
+);
+
+// Two-tier permissions: object-level edit_post check fails in the
+// handler for a user holding only the coarse edit_posts cap.
+as_editor();
+check(
+    is_wpt_error( $ctrl->action_duplicate( req( [ 'id' => 'content-duplication', 'post_id' => 5 ] ) ), 'wpt_forbidden', 403 ),
+    'duplicate: object-level edit_post failure returns wpt_forbidden 403 (two-tier pattern)'
+);
+as_admin();
+
+// Coarse permission callbacks.
+check( true === $ctrl->can_duplicate_content( req() ) && true === $ctrl->can_send_test_email( req() ), 'action coarse gates pass for the caps-granted admin' );
+as_subscriber();
+check(
+    is_wpt_error( $ctrl->can_duplicate_content( req() ), 'wpt_forbidden', 403 )
+    && is_wpt_error( $ctrl->can_send_test_email( req() ), 'wpt_forbidden', 403 ),
+    'action coarse gates: authenticated user without the capability gets 403'
+);
+as_nobody();
+check(
+    is_wpt_error( $ctrl->can_duplicate_content( req() ), 'wpt_forbidden', 401 )
+    && is_wpt_error( $ctrl->can_send_test_email( req() ), 'wpt_forbidden', 401 ),
+    'action coarse gates: logged-out caller gets 401'
+);
+as_admin();
+
+// ── send-test-email action over the pinned {sent, debug} contract ──
+check(
+    is_wpt_error( $ctrl->action_send_test_email( req( [ 'id' => 'email-delivery', 'recipient' => 'not-an-email' ] ) ), 'wpt_invalid_recipient', 400 ),
+    'send-test-email: invalid recipient rejects wpt_invalid_recipient 400 before any send'
+);
+
+$GLOBALS['__wp_mail_calls']  = [];
+$GLOBALS['__wp_mail_result'] = true;
+$resp = $ctrl->action_send_test_email( req( [ 'id' => 'email-smtp', 'recipient' => 'test@example.com' ] ) );
+check(
+    $resp instanceof WP_REST_Response && 200 === $resp->get_status()
+    && [ 'sent' => true, 'recipient' => 'test@example.com', 'debug' => '', 'canonicalized_from' => 'email-smtp' ] === $resp->get_data()
+    && 1 === count( $GLOBALS['__wp_mail_calls'] )
+    && 'test@example.com' === $GLOBALS['__wp_mail_calls'][0]['to']
+    && false !== strpos( $GLOBALS['__wp_mail_calls'][0]['subject'], 'Harness Site' ),
+    'send-test-email success: 200 {sent, recipient, debug} + canonicalized_from via alias; wp_mail called once with site-name subject'
+);
+
+$GLOBALS['__wp_mail_result'] = false;
+$err = $ctrl->action_send_test_email( req( [ 'id' => 'email-delivery', 'recipient' => 'test@example.com' ] ) );
+check(
+    is_wpt_error( $err, 'wpt_email_send_failed', 502 ) && '' === ( $err->get_error_data()['debug'] ?? null ),
+    'send-test-email failure: wpt_email_send_failed 502 with data.debug carrying the capture'
+);
+$GLOBALS['__wp_mail_result'] = true;
+
+// send_test_email pinned contract direct: {sent, debug}, never throws.
+$direct = $email->send_test_email( 'direct@example.com' );
+check( [ 'sent', 'debug' ] === array_keys( $direct ) && true === $direct['sent'] && is_string( $direct['debug'] ), 'send_test_email returns the pinned {sent: bool, debug: string} shape' );
+
+// Actions fire ZERO lifecycle hooks (they are not toggles or saves).
+check( [] === $GLOBALS['__did_actions'], 'across every action call above: ZERO wpt_module_* lifecycle hooks fired' );
+
+// ── canonicalized_from parity on the module READ route ────────
+$resp = $ctrl->get_module( req( [ 'id' => 'email-smtp' ] ) );
+check(
+    'email-delivery' === $resp->get_data()['id'] && 'email-smtp' === ( $resp->get_data()['canonicalized_from'] ?? null ),
+    'GET /modules/{alias} now carries top-level canonicalized_from (parity with settings routes)'
+);
+$resp = $ctrl->get_module( req( [ 'id' => 'email-delivery' ] ) );
+check(
+    ! array_key_exists( 'canonicalized_from', $resp->get_data() ),
+    'GET /modules/{canonical} carries no canonicalized_from member'
+);
+check(
+    $ctrl->get_module( req( [ 'id' => 'nope-nope' ] ) ) instanceof WP_Error,
+    'canonicalized_from is a SUCCESS-payload member only — error responses are bare WP_Error'
+);
+
 // Per-module gating: the wpt_user_can_manage_module filter receives the
 // CANONICAL id (even when the route is addressed by alias) and can deny.
 $GLOBALS['__filter_saw'] = null;
@@ -615,12 +877,14 @@ check(
 );
 $GLOBALS['__filters']['wpt_user_can_manage_module'] = [];
 
-// ── Zero-load: the ONLY module include in this run is the
-// sanctioned settings-route lazy load of its target ──────────────
-$included = module_files_included();
+// ── Zero-load: the only module includes in this run are the two
+// seeded-active action modules (boot) plus the single sanctioned
+// settings-route lazy load ───────────────────────────────────────
+$included = array_map( 'basename', module_files_included() );
+sort( $included );
 check(
-    1 === count( $included ) && 'class-database-cleanup.php' === basename( $included[0] ),
-    'across boot + every route, exactly ONE module file included — the settings-route target (class-database-cleanup.php)'
+    [ 'class-content-duplication.php', 'class-database-cleanup.php', 'class-email-smtp.php' ] === $included,
+    'across boot + every route, exactly the sanctioned includes: 2 boot-active action modules + the settings-route target'
 );
 check( ! class_exists( 'WPTransformed\\Modules\\AdminInterface\\White_Label', false ), 'Pro class (White_Label) never loaded' );
 
