@@ -75,3 +75,33 @@ Current source-of-truth files only:
 - `docs/product/wptransformed-admin-transformation-spec-v1-3.md`
 
 Ignore older product docs unless explicitly auditing history.
+
+# WPT Pipeline — Standing Claude Code Routine (v1.1)
+
+Supersedes CLAUDE-md-handoff-routine.md. Append to the repo's CLAUDE.md. Defines handoff behavior for every WPTransformed build session. The handoff medium is the Google Drive folder "WPT Handoff", reachable by TWO transports; use them in this order:
+
+TRANSPORT 1 — local synced path (preferred, required for binaries): HANDOFF_DIR = G:\My Drive\WPT Handoff. Requires Google Drive for desktop running with the folder available offline.
+TRANSPORT 2 — Google Drive connector (fallback, text artifacts only): if HANDOFF_DIR is absent or Drive desktop is not running, read and write handoff text files (decision docs, prompts, reports, status JSON, ledger) via the Google Drive MCP connector against the "WPT Handoff" folder. Zips and other binaries do NOT go over the connector: write them to the repo's parent directory, state the path in the final summary, and flag that Drive desktop needs starting.
+If both transports are unavailable, complete the session normally and report handoff artifacts as pending. Never invent file contents that should have come from the handoff folder; blocked beats fabricated, always.
+
+## Session start (before any task work)
+1. Via the available transport, check "WPT Handoff" for any slice-*-decisions.md not yet present in docs/audits/. Copy each in verbatim and commit individually: docs(audit): slice {N} decision document. Never edit a decision doc while copying.
+2. Check for a matching slice-*-prompt.md. Prompts are NEVER committed. If a prompt exists without its committed decision doc, stop and report.
+3. Run the baseline gate the prompt specifies before coding.
+
+## During the build
+- The decision doc is the contract; the verified-facts sheet is the tiebreaker; pipeline/failure-patterns.md is the self-check ledger — read all three before coding and re-check the ledger before the final commit.
+- Stop-and-report on any contradiction between contract and code. Never resolve contract contradictions unilaterally.
+
+## Session end (after the slice commit, before the final summary)
+Write four artifacts to "WPT Handoff" (Transport 1; binaries fall back per the transport rules):
+1. report-slice-{N}.md — full final summary with pasted verification output, structured by the prompt's categories, ending with a RETRO section: for each deviation, gap, or near-miss, one line naming which pipeline stage should have caught it (decision doc / external audit / build / verification / human UAT) and whether it is a new failure pattern. New patterns are PROPOSED verbatim for pipeline/failure-patterns.md — never self-applied.
+2. status-slice-{N}.json — { "slice", "commit", "branch", "files_changed", "insertions", "deletions", "harness_assertions", "harness_result", "live_checks_passed", "live_checks_total", "deviations": [], "stopped_on": null, "gaps_logged": [], "e2e_specs_passed": null, "e2e_specs_total": null, "mailpit_assertions": null, "next_recommended": "" } — every field from actual command output.
+3. wptransformed-{version}-slice-{N}.zip — plugin tree only, for human UAT on wpt-uat.
+4. wpt-repo-{commit}.zip — full tree at the slice commit, for external audit.
+
+## Rules
+- Never write secrets, credentials, or live DB dumps to the handoff folder over either transport.
+- The folder is append-only; superseded artifacts stay.
+- These routines move files and evidence only: no product decisions, no decision-doc edits, no ledger edits, no bypassing a stop-and-report.
+
