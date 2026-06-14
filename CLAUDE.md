@@ -90,7 +90,7 @@ If both transports are unavailable, complete the session normally and report han
 3. Run the baseline gate the prompt specifies before coding.
 
 ## During the build
-- The decision doc is the contract; the verified-facts sheet is the tiebreaker; pipeline/failure-patterns.md is the self-check ledger — read all three before coding and re-check the ledger before the final commit.
+- The decision doc is the contract; the tiebreaker is the `## Current Verified Facts` section of `docs/audits/current-checkpoint.md` (no standalone facts sheet remains — it was folded in; on disagreement the facts win, by extraction-from-behavior not age, as that section states); pipeline/failure-patterns.md is the self-check ledger. Read all three — contract, facts section, ledger — before coding, and re-check the ledger before the final commit.
 - Stop-and-report on any contradiction between contract and code. Never resolve contract contradictions unilaterally.
 
 ## Session end (after the slice commit, before the final summary)
